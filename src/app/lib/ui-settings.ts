@@ -95,7 +95,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     id: "systematic",
     name: "Hushed Elegance (Mặc định)",
     bg: "#EAE7EE",
-    accent: "#8E659A",
+    accent: "#413644",
     text: "#4D3653",
     border: "#D3CCD8",
     stripeColor1: "#FFFFFF",
@@ -162,7 +162,7 @@ export const defaultSettings: UiSettings = {
   bgImage: "",
   bgImageStyle: "cover",
   bgImageOpacity: 100,
-  accent: "#8E659A",
+  accent: "#413644",
   text: "#4D3653",
   border: "#D3CCD8",
   fontSize: "13px",
@@ -883,6 +883,15 @@ export async function loadUiSettings(): Promise<UiSettings> {
   const sanitize = (s: unknown): UiSettings => {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
     const result = { ...defaultSettings, ...sObj };
+    // Move the previous Hushed Elegance default to the approved accent while
+    // preserving deliberate custom colors and every other preset.
+    if (
+      result.preset === "systematic" &&
+      typeof result.accent === "string" &&
+      result.accent.toUpperCase() === "#8E659A"
+    ) {
+      result.accent = defaultSettings.accent;
+    }
     // Force valid hex for specific fields
     if (!isValidColor(result.accent)) result.accent = defaultSettings.accent;
     if (!isValidColor(result.text)) result.text = defaultSettings.text;

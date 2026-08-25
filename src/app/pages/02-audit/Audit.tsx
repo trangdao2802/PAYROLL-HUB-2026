@@ -272,7 +272,6 @@ export function Audit() {
     const targetDate = (row._fullDate || row.dateStr || "").trim();
     const idStr = String(row.taId || "").trim();
     const nameStr = String(row.taName || "").trim();
-    const teacherNameStr = String(row.teacherName || "").trim();
 
     const cascadeFilters: Record<string, string> = {};
 
@@ -313,7 +312,7 @@ export function Audit() {
         cascadeFilters["ma_nv"] = idStr;
       }
       toastMsg = `Đang chuyển đến Raw Data & lọc L07 ➔ Lớp ➔ Ngày ➔ ID TA: ${idStr || nameStr}`;
-    } else if (columnKey === "taName" || columnKey === "teacherName") {
+    } else if (columnKey === "taName") {
       // Level 1: L07 -> Level 2: Class -> Level 3: Date -> Level 4: ID NUMBER -> Level 5: FULL NAME
       if (targetClassName && targetClassName !== "KHÔNG CÓ LỚP HỌC") {
         cascadeFilters["class"] = targetClassName;
@@ -324,7 +323,7 @@ export function Audit() {
       if (idStr && idStr !== "-") {
         cascadeFilters["ma_nv"] = idStr;
       }
-      const personName = columnKey === "teacherName" ? teacherNameStr : nameStr;
+      const personName = nameStr;
       if (personName && personName !== "-" && personName !== "Không có giáo viên") {
         cascadeFilters["full_name"] = personName;
       }
@@ -337,22 +336,36 @@ export function Audit() {
       toastMsg = `Đang chuyển đến Raw Data & lọc L07 ➔ Lớp: ${targetClassName}`;
     }
 
-    const searchKw =
-      columnKey === "taId" ? (idStr && idStr !== "-" ? idStr : targetClassName) :
-      columnKey === "taName" ? (nameStr && nameStr !== "-" && nameStr !== "Không có giáo viên" ? nameStr : targetClassName) :
-      columnKey === "teacherName" ? (teacherNameStr && teacherNameStr !== "-" && teacherNameStr !== "Không có giáo viên" ? teacherNameStr : targetClassName) :
+    const rawFilterColumn =
+      columnKey === "center" ? "l07" :
+      columnKey === "className" ? "class" :
+      columnKey === "dateStr" ? "ngay" :
+      columnKey === "taId" ? "ma_nv" :
+      columnKey === "taName" ? "full_name" : "";
+    const rawFilterValue =
+      columnKey === "center" ? targetCenter :
       columnKey === "className" ? targetClassName :
-      columnKey === "dateStr" ? targetClassName :
-      columnKey === "center" ? "" :
+      columnKey === "dateStr" ? targetDate :
+      columnKey === "taId" ? idStr :
+      columnKey === "taName" ? nameStr :
       (targetClassName || idStr || nameStr || "");
+    const rawFilterLabel =
+      columnKey === "center" ? "L07" :
+      columnKey === "className" ? "Class" :
+      columnKey === "dateStr" ? "Date" :
+      columnKey === "taId" ? "TA ID" :
+      columnKey === "taName" ? "TA Name" : "Filter";
 
     const navigateState: any = {
       activeTab: "roster_raw",
       from: "audit",
       cascadeFilters,
+      filterColumn: rawFilterColumn,
+      filterValue: rawFilterValue,
+      filterLabel: rawFilterLabel,
       filterCenter: targetCenter,
       filterDate: cascadeFilters["ngay"] || "",
-      searchTerm: searchKw,
+      searchTerm: rawFilterValue,
     };
 
     startTransition(() => {
@@ -820,7 +833,7 @@ export function Audit() {
       return 0;
     };
 
-    // Flatmap details - keeping all rows for detailed view, especially those with discrepancies
+    // Flatten session details before retaining discrepancy groups below.
     const resultsToMap = auditResults.results || [];
 
     // 1. Flatten all sessions
@@ -924,11 +937,17 @@ export function Audit() {
         }
       }
 
-      const sessionStatus =
+      const needsReview =
         actualTAsCount > allowedTAs ||
-        totalTaHoursForSpan > totalTeacherHoursForSpan * allowedTAs + 0.05
-          ? "Cần check lại"
-          : "";
+        totalTaHoursForSpan > totalTeacherHoursForSpan * allowedTAs + 0.05;
+
+      // This is the discrepancy-detail table: matched sessions do not belong
+      // here, and every displayed row must carry an explicit review status.
+      if (!needsReview) {
+        i = j;
+        continue;
+      }
+      const sessionStatus = "Cần check lại";
 
       const formattedTeacherHours =
         totalTeacherHoursForSpan > 0
@@ -1003,7 +1022,7 @@ export function Audit() {
   // ----- FILTERED DETAIL DATA -----
 
   const filteredDetailData = useMemo(() => {
-    // Show all detail rows by default so the table is not empty
+    // The detail dataset already contains review-only discrepancy rows.
     const result = detailData;
 
     if (!deferredDetailFilter) return result;
@@ -1118,14 +1137,8 @@ export function Audit() {
       filterable: true,
       autoRowSpan: true,
       width: 160,
-      render: (val: string, row: any) => (
-        <span 
-          className="font-bold text-foreground cursor-pointer hover:underline"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDetailRowClick(row, "teacherName");
-          }}
-        >
+      render: (val: string) => (
+        <span className="font-bold text-foreground">
           {capitalizeName(val)}
         </span>
       ),
@@ -1498,7 +1511,7 @@ export function Audit() {
                   {activeTab === "main" ? (
                     <>
                       <FileText className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-primary font-extrabold">BẢNG TỔNG QUAN AUDIT</span>
+                      <span className="text-primary font-extrabold">AUDIT OVERVIEW</span>
                       {mainData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                           {mainData.length}
@@ -1508,7 +1521,7 @@ export function Audit() {
                   ) : (
                     <>
                       <ListOrdered className="w-4 h-4 text-emerald-700 shrink-0" />
-                      <span className="text-emerald-800 font-extrabold">BẢNG CHI TIẾT LỆCH AUDIT</span>
+                      <span className="text-emerald-800 font-extrabold">AUDIT DISCREPANCY DETAILS</span>
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
                           {filteredDetailData.length}
@@ -1676,7 +1689,7 @@ export function Audit() {
               onRowClick={handleMainRowClick}
               storageKey="audit_main_v2"
               className="border-t-0 flex-1"
-              title="Bảng Tổng Quan Đối Soát Lớp & Trợ Giảng"
+              title="Class & Teaching Assistant Audit Overview"
               striped={false}
             />
           ) : (
@@ -1693,7 +1706,7 @@ export function Audit() {
               onExternalSearchChange={setDetailManualFilter}
               storageKey="audit_detail_v2"
               className="border-t-0 flex-1 audit-detail-table"
-              title="Bảng Chi Tiết Đối Soát Lệch Theo Ca Học"
+              title="Session-level Audit Discrepancy Details"
               striped={false}
             />
           )}

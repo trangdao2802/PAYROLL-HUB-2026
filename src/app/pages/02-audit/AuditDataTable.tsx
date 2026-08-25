@@ -2756,8 +2756,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                           <button 
                             type="button"
                             onClick={(e) => { e.stopPropagation(); autoFitAllColumns(); }}
-                            className="opacity-0 group-hover/no:opacity-100 transition-opacity p-0.5 hover:bg-accent/10 rounded text-accent cursor-pointer"
+                            className="opacity-60 hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 hover:bg-accent/10 rounded text-accent cursor-pointer"
                             title="Tự động căn chỉnh tất cả cột"
+                            aria-label="Tự động căn chỉnh tất cả cột"
                           >
                             <Maximize2 className="w-3 h-3" />
                           </button>
@@ -2840,8 +2841,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                         <button 
                           type="button"
                           onClick={(e) => { e.stopPropagation(); autoFitAllColumns(); }}
-                          className="opacity-0 group-hover/no:opacity-100 transition-opacity p-0.5 hover:bg-accent/10 rounded text-accent cursor-pointer"
+                          className="opacity-60 hover:opacity-100 focus-visible:opacity-100 transition-opacity p-0.5 hover:bg-accent/10 rounded text-accent cursor-pointer"
                           title="Tự động căn chỉnh tất cả cột"
+                          aria-label="Tự động căn chỉnh tất cả cột"
                         >
                           <Maximize2 className="w-3 h-3" />
                         </button>

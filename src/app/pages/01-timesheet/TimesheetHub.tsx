@@ -515,6 +515,40 @@ export function TimesheetHub() {
   const [targetCenter, setTargetCenter] = useState("");
   const [auditCascadeFilters, setAuditCascadeFilters] = useState<Record<string, string>>({});
 
+  const activeAuditFilterEntries = useMemo(() => {
+    const navigationState = location.state as any;
+    const isAuditNavigation =
+      navigationState?.from === "audit" ||
+      navigationState?.from === "audit_applied" ||
+      String(navigationState?.from || "").includes("audit");
+    if (!isAuditNavigation) return [];
+
+    const labels: Record<string, string> = {
+      l07: "L07",
+      center: "Center",
+      class: "Class",
+      ngay: "Date",
+      date: "Date",
+      ma_nv: "TA ID",
+      full_name: "TA Name",
+    };
+    const entries: { key: string; label: string; value: string }[] = [];
+    const seenValues = new Set<string>();
+    const addEntry = (key: string, value: unknown, label?: string) => {
+      const displayValue = String(value || "").trim();
+      const normalizedValue = normalizeFilterText(displayValue);
+      if (!displayValue || seenValues.has(normalizedValue)) return;
+      seenValues.add(normalizedValue);
+      entries.push({ key, label: label || labels[key] || key, value: displayValue });
+    };
+
+    Object.entries(auditCascadeFilters).forEach(([key, value]) => addEntry(key, value));
+    addEntry("center", targetCenter, "Center");
+    addEntry("date", targetDate, "Date");
+    addEntry("keyword", searchTerm, navigationState?.filterLabel || "Keyword");
+    return entries;
+  }, [auditCascadeFilters, location.state, searchTerm, targetCenter, targetDate]);
+
   const handleClearFilters = useCallback(() => {
     setSearchTerm("");
     setTargetDate("");
@@ -786,6 +820,7 @@ export function TimesheetHub() {
 
         // Set KEYWORD input search term in top card
         const keywordVal =
+          state.filterValue ||
           state.searchTerm ||
           cascade["class"] ||
           cascade["ma_nv"] ||
@@ -1609,6 +1644,26 @@ export function TimesheetHub() {
                         </div>
                       </div>
 
+                      {activeAuditFilterEntries.length > 0 && (
+                        <div className="flex flex-col gap-1.5 rounded-lg border border-primary/15 bg-primary/[0.04] p-2.5 shadow-2xs">
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
+                            ACTIVE AUDIT FILTERS
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {activeAuditFilterEntries.map((entry) => (
+                              <span
+                                key={`${entry.key}-${entry.value}`}
+                                className="inline-flex min-w-0 items-center gap-1 rounded-full border border-primary/15 bg-card px-2 py-1 text-[9px] font-bold text-foreground"
+                                title={`${entry.label}: ${entry.value}`}
+                              >
+                                <span className="shrink-0 text-primary/60">{entry.label}:</span>
+                                <span className="max-w-[170px] truncate">{entry.value}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                     </div> {/* Closes scrollable container */}
 
@@ -1702,14 +1757,14 @@ export function TimesheetHub() {
                   <div className="bg-rose-50 border-b border-rose-200 px-4 py-2 flex items-center justify-between z-[150] shrink-0">
                     <div className="flex items-center gap-2 text-rose-800 text-xs font-bold">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                      <span>Đang xem chi tiết dữ liệu nguồn từ Bảng đối soát Audit</span>
+                      <span>Viewing source data from Audit Discrepancy Details</span>
                     </div>
                     <button
                       onClick={() => navigate("/audit", { state: { activeTab: "detail" } })}
                       className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Quay về bảng chi tiết lệch Audit</span>
+                      <span>Back to Audit Discrepancy Details</span>
                     </button>
                   </div>
                 )}

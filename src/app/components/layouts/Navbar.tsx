@@ -54,13 +54,13 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
   "/centers": [
     { id: "employee", label: "Total Paid Hours", icon: Users },
     { id: "center", label: "Roster Center", icon: Building2 },
-    { id: "mkt_local_north", label: "PIVOT TIMESHEET", icon: FileText },
+    { id: "mkt_local_north", label: "Pivot Timesheet", icon: FileText },
     { id: "roster_raw", label: "Raw Data", icon: FileText },
     { id: "upload", label: "Cài đặt & Tải file (Timesheet)", icon: UploadCloud },
   ],
   "/audit": [
-    { id: "main", label: "BẢNG TỔNG QUAN AUDIT", icon: ShieldCheck },
-    { id: "detail", label: "BẢNG CHI TIẾT LỆCH AUDIT", icon: AlertCircle },
+    { id: "main", label: "Audit Overview", icon: ShieldCheck },
+    { id: "detail", label: "Audit Discrepancy Details", icon: AlertCircle },
   ],
   "/master-ae": [
     { id: "Sheet1_AE", label: "Gross Pay", icon: Database },

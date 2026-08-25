@@ -1747,7 +1747,7 @@ export function UiSettingsModal({
                         value={
                           settings.accent?.startsWith("#") && settings.accent.length === 7
                             ? settings.accent
-                            : "#8E659A"
+                            : "#413644"
                         }
                         onChange={(e) =>
                           setSettings({ ...settings, accent: e.target.value })
