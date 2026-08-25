@@ -1,0 +1,37 @@
+
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="icon" type="image/png" href="/logo.png" />
+      <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.google.com https://*.run.app https://cdn.jsdelivr.net https://vercel.live https://*.vercel.live https://vercel.com; connect-src 'self' https: wss: https://*.run.app https://*.googleapis.com https://*.google-analytics.com https://vercel.live https://*.vercel.live https://vercel.com wss://*.vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com https://vercel.live https://*.vercel.live; font-src 'self' https://fonts.gstatic.com https://*.vercel.live; img-src 'self' data: https: blob:; worker-src 'self' blob:;">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400;1,700&family=Great+Vibes&family=Inter:wght@300;400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,700&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Port+Lligat+Slab&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+      <title>Payroll Hub | Systematic Design</title>
+      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+      <script>
+        window.addEventListener('error', function(e) {
+          if (
+            e.message === 'Script error.' ||
+            e.message === 'ResizeObserver loop limit exceeded' ||
+            e.message === 'ResizeObserver loop completed with undelivered notifications.'
+          ) {
+            e.stopImmediatePropagation();
+          }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+          if (e.reason && e.reason.message && e.reason.message.includes('ResizeObserver')) {
+            e.stopImmediatePropagation();
+          }
+        });
+      </script>
+    </head>
+
+    <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+    </body>
+  </html>
+  

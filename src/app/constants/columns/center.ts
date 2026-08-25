@@ -1,0 +1,105 @@
+export const CENTER_COLUMNS = [
+  { key: "business", label: "Business", type: "text" as const, width: 120, cellClassName: "font-bold text-slate-400" },
+  { key: "l07", label: "L07", type: "text" as const, width: 150, cellClassName: "font-black text-slate-800" },
+  {
+    key: "salaryScale",
+    label: "Salary Scale",
+    type: "text" as const,
+    width: 120,
+    cellClassName: "font-medium text-slate-500",
+    hidden: true
+  },
+  { key: "from", label: "From", type: "date" as const, width: 100, cellClassName: "text-slate-400", hidden: true },
+  { key: "to", label: "To", type: "date" as const, width: 100, cellClassName: "text-slate-400", hidden: true },
+  {
+    key: "chargeLxo",
+    label: "LXO",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeEc",
+    label: "EC",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargePtDemo",
+    label: "PT-DEMO",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeLdem01",
+    label: "LDEM01",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeLdec01",
+    label: "LDEC01",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeLpar01",
+    label: "LPAR01",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeLret01",
+    label: "LRET01",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeMoth01",
+    label: "MOTH01",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeOther",
+    label: "OTHER",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeRenewalProjects",
+    label: "RENEWAL PROJECTS",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeDiscoveryCamp",
+    label: "DISCOVERY CAMP",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeSummerOuting",
+    label: "SUMMER OUTING",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeSummerInstructors",
+    label: "SUMMER INSTRUCTORS",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "chargeExtraSummerInstructors",
+    label: "Extra Summer Instructors",
+    type: "currency" as const,
+    width: 140,
+  },
+  {
+    key: "totalSalary",
+    label: "Total Salary",
+    type: "currency" as const,
+    width: 160,
+    cellClassName: "font-black text-indigo-700 bg-indigo-50/50"
+  },
+];

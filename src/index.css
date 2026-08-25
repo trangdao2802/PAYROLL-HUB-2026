@@ -1,0 +1,2128 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,700&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+.ui-inspector-selected {
+  outline: 3px solid #78a6ff !important;
+  outline-offset: 2px !important;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-main: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", sans-serif;
+  --font-script: "Yellowtail", cursive;
+  --font-chunky: "Lilita One", sans-serif;
+  --tabular-nums: var(--font-table, var(--font-main));
+  --font-waterfall: "Waterfall", cursive;
+  --font-playpen: "Playpen Sans", cursive;
+  --font-corinthia: "Corinthia", cursive;
+  --font-playwrite: "Playwrite IS", cursive;
+  --font-playwrite-za: "Playwrite ZA", cursive;
+  --font-playwrite-ar: "Playwrite AR", cursive;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-ring: var(--ring);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 3rem;
+}
+
+/* Translucent & Subtle Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(65, 54, 68, 0.22);
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(65, 54, 68, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(65, 54, 68, 0.22) transparent;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Font Families */
+  --font-main: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", sans-serif;
+  --tabular-nums: var(--font-table, var(--font-main));
+  --font-space-grotesk: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  --font-jetbrains-mono: "JetBrains Mono", monospace;
+  --font-port-lligat-slab: "Gentium Book Plus", serif;
+  --font-inter: "Inter", "Plus Jakarta Sans", sans-serif;
+  --font-be-vietnam: "Be Vietnam Pro", "Plus Jakarta Sans", sans-serif;
+  --font-newsreader: "Newsreader", "Gentium Book Plus", serif;
+  --font-nunito: "Nunito", "Plus Jakarta Sans", sans-serif;
+  --font-quicksand: "Quicksand", "Nunito", sans-serif;
+  --font-table: var(--font-main);
+  --font-size: 13px;
+  --custom-font-size: 13px;
+  --font-weight-bold: 600;
+  --tracking-tight: 0.02em;
+
+  /* Hushed Elegance Palette - Accent/Table: #413644 */
+  --bg: #EAE7EE;
+  --surface: #FCFBFD;
+  --ink: #413644;
+  --ink-muted: #6B5B70;
+  --accent: #413644;
+  --accent-soft: #F2EEF5;
+  --border: #D3CCD8;
+  --radius-btn: 99px;
+  --radius-card: 12px;
+
+  --background: #EAE7EE;
+  --foreground: #413644;
+  --card: #FCFBFD; 
+  --card-foreground: #413644;
+  --primary: #413644;
+  --primary-foreground: #FFFFFF; 
+  --secondary: #B4C0CB;
+  --secondary-foreground: #413644;
+  --accent-foreground: #FFFFFF;
+  --popover: #FCFBFD;
+  --popover-foreground: #413644;
+  --muted: #E3DBE8;
+  --muted-foreground: #6B5B70;
+  --table-grid-color: rgba(65, 54, 68, 0.08);
+  --grid-line-color: rgba(65, 54, 68, 0.08);
+  --table-border-color: rgba(65, 54, 68, 0.08);
+  --table-header-bg: #413644;
+  --table-footer-bg: #CFC4D6;
+  --table-column-header-bg: #E3DBE8;
+  --table-data-bg: #FCFBFD;
+  --ring: #8E659A;
+  --sky: #B4C0CB; 
+  --rose: #8E659A;
+  --peach: #CFC4D6;
+  --radius: 12px;
+
+  --stripe-color1: #FFFFFF;
+  --stripe-color2: #EFECE8;
+
+  --pattern-stripes-purple: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(79, 70, 229, 0.05) 10px,
+    rgba(79, 70, 229, 0.05) 20px
+  );
+  --pattern-stripes-green: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(34, 197, 94, 0.05) 10px,
+    rgba(34, 197, 94, 0.05) 20px
+  );
+  --pattern-stripes-brown: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(15, 23, 42, 0.03) 10px,
+    rgba(15, 23, 42, 0.03) 20px
+  );
+  --pattern-stripes-rose: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(206, 159, 169, 0.05) 10px,
+    rgba(206, 159, 169, 0.05) 20px
+  );
+}
+
+.bg-pattern-purple { background-image: var(--pattern-stripes-purple) !important; }
+.bg-pattern-green { background-image: var(--pattern-stripes-green) !important; }
+.bg-pattern-brown { background-image: var(--pattern-stripes-brown) !important; }
+.bg-pattern-rose { background-image: var(--pattern-stripes-rose) !important; }
+
+/* Sticky first column styles for DataTable */
+.sticky-col-selectable {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 25 !important;
+    background-color: inherit;
+}
+
+.sticky-col-row-number {
+    position: sticky !important;
+    z-index: 25 !important;
+    background-color: inherit;
+}
+
+.sticky-col-first-data {
+    position: sticky !important;
+    z-index: 25 !important;
+    background-color: inherit;
+}
+
+.sticky-header-col {
+    z-index: 125 !important;
+    background-color: var(--table-column-header-bg, #F4ECD8);
+}
+
+.sticky-footer-col {
+    z-index: 45 !important;
+}
+
+/* Design CSS applied classes */
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    padding-top: 1rem;
+    max-height: 100vh;
+    min-height: 0;
+}
+
+.stat-group {
+    margin-bottom: 3rem;
+}
+
+.stat-group .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.stat-group .value {
+    font-family: var(--font-main), sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.content-area {
+  padding: 0.75rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+.actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.actions button,
+.btn-primary,
+.btn-secondary {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-main), sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    border-radius: var(--radius-card, 10px);
+    transition: all 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    border: 1px solid transparent;
+    background: var(--primary, #5D111A);
+    color: var(--primary-foreground, #FFFFFF);
+}
+
+.btn-primary:hover {
+    opacity: 0.92;
+}
+
+.btn-secondary {
+    background: var(--card, #FFFFFF);
+    border: 1px solid var(--border, #E7E5E4);
+    color: var(--foreground, #1C1917);
+}
+
+.btn-secondary:hover {
+    background: var(--muted, #F5EBEB);
+}
+
+.dark {
+  --background: #5d111a;
+  --foreground: #f6f4f0;
+  --card: #4a0e15;
+  --card-foreground: #f6f4f0;
+  --popover: #4a0e15;
+  --popover-foreground: #f6f4f0;
+  --primary: #c88493;
+  --primary-foreground: #ffffff;
+  --secondary: #a5b889;
+  --secondary-foreground: #5d111a;
+  --muted: #4a0e15;
+  --muted-foreground: #c88493;
+  --accent: #f2cfd5;
+  --accent-foreground: #5d111a;
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: rgba(246, 244, 240, 0.15);
+  --input: rgba(246, 244, 240, 0.15);
+  --ring: #c88493;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --stripe-color1: #5d111a;
+  --stripe-color2: #4a0e15;
+}
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-weight: 500;
+    letter-spacing: var(--tracking-tight, 0.02em);
+    background-attachment: fixed;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: var(--background, #F9F8F6);
+    pointer-events: none;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: var(--bg-image);
+    background-size: var(--bg-image-size, cover);
+    background-repeat: var(--bg-image-repeat, no-repeat);
+    background-position: var(--bg-image-position, center);
+    background-attachment: var(--bg-image-attachment, fixed);
+    opacity: var(--bg-image-opacity, 0);
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  /* Force visibility of all table cells to resolve alignment issues */
+  table.w-full th, 
+  table.w-full td {
+    display: table-cell !important;
+  }
+
+  /* Explicit Data Table Borders */
+  table, .data-table-container table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-top: 1px solid var(--border, #E7E5E4) !important;
+    border-left: 1px solid var(--border, #E7E5E4) !important;
+  }
+
+  table th, table td,
+  .data-table-container th, .data-table-container td,
+  .table-body-region td, .table-body-region th {
+    border-bottom: 1px solid var(--border, #E7E5E4) !important;
+    border-right: 1px solid var(--border, #E7E5E4) !important;
+  }
+
+  .dark table, .dark .data-table-container table {
+    border-top: 1px solid var(--border, #334155) !important;
+    border-left: 1px solid var(--border, #334155) !important;
+  }
+
+  .dark table th, .dark table td,
+  .dark .data-table-container th, .dark .data-table-container td,
+  .dark .table-body-region td, .dark .table-body-region th {
+    border-bottom: 1px solid var(--border, #334155) !important;
+    border-right: 1px solid var(--border, #334155) !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-foreground tracking-tight;
+  }
+
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4 {
+    @apply font-display text-foreground tracking-tight;
+  }
+
+  h1 {
+    @apply font-[700] leading-tight;
+  }
+
+  h2 {
+    @apply font-[700] tracking-[-0.01em] leading-tight;
+  }
+
+  .decorative-text {
+    @apply font-display font-[500] uppercase tracking-[0.1em];
+  }
+
+  html {
+    font-size: 13px;
+    font-family: var(--font-main);
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--primary) 50%, transparent)
+      transparent;
+  }
+
+  /* Force Table Font consistently */
+  table,
+  table th,
+  table td,
+  table th *,
+  table td *,
+  table input,
+  table select,
+  table textarea,
+  .table-font {
+    font-family: var(--font-table, var(--font-main)) !important;
+  }
+
+  table {
+    font-size: 100%;
+  }
+
+  th,
+  td {
+    font-size: var(--custom-font-size, 13px);
+    padding: var(--table-padding, 12px 16px);
+  }
+
+  td {
+    white-space: nowrap;
+  }
+
+  /* Custom Scrollbar Styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent);
+  }
+
+  /* Master AE Isolated Styles */
+  .master-ae-table-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .master-ae-table-wrapper .data-table-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: auto !important;
+    position: relative !important;
+  }
+
+  .master-ae-table-wrapper .custom-scrollbar {
+    flex: 1 !important;
+    overflow: auto !important;
+    display: block !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    position: relative !important;
+  }
+
+  .master-ae-table-wrapper tfoot {
+    display: table-footer-group !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 45 !important;
+  }
+  
+  .master-ae-table-wrapper .total-row,
+  .master-ae-table-wrapper tfoot td {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 45 !important;
+    background-color: var(--table-column-header-bg, #F4ECD8) !important;
+    color: var(--accent, #1e293b) !important;
+    font-weight: 800 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5rem !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  /* Remove automatic hiding of the second column which causes alignment issues */
+  .master-ae-table-wrapper:not(.pivot-table-container) th:nth-child(2),
+  .master-ae-table-wrapper:not(.pivot-table-container) td:nth-child(2) {
+    display: table-cell !important;
+  }
+
+  .master-ae-table-wrapper:not(.pivot-table-container) table {
+    table-layout: auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  /* Restore second column and active cols for the Pivot Table with high specificity */
+  .pivot-table-container th,
+  .pivot-table-container td,
+  .master-ae-table-wrapper.pivot-table-container th,
+  .master-ae-table-wrapper.pivot-table-container td,
+  .master-ae-table-wrapper.pivot-table-container th:nth-child(2),
+  .master-ae-table-wrapper.pivot-table-container td:nth-child(2) {
+    display: table-cell !important;
+  }
+
+  .pivot-table-container th,
+  .master-ae-table-wrapper.pivot-table-container th {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  .pivot-table-container td,
+  .master-ae-table-wrapper.pivot-table-container td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .pivot-table-container table,
+  .master-ae-table-wrapper .pivot-table-container table {
+    table-layout: fixed !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  .master-ae-table-wrapper .pivot-table-container thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 35 !important;
+  }
+
+  .master-ae-table-wrapper .pivot-table-container thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 35 !important;
+  }
+
+  .master-ae-table-wrapper .pivot-table-container tfoot {
+    display: table-footer-group !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 35 !important;
+  }
+
+  .master-ae-table-wrapper .pivot-table-container .total-row,
+  .master-ae-table-wrapper .pivot-table-container tfoot td {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 35 !important;
+    background-color: var(--pivot-header-bg, #F4EFE6) !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    border-top: 1px solid #cbd5e1 !important;
+    border-bottom: 2px double #94a3b8 !important;
+    border-right: 1px solid #cbd5e1 !important;
+    font-size: 13px !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(61, 57, 53, 0.08);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--primary) 85%, black 10%);
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary);
+  }
+
+  /* Compatibility Fixes for older Safari/iOS */
+  input,
+  select,
+  textarea {
+    font-size: 13px !important; /* Prevents auto-zoom on iOS Safari */
+    font-family: inherit; /* Inherit from td or body */
+  }
+
+  .sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+
+  /* Global backdrop-filter prefixing support */
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: blur(var(--blur-amount, 8px));
+  }
+
+  /* Navigation Elevation */
+  .nav-elevation {
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03);
+    border-right: 2px solid var(--border);
+  }
+}
+
+@layer utilities {
+  .table-container,
+  .data-table-wrapper,
+  .pivot-table-container,
+  #table-card {
+    background-color: var(--card);
+    border-radius: 0 !important;
+    box-shadow: none;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .scroll-wrapper {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .data-table-wrapper {
+    background-color: var(--card) !important;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  table th,
+  .data-table-wrapper th,
+  .pivot-table-container th,
+  .master-ae-table-wrapper th,
+  .audit-data-table-wrapper th,
+  .unified-table-frame th,
+  .analysis-data-table th,
+  .reconcile-table-region th {
+    background-color: var(--table-column-header-bg, #E3DBE8) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    font-weight: 700 !important;
+    font-size: 10px !important;
+    color: var(--accent) !important;
+    border-bottom: 1px solid var(--border) !important;
+    text-align: center !important;
+  }
+
+  table th > div,
+  .data-table-wrapper th > div,
+  .pivot-table-container th > div,
+  .master-ae-table-wrapper th > div,
+  .audit-data-table-wrapper th > div,
+  .unified-table-frame th > div,
+  .analysis-data-table th > div,
+  .reconcile-table-region th > div,
+  table th span,
+  .data-table-wrapper th span,
+  .pivot-table-container th span,
+  .pivot-master-table th span {
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .data-table-wrapper th.academic-group {
+    background-color: #E0F2FE !important; /* Sky blue background */
+    color: #0369A1 !important; /* Sky blue text */
+    border-bottom: 2px solid #BAE6FD !important;
+  }
+
+  .data-table-wrapper th.admin-group {
+    background-color: #FEF3C7 !important; /* Amber background */
+    color: #B45309 !important; /* Amber text */
+    border-bottom: 2px solid #FDE68A !important;
+  }
+
+  .data-table-wrapper td {
+    border-bottom: 1px solid var(--border) !important;
+    color: rgba(51, 48, 46, 0.8) !important;
+  }
+
+  .data-table-wrapper tfoot td,
+  .master-ae-table-wrapper tfoot td,
+  .pivot-table-container tfoot td,
+  .data-table-wrapper .total-row,
+  .master-ae-table-wrapper .total-row,
+  .pivot-table-container .total-row,
+  .master-ae-table-wrapper tfoot tr td,
+  .data-table-wrapper tfoot tr td {
+    background-color: var(--table-column-header-bg, #F4ECD8) !important;
+    color: var(--accent, #1e293b) !important;
+    font-weight: 800 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-top: 1px solid var(--border, #cbd5e1) !important;
+    border-bottom: 1px solid var(--border, #cbd5e1) !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 45 !important;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  th.sticky:not(.has-group) {
+    z-index: 60;
+  }
+
+}
+
+@utility soft-button {
+  @apply rounded-full px-6 py-2.5 font-medium transition-all duration-300;
+}
+
+@utility scallop-border {
+  background-image: radial-gradient(
+    circle at 10px 10px,
+    transparent 10px,
+    white 10.5px
+  );
+  background-size: 20px 20px;
+}
+
+@utility gingham-pattern {
+  background-color: transparent;
+  background-image:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--primary) 8%, transparent) 50%,
+      transparent 50%
+    ),
+    linear-gradient(
+      color-mix(in srgb, var(--primary) 8%, transparent) 50%,
+      transparent 50%
+    );
+  background-size: 40px 40px;
+}
+
+@utility striped-pattern {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent, #a8e4f0) 15%, transparent) 50%,
+    transparent 50%
+  );
+  background-size: 48px 100%;
+}
+
+@utility striped-pattern-sage {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--primary) 15%, transparent) 50%,
+    transparent 50%
+  );
+  background-size: 40px 100%;
+}
+
+@utility vintage-card {
+  @apply bg-card border border-border rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+}
+
+@utility vintage-button {
+  @apply rounded-full px-6 py-2.5 font-medium transition-all duration-300 bg-primary text-white hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5;
+}
+
+@utility vintage-button-icon {
+  @apply rounded-full w-10 h-10 flex items-center justify-center bg-white border border-border text-primary hover:bg-primary hover:text-white transition-all;
+}
+
+@utility vintage-header {
+  @apply px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-muted/30 border-b border-border;
+}
+
+@utility vintage-input {
+  @apply flex items-center bg-white border border-border rounded-full px-4 py-2 text-sm focus-within:ring-2 focus-within:ring-primary/20;
+}
+
+@utility vintage-dropdown {
+  @apply absolute bg-white border border-border rounded-2xl shadow-xl z-50 overflow-hidden;
+}
+
+@utility text-embossed {
+  text-shadow: 
+    -1px -1px 1px rgba(255, 255, 255, 0.95), 
+    1.5px 1.5px 2.5px rgba(45, 25, 18, 0.16);
+}
+
+@utility text-embossed-paper {
+  color: #f7f4ec !important;
+  text-shadow: 
+    -1.5px -1.5px 2px rgba(255, 255, 255, 1), 
+    1.5px 1.5px 3px rgba(45, 25, 18, 0.16);
+}
+
+.dark .text-embossed-paper {
+  color: #5d111a !important;
+  text-shadow: 
+    -1.5px -1.5px 2px rgba(255, 255, 255, 0.12), 
+    1.5px 1.5px 3.5px rgba(0, 0, 0, 0.6);
+}
+
+/* Table Gridline Customization based on user settings */
+table,
+table th,
+table td,
+table tr,
+table thead,
+table tbody,
+table tfoot {
+  border-color: var(--grid-line-color, var(--border, #E2E8F0)) !important;
+}
+
+/* User-focused style corrections */
+
+/* Ensure the hold dashboard container has a defined height and allows internal scrolling if needed */
+.hold-dashboard-card {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* Ensure table footers are sticky and have high contrast opaque background */
+tfoot.sticky,
+tfoot[class*="sticky"] {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 30 !important;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important;
+}
+
+tfoot.sticky td,
+tfoot[class*="sticky"] td {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 30 !important;
+}
+
+/* Ensure the main table scroll containers respect the viewport height constraints or fill parent space via Flexbox */
+.hold-dashboard-card .overflow-auto {
+  max-height: calc(100vh - 180px) !important;
+}
+
+.data-table-wrapper > div:first-child,
+.audit-data-table-wrapper > div:first-child {
+  max-height: none !important;
+  flex-grow: 1;
+}
+
+/* UI Adjustment: Table and Button Styling Rules */
+
+/* 1. Structural containers & wrappers enforce square corners (0px) */
+div,
+section,
+header,
+table,
+.table-container,
+.data-table-wrapper,
+.audit-data-table-wrapper,
+.pivot-table-container,
+.master-ae-table-wrapper,
+#table-card,
+header.table-header,
+div.table-wrapper,
+.main-header-wrapper,
+.table-data-container,
+[class*="container"]:not(.rounded-full):not(button),
+[class*="wrapper"]:not(.rounded-full):not(button) {
+  border-radius: 0px !important;
+}
+
+/* 2. Interactive buttons apply 20px rounded corners */
+button:not(.rounded-full):not(.rounded-none):not(.search-btn-exception),
+[role="button"]:not(.rounded-full):not(.rounded-none):not(.search-btn-exception),
+.filter-btn,
+button.px-3.py-1\.5 {
+  border-radius: 20px !important;
+}
+
+/* 3. Maintain circular shape for badges and search elements */
+span.rounded-full,
+div.rounded-full,
+input.rounded-full,
+button.rounded-full,
+.search-btn-exception,
+[class*="rounded-full"] {
+  border-radius: 9999px !important;
+}
+
+/* Icon-only controls are always true circles, independent from saved radius. */
+:where(button, [role="button"]):has(> svg:only-child),
+div:has(> svg:only-child) {
+  border-radius: 9999px !important;
+}
+
+/* Shared native dropdown treatment; transparent title selectors opt out. */
+select:not([multiple]):not(.title-select-plain) {
+  border-radius: 12px;
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--border));
+  background-color: var(--card, #fff);
+  box-shadow: 0 8px 24px -20px color-mix(in srgb, var(--primary) 45%, transparent);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+select:not([multiple]):not(.title-select-plain):hover,
+select:not([multiple]):not(.title-select-plain):focus {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.payroll-theme-card {
+  background-color: color-mix(in srgb, var(--primary) 6%, var(--card, #fff)) !important;
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--border)) !important;
+}
+
+/* Master owns its visual language. These tokens are derived from the user's
+   accent harmony and are intentionally not shared with Timesheet pages. */
+.master-theme-panel,
+.page-master-ae,
+.page-master-config,
+.pivot-master-frame {
+  --master-border: color-mix(in srgb, var(--primary) 20%, var(--border));
+  --master-divider: color-mix(in srgb, var(--primary) 12%, var(--border));
+  --master-surface: var(--theme-surface-soft, color-mix(in srgb, var(--primary) 5%, var(--card)));
+  --master-surface-alt: var(--theme-surface-complement, color-mix(in srgb, var(--primary) 3%, var(--card)));
+  color: var(--card-foreground, var(--foreground));
+}
+
+.master-theme-panel {
+  background: linear-gradient(145deg, var(--card) 0%, var(--master-surface) 100%) !important;
+  border-color: var(--master-border) !important;
+}
+
+.master-panel-header,
+.master-config-header {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--master-divider) !important;
+}
+
+.master-panel-tabs {
+  background: transparent !important;
+  border-color: var(--master-divider) !important;
+}
+
+.master-panel-tab {
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
+  background: color-mix(in srgb, var(--primary) 2%, var(--card));
+  color: color-mix(in srgb, var(--primary) 55%, var(--foreground));
+}
+
+.master-panel-tab:hover {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  color: var(--primary);
+}
+
+.master-panel-tab.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--primary) 70%, transparent);
+}
+
+.master-square-action {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  border-color: color-mix(in srgb, var(--primary) 18%, var(--border)) !important;
+  background: color-mix(in srgb, var(--primary) 2%, var(--card)) !important;
+}
+
+.master-square-action:hover {
+  background: color-mix(in srgb, var(--primary) 8%, var(--card)) !important;
+}
+
+.master-header-action {
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+.master-config-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+}
+
+.master-payout-hero {
+  background: linear-gradient(
+    120deg,
+    var(--primary) 0%,
+    color-mix(in srgb, var(--primary) 86%, var(--harmony-complement)) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--primary) 72%, var(--harmony-complement)) !important;
+}
+
+.master-payout-glow {
+  background: color-mix(in srgb, var(--harmony-triadic-1) 24%, transparent);
+}
+
+.bu-summary-card {
+  background: linear-gradient(145deg, var(--card) 0%, var(--theme-surface-soft) 100%) !important;
+  border-color: var(--master-border) !important;
+}
+
+.bu-summary-card > div:first-child,
+.bu-amount-card > div:last-child {
+  border-color: var(--master-divider) !important;
+}
+
+.bu-amount-card {
+  background: linear-gradient(
+    135deg,
+    var(--theme-surface-complement) 0%,
+    var(--theme-surface-triadic) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--primary) 17%, var(--border)) !important;
+}
+
+.bu-summary-label {
+  color: color-mix(in srgb, var(--primary) 62%, var(--foreground));
+  font-family: var(--font-main), sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bu-summary-value {
+  font-family: var(--tabular-nums, var(--font-table, var(--font-main)));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.bu-summary-breakdown {
+  border-color: color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
+}
+
+.bu-summary-detail-label {
+  color: color-mix(in srgb, var(--primary) 42%, var(--foreground));
+  font-family: var(--font-main), sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.bu-summary-detail-value {
+  font-family: var(--tabular-nums, var(--font-table, var(--font-main)));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.master-info-card {
+  background: linear-gradient(145deg, var(--theme-surface-soft), var(--theme-surface-tetradic)) !important;
+  border-color: var(--master-border) !important;
+}
+
+/* 4. Remove background and borders from specific toolbars */
+.flex.bg-slate-200\/30,
+div.flex.bg-slate-200\/30,
+div[class*="bg-slate-200/30"] {
+  background-color: transparent !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+}
+
+body, #root, .bg-background {
+  background: radial-gradient(circle at 25% 25%, var(--stripe-color1, #F6F4F0) 0%, transparent 75%),
+              radial-gradient(circle at 75% 75%, var(--stripe-color2, #F4ECD8) 0%, transparent 75%),
+              linear-gradient(135deg, var(--stripe-color1, #F6F4F0) 0%, var(--stripe-color2, #F4ECD8) 100%) !important;
+  background-attachment: fixed !important;
+}
+
+
+
+
+
+/* Focus Mode Adjustments - Normalized */
+#summary-heading-container,
+.section-label {
+  border: none !important;
+  border-width: 0px !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom scrollbar styles: thin, light background */
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: #fcfaf6 !important;
+  border-radius: 9999px !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e2da !important;
+  border-radius: 9999px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cdcdc3 !important;
+}
+
+/* Firefox scrollbar styles */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: #e2e2da #fcfaf6 !important;
+}
+
+/* Custom Rule 1: .table-container > div.min-h-0 background transparent & border styled */
+.table-container > div.min-h-0 {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: 1px solid var(--grid-line-color, var(--border, #e2e8f0)) !important;
+}
+
+/* Remove nested table-body spacing in every Bulk Payment card state. */
+.table-container > div.min-h-0 > div.border > div.min-h-0 {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* ANALYSIS uses one continuous, theme-aware surface from title to pagination. */
+.analysis-table-frame {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  --analysis-surface: var(--card, #ffffff);
+  --analysis-soft-surface: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 5%,
+    var(--card, #ffffff)
+  );
+  height: 100% !important;
+  min-height: 0 !important;
+  background: var(--analysis-surface) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 22%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+.analysis-table-frame > .unified-table-frame-header {
+  background: var(--analysis-soft-surface) !important;
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 20%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+.analysis-table-region,
+.analysis-data-table,
+.analysis-data-table > .table-body-region {
+  min-height: 0 !important;
+  background: var(--analysis-surface) !important;
+}
+
+.analysis-table-region,
+.analysis-data-table {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.analysis-data-table > .table-body-region {
+  flex: 1 1 auto !important;
+}
+
+.analysis-data-table table,
+.analysis-data-table tbody,
+.analysis-data-table tbody tr,
+.analysis-data-table tbody td {
+  background-color: var(--analysis-surface) !important;
+}
+
+.analysis-data-table tbody td {
+  color: var(--card-foreground, #334155) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 12%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+.analysis-data-table thead th,
+.analysis-data-table tfoot td,
+.analysis-data-table .total-row,
+.analysis-data-table .total-row td {
+  background: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 7%,
+    var(--card, #ffffff)
+  ) !important;
+  color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 72%,
+    var(--card-foreground, #334155)
+  ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 22%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+.analysis-data-table thead th span { 
+  font-size: 10px !important; 
+}
+
+.analysis-data-table > .table-footer-pagination {
+  background: var(--analysis-soft-surface) !important;
+  color: var(--card-foreground, #334155) !important;
+  border-top-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 20%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+.analysis-data-table > .table-footer-pagination :where(button, [role="combobox"]) {
+  background: var(--analysis-surface) !important;
+  color: var(--card-foreground, #334155) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--primary, #0ea5e9) 20%,
+    var(--border, #e2e8f0)
+  ) !important;
+}
+
+/* Custom Rule 2: Dashboard Page Isolation to prevent overflow & scrolling issues */
+#dashboard-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#dashboard-container * {
+  box-sizing: border-box !important;
+}
+
+/* Focus Mode Adjustment */
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  padding-left: 12px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  padding-right: 12px !important;
+}
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  padding-top: 12px !important;
+}
+
+/* Compact Grand Total Row & Table Headers Styling */
+table tfoot tr,
+table tfoot td,
+table tfoot th,
+tfoot,
+tfoot tr,
+tfoot td,
+tfoot th,
+.total-row,
+.total-row td,
+.total-row th,
+tr.total-row td {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+
+table thead th,
+.data-table-wrapper thead th,
+.pivot-table-container thead th,
+.master-ae-table-wrapper thead th,
+.audit-data-table-wrapper thead th {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  height: 28px !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+/* User Requested CSS Overrides */
+.content-area {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.master-ae-table-wrapper {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  padding: 0px !important;
+  padding-top: 0px !important;
+  padding-right: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.flex-1.w-full.min-h-0.flex.flex-row.gap-2.bg-transparent.overflow-hidden.p-0.relative,
+.ai-style-change-1 {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  padding: 0 !important;
+}
+
+/* User-requested custom table border rules */
+.table-container,
+.data-table-wrapper,
+.pivot-table-container,
+.audit-data-table-wrapper,
+.master-ae-table-wrapper,
+#table-card {
+  border: 1px solid var(--border, #E7E5E4) !important;
+  border-width: 1px !important;
+  border-radius: 0px !important;
+}
+
+table {
+  border: none !important;
+}
+
+table th,
+table td,
+.data-table-wrapper th,
+.data-table-wrapper td,
+.pivot-table-container th,
+.pivot-table-container td,
+.pivot-master-table th,
+.pivot-master-table td,
+.audit-data-table-wrapper th,
+.audit-data-table-wrapper td,
+.master-ae-table-wrapper th,
+.master-ae-table-wrapper td,
+.unified-table-frame th,
+.unified-table-frame td,
+.reconcile-table-region th,
+.reconcile-table-region td,
+.analysis-data-table th,
+.analysis-data-table td,
+.bulk-payment-layout table th,
+.bulk-payment-layout table td {
+  border-left: none !important;
+  border-right: 1px solid var(--grid-line-color, rgba(0, 0, 0, 0.035)) !important;
+}
+
+table thead th,
+.data-table-wrapper thead th,
+.pivot-table-container thead th,
+.pivot-master-table thead th,
+.audit-data-table-wrapper thead th,
+.master-ae-table-wrapper thead th,
+.unified-table-frame thead th,
+.reconcile-table-region thead th,
+.analysis-data-table thead th,
+.bulk-payment-layout table thead th {
+  border-bottom: 1px solid var(--border, #E7E5E4) !important;
+  border-top: none !important;
+  border-right: 1px solid var(--grid-line-color, rgba(0, 0, 0, 0.035)) !important;
+}
+
+table tfoot td,
+table tfoot th,
+.data-table-wrapper tfoot td,
+.pivot-table-container tfoot td,
+.pivot-master-table tfoot td,
+.audit-data-table-wrapper tfoot td,
+.master-ae-table-wrapper tfoot td,
+.unified-table-frame tfoot td,
+.reconcile-table-region tfoot td,
+.analysis-data-table tfoot td,
+.bulk-payment-layout table tfoot td,
+table .total-row td,
+.total-row td,
+tr.total-row td,
+.trial-month-total-row > td {
+  border-top: 1.5px solid var(--border, #E7E5E4) !important;
+  border-bottom: 1.5px solid var(--border, #E7E5E4) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
+}
+
+/* Hide vertical borders on empty cells in total/footer rows and dimmed gridlines */
+table tfoot td:empty,
+table tfoot th:empty,
+.data-table-wrapper tfoot td:empty,
+.pivot-table-container tfoot td:empty,
+.audit-data-table-wrapper tfoot td:empty,
+table .total-row td:empty,
+.total-row td:empty,
+tr.total-row td:empty,
+.trial-month-total-row > td:empty,
+td:has(> div > span:empty),
+td:empty {
+  border-left: none !important;
+  border-right: none !important;
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
+}
+
+/* User-focused style modifications */
+#analys-business-filter {
+  font-size: 12px !important;
+  line-height: 15px !important;
+  height: 23px !important;
+  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-align: right !important;
+  font-family: var(--font-table, var(--font-main)) !important;
+}
+
+header.table-header,
+.data-table-wrapper > div:first-child {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+/* Table footer pagination & controls padding */
+.data-table-wrapper > footer,
+.data-table-wrapper > div:last-child {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+#table-card > div.overflow-y-auto {
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  border-width: 0px !important;
+}
+
+/* Trial Balance Table Styling */
+.trial-balance-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-left: 1px solid var(--table-grid-color, #e7dbdc) !important;
+  border-top: 1px solid var(--table-grid-color, #e7dbdc) !important;
+}
+
+.trial-balance-table th,
+.trial-balance-table td {
+  border-right: 1px solid var(--table-grid-color, #e7dbdc) !important;
+  border-bottom: 1px solid var(--table-grid-color, #e7dbdc) !important;
+}
+
+.hold-dashboard-card {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Trial Balance owns one frame: title, grid and footer are direct siblings. */
+.trial-balance-frame {
+  padding: 0 !important;
+  background: var(--card, #ffffff) !important;
+}
+
+.trial-balance-frame > .trial-balance-header {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  margin: 0 !important;
+}
+
+.trial-balance-header-content,
+.trial-balance-frame > .table-body-region {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+}
+
+.trial-balance-frame > .table-body-region {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Unified table frame: title, grid and pagination share one outer border. */
+div.unified-table-frame,
+section.unified-table-frame {
+  --table-frame-border: var(--grid-line-color, var(--border, #cbd5e1));
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1px solid var(--table-frame-border) !important;
+  border-radius: 0 !important;
+  background: var(--card, #ffffff) !important;
+  overflow: hidden !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+.unified-table-frame-header,
+.table-header,
+.trial-balance-header {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  border-top: 0 !important;
+  border-right: 0 !important;
+  border-bottom: 1px solid var(--table-frame-border, #cbd5e1) !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+  background: var(--table-header-bg, #FAF3E8) !important;
+  background-color: var(--table-header-bg, #FAF3E8) !important;
+}
+
+/* A DataTable is framed by default when it is used on its own. */
+div.data-table-wrapper,
+div.audit-data-table-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1px solid var(--table-frame-border, var(--grid-line-color, var(--border, #cbd5e1))) !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+/* When a title wrapper already owns the frame, remove the inner duplicate border. */
+.unified-table-frame .data-table-wrapper,
+.unified-table-frame .audit-data-table-wrapper {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* The grid and pagination are flush and separated by exactly one horizontal line. */
+.data-table-wrapper > .table-footer-pagination,
+.audit-data-table-wrapper > .table-footer-pagination,
+.unified-table-frame > .table-footer-pagination,
+.table-footer-pagination,
+.unified-table-frame-footer {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  border-top: 1px solid var(--table-frame-border, #cbd5e1) !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--table-footer-bg, var(--table-header-bg, #FAF3E8)) !important;
+  background-color: var(--table-footer-bg, var(--table-header-bg, #FAF3E8)) !important;
+}
+
+.unified-table-frame > .data-table-wrapper,
+.unified-table-frame > .audit-data-table-wrapper,
+.unified-table-frame > .flex-1 {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+/* Master table density is scoped here and remains independent from Timesheet. */
+.page-master-config .master-config-header {
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+.page-master-config .master-config-table thead th {
+  padding: 8px 10px !important;
+  background: var(--table-column-header-bg, #F4ECD8) !important;
+  color: var(--primary) !important;
+  border-color: var(--master-divider) !important;
+  font-size: 11px !important;
+  line-height: 15px !important;
+  letter-spacing: 0.06em !important;
+}
+
+.page-master-config .master-config-table tbody tr,
+.page-master-config .master-config-table tbody td {
+  background: var(--card, #ffffff);
+}
+
+.page-master-config .master-config-table tbody td {
+  border-color: var(--master-divider) !important;
+  font-size: var(--font-size, 13px) !important;
+}
+
+.page-master-ae .unified-table-frame-header {
+  min-height: 56px !important;
+  background: var(--table-header-bg, #FAF3E8) !important;
+}
+
+.page-master-ae .unified-table-frame-footer,
+.page-master-ae .table-footer-pagination {
+  background: var(--table-footer-bg, var(--table-header-bg, #FAF3E8)) !important;
+}
+
+/* The middle region never owns a frame; the parent shell owns the outside border. */
+.unified-table-frame .table-body-region,
+.unified-table-frame > .table-body-region {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Master uses one thin frame only; nested shells must not stack outlines. */
+.page-master-ae .table-container.master-ae-table-wrapper {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.page-master-ae .unified-table-frame,
+.page-master-config .unified-table-frame {
+  border-width: 1px !important;
+  border-color: var(--border, #E7E5E4) !important;
+}
+
+.page-master-ae .unified-table-frame .data-table-wrapper,
+.page-master-config .unified-table-frame .data-table-wrapper,
+.bulk-payment-data-panel .data-table-wrapper {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Bulk Payment uses the same three-part frame contract: this panel owns the
+   only outside border; its grid and pagination draw internal separators only. */
+.bulk-payment-data-panel.unified-table-frame {
+  border-width: 1px !important;
+  border-color: var(--border, #E7E5E4) !important;
+}
+
+.bulk-payment-data-panel.unified-table-frame .reconcile-table-region {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.bulk-payment-data-panel.unified-table-frame .table-footer-pagination {
+  border-width: 1px 0 0 !important;
+  border-color: var(--border, #E7E5E4) !important;
+  box-shadow: none !important;
+}
+
+.page-master-ae :where(table th, table td),
+.page-master-config :where(table th, table td) {
+  border-width: 0 1px 1px 0 !important;
+  border-color: var(--border, #E7E5E4) !important;
+}
+
+.page-master-ae :where(.unified-table-frame-header, .unified-table-frame-footer, .table-footer-pagination),
+.page-master-config :where(.unified-table-frame-header, .unified-table-frame-footer, .table-footer-pagination) {
+  --table-frame-border: var(--border, #E7E5E4);
+  border-width: 0 0 1px !important;
+  border-color: var(--border, #E7E5E4) !important;
+}
+
+.page-master-ae :where(.unified-table-frame-footer, .table-footer-pagination),
+.page-master-config :where(.unified-table-frame-footer, .table-footer-pagination) {
+  border-width: 1px 0 0 !important;
+  border-color: var(--border, #E7E5E4) !important;
+}
+
+/* Keep the two Bulk Payment panels independent without an extra connecting rule. */
+.bulk-payment-layout {
+  column-gap: 12px !important;
+  gap: 12px !important;
+}
+
+.bulk-payment-side-panel {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.bulk-payment-side-panel,
+.bulk-payment-data-panel {
+  margin: 0 !important;
+  border-width: 1px !important;
+  border-color: var(--border, #E7E5E4) !important;
+  border-radius: 0 !important;
+}
+
+/* Pivot rows and totals remain regular weight; headers retain hierarchy. */
+.pivot-master-table tbody td,
+.pivot-master-table tbody td > span,
+.pivot-master-table tfoot td {
+  font-weight: 400 !important;
+}
+
+/* Compact Audit source rail: each source keeps one frame, a small state line,
+   and one scannable content row. All surfaces inherit the selected theme. */
+.audit-source-panel {
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1)) !important;
+  border-radius: 0 !important;
+  background: color-mix(in srgb, var(--primary, #781d1d) 2%, var(--card, #ffffff)) !important;
+  box-shadow: 0 12px 32px -26px color-mix(in srgb, var(--primary, #781d1d) 45%, transparent) !important;
+}
+
+.audit-source-panel > .bg-pattern-green {
+  border-radius: inherit;
+}
+
+.audit-source-card {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1)) !important;
+  border-radius: 0 !important;
+  background: var(--card, #ffffff) !important;
+  box-shadow: 0 6px 18px -16px color-mix(in srgb, var(--primary, #781d1d) 48%, transparent) !important;
+}
+
+.audit-source-card.is-ready {
+  box-shadow:
+    inset 3px 0 0 #10b981,
+    0 6px 18px -16px color-mix(in srgb, var(--primary, #781d1d) 48%, transparent) !important;
+}
+
+.audit-source-card__header {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary, #781d1d) 13%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #781d1d) 7%, var(--card, #ffffff)) !important;
+  padding: 5px 8px;
+  color: color-mix(in srgb, var(--primary, #781d1d) 80%, var(--foreground, #0f172a));
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.audit-source-card__code {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 18%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 10%, var(--card, #ffffff));
+  color: var(--primary, #781d1d);
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.audit-source-card__state {
+  max-width: 82px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 14%, var(--border, #cbd5e1));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 4%, var(--card, #ffffff));
+  padding: 3px 6px;
+  color: color-mix(in srgb, var(--primary, #781d1d) 52%, var(--foreground, #0f172a));
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-source-card__state.is-ready {
+  border-color: color-mix(in srgb, #10b981 34%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, #10b981 10%, var(--card, #ffffff));
+  color: #047857;
+}
+
+.audit-source-card__body {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  background: color-mix(in srgb, var(--primary, #781d1d) 1.8%, var(--card, #ffffff)) !important;
+  padding: 8px;
+  transition: background-color 160ms ease;
+}
+
+label.audit-source-card__body:hover {
+  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff)) !important;
+}
+
+.audit-source-card__content {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-source-card__ready-icon,
+.audit-source-card__empty-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.audit-source-card__ready-icon {
+  border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
+  background: color-mix(in srgb, #10b981 12%, var(--card, #ffffff));
+  color: #059669;
+}
+
+.audit-source-card__empty-icon {
+  border: 1px dashed color-mix(in srgb, var(--primary, #781d1d) 24%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff));
+  color: color-mix(in srgb, var(--primary, #781d1d) 55%, var(--foreground, #0f172a));
+}
+
+.audit-source-card--range .audit-source-card__body {
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+/* Audit columns are grouped by meaning with distinct harmonious header colors and clean backgrounds */
+.audit-group-common-header {
+  background: #E2E8F0 !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+.audit-group-common-sub-header {
+  background: #F1F5F9 !important;
+  color: #334155 !important;
+  border-color: #CBD5E1 !important;
+}
+
+.audit-group-hours-header {
+  background: #D1FAE5 !important;
+  color: #064E3B !important;
+  border-color: #A7F3D0 !important;
+}
+
+.audit-group-hours-sub-header {
+  background: #ECFDF5 !important;
+  color: #065F46 !important;
+  border-color: #A7F3D0 !important;
+}
+
+.audit-group-common-cell {
+  background: transparent !important;
+}
+
+.audit-group-hours-cell {
+  background: transparent !important;
+}
+
+.dark .audit-group-common-header {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+}
+
+.dark .audit-group-common-sub-header {
+  background: #0F172A !important;
+  color: #E2E8F0 !important;
+  border-color: #334155 !important;
+}
+
+.dark .audit-group-hours-header {
+  background: #064E3B !important;
+  color: #ECFDF5 !important;
+  border-color: #047857 !important;
+}
+
+.dark .audit-group-hours-sub-header {
+  background: #022C22 !important;
+  color: #A7F3D0 !important;
+  border-color: #047857 !important;
+}
+
+/* Trial Balance month totals: stronger than details, with CK balance emphasized. */
+.trial-month-total-row > td {
+  background: color-mix(in srgb, var(--primary, #781d1d) 7%, #ffffff) !important;
+  color: color-mix(in srgb, var(--primary, #781d1d) 82%, #0f172a) !important;
+  border-top: 2px solid color-mix(in srgb, var(--primary, #781d1d) 24%, transparent) !important;
+  border-bottom-color: color-mix(in srgb, var(--primary, #781d1d) 20%, #cbd5e1) !important;
+  font-weight: 800 !important;
+}
+
+.trial-month-total-row > td:nth-child(8),
+.trial-month-total-row > td:nth-child(9),
+.trial-month-total-row > td:nth-child(10) {
+  background: color-mix(in srgb, #f59e0b 12%, #ffffff) !important;
+  color: #854d0e !important;
+}
+
+.trial-month-total-row > td.trial-month-close-balance {
+  background: color-mix(in srgb, var(--primary, #781d1d) 17%, #ffffff) !important;
+  color: var(--primary, #781d1d) !important;
+  font-weight: 900 !important;
+  box-shadow: inset 3px 0 0 var(--primary, #781d1d) !important;
+}
+
+.dark .trial-month-total-row > td {
+  background: color-mix(in srgb, var(--primary, #781d1d) 20%, #0f172a) !important;
+  color: #f8fafc !important;
+}
+
+.dark .trial-month-total-row > td:nth-child(8),
+.dark .trial-month-total-row > td:nth-child(9),
+.dark .trial-month-total-row > td:nth-child(10) {
+  background: color-mix(in srgb, #f59e0b 16%, #0f172a) !important;
+  color: #fde68a !important;
+}
+
+.dark .trial-month-total-row > td.trial-month-close-balance {
+  background: color-mix(in srgb, var(--primary, #781d1d) 36%, #0f172a) !important;
+  color: #ffffff !important;
+}
+
+
+
+/* A table is one typography context: labels, values and controls all follow
+   the font selected by the user instead of mixing utility fonts. */
+.unified-table-frame :where(
+  table,
+  table *,
+  .table-footer-pagination,
+  .table-footer-pagination *,
+  .unified-table-frame-footer,
+  .unified-table-frame-footer *
+) {
+  font-family: var(--font-table, var(--font-main)) !important;
+}
+
+.bulk-payment-layout :where(.bu-summary-card, .payroll-theme-card),
+.bulk-payment-layout :where(.bu-summary-card, .payroll-theme-card) *,
+.bu-group-menu-content,
+.bu-group-menu-content * {
+  font-family: var(--font-table, var(--font-main)) !important;
+}
+
+/* Bulk Payment panel switch: isolate it from legacy positional overrides that
+   could stretch the icon and render a second circular stroke. */
+.bulk-panel-toggle {
+  display: inline-flex !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.bulk-panel-toggle > svg {
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ANALYSIS footer keeps one continuous grid, including intentionally empty
+   label cells, so every footer boundary lines up with the table columns. */
+.analysis-data-table tfoot tr.total-row > td,
+.analysis-data-table tfoot tr.total-row > td:empty {
+  border-top: 1.5px solid var(--grid-line-color, var(--border)) !important;
+  border-bottom: 1px solid var(--grid-line-color, var(--border)) !important;
+  border-right-color: transparent !important;
+  border-left: 0 !important;
+}
+
+.analysis-data-table tfoot tr.total-row > td:last-child {
+  border-right: 0 !important;
+}
+
+/* Final Trial Balance frame normalization: legacy positional rules must not
+   reintroduce the 12px spacer between the title bar and the table grid. */
+#root #trial-balance-table-body {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#root #trial-balance-summary {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+}
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > div:nth-of-type(1) {
+  height: 250px !important;
+}
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  /* No additional rules requested */
+}
+
+/* Table double border correction */
+.table-container table,
+.data-table-wrapper table,
+.pivot-table-container table,
+.audit-data-table-wrapper table,
+.master-ae-table-wrapper table,
+.trial-balance-table,
+.unified-table-frame table {
+  border: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.table-container th:last-child,
+.table-container td:last-child,
+.data-table-wrapper th:last-child,
+.data-table-wrapper td:last-child,
+.pivot-table-container th:last-child,
+.pivot-table-container td:last-child,
+.audit-data-table-wrapper th:last-child,
+.audit-data-table-wrapper td:last-child,
+.master-ae-table-wrapper th:last-child,
+.master-ae-table-wrapper td:last-child,
+.trial-balance-table th:last-child,
+.trial-balance-table td:last-child,
+.unified-table-frame th:last-child,
+.unified-table-frame td:last-child {
+  border-right: none !important;
+  border-right-width: 0px !important;
+}
+
+.table-container tr:last-child td,
+.data-table-wrapper tr:last-child td,
+.pivot-table-container tr:last-child td,
+.audit-data-table-wrapper tr:last-child td,
+.master-ae-table-wrapper tr:last-child td,
+.trial-balance-table tr:last-child td,
+.unified-table-frame tr:last-child td {
+  border-bottom: none !important;
+  border-bottom-width: 0px !important;
+}
+td:has(> div > span:empty), td:empty {
+  border-right-color: transparent !important;
+  border-left-color: transparent !important;
+}
