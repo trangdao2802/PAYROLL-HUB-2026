@@ -2143,6 +2143,22 @@ label.audit-source-card__body:hover {
   color: #ffffff !important;
 }
 
+/* The Pivot Timesheet sequence is an identifier, not a localized number.
+   Keep it readable and independently resizable even under the global fixed-table theme. */
+.pivot-table-container table.pivot-timesheet-table th.pivot-timesheet-no-header {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+}
+
+.pivot-table-container table.pivot-timesheet-table td.pivot-timesheet-no-cell {
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+  font-variant-numeric: normal !important;
+}
+
 td:has(> div > span:empty), td:empty {
   border-right-color: transparent !important;
   border-left-color: transparent !important;

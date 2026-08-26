@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
 import {
   Select,
@@ -48,7 +48,37 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
     row: MktLocalNorthPivotTableRow;
   } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [noColumnWidth, setNoColumnWidth] = useState(() => {
+    if (typeof window === "undefined") return 64;
+    const savedWidth = Number(window.localStorage.getItem("pivot_timesheet_no_width"));
+    return Number.isFinite(savedWidth) && savedWidth >= 56 ? savedWidth : 64;
+  });
   const cancelBlurRef = useRef(false);
+
+  useEffect(() => {
+    window.localStorage.setItem("pivot_timesheet_no_width", String(noColumnWidth));
+  }, [noColumnWidth]);
+
+  const autoFitNoColumn = () => {
+    const digitCount = String(Math.max(rows.length, 1)).length;
+    setNoColumnWidth(Math.max(64, Math.min(96, 42 + digitCount * 8)));
+  };
+
+  const startNoColumnResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startWidth = noColumnWidth;
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      setNoColumnWidth(Math.max(56, Math.min(140, startWidth + moveEvent.clientX - startX)));
+    };
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
 
   const rowKeyOf = (row: MktLocalNorthPivotTableRow) =>
     `${row.business}||${row.chargeToCenterMkt}`;
@@ -107,6 +137,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
 
   const startIdx = itemsPerPage === Infinity ? 0 : (validCurrentPage - 1) * Number(itemsPerPage);
   const endIdx = itemsPerPage === Infinity ? rows.length : Math.min(startIdx + Number(itemsPerPage), rows.length);
+  const totalTableWidth = noColumnWidth + 140 + 180 + types.length * 120 + 150;
 
   const businessSubtotals = useMemo(() => {
     const subtotals = new Map<string, { totals: Record<string, number>; grandTotal: number }>();
@@ -167,11 +198,46 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
 
       <div className="pivot-table-container flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]">
         <div className="table-body-region relative min-h-0 flex-1 overflow-auto custom-scrollbar">
-          <table className="pivot-timesheet-table w-full min-w-max border-separate border-spacing-0 bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs">
+          <table
+            className="pivot-timesheet-table border-separate border-spacing-0 bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs"
+            style={{ width: totalTableWidth, minWidth: totalTableWidth }}
+          >
+          <colgroup>
+            <col style={{ width: noColumnWidth }} />
+            <col style={{ width: 140 }} />
+            <col style={{ width: 180 }} />
+            {types.map((type) => <col key={`col-${type}`} style={{ width: 120 }} />)}
+            <col style={{ width: 150 }} />
+          </colgroup>
           <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]">
             <tr>
-              <th className="w-12 min-w-[50px] border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-primary">
-                No.
+              <th
+                className="pivot-timesheet-no-header relative border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-primary"
+                style={{ width: noColumnWidth, minWidth: noColumnWidth, maxWidth: noColumnWidth }}
+                data-column-type="text"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>No.</span>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      autoFitNoColumn();
+                    }}
+                    className="rounded p-0.5 text-primary/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                    title="Tự động căn độ rộng cột No."
+                    aria-label="Tự động căn độ rộng cột No."
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                  </button>
+                </div>
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Kéo để chỉnh độ rộng cột No."
+                  className="absolute -right-1 top-0 z-20 h-full w-2 cursor-col-resize"
+                  onMouseDown={startNoColumnResize}
+                />
               </th>
               <th className="min-w-[140px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-primary">
                 BUSINESS
@@ -206,8 +272,12 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                 return (
                 <React.Fragment key={rowKeyOf(row)}>
                 <tr className="group border-b border-border transition-colors">
-                  <td className="whitespace-nowrap border-r border-b border-border px-2 py-1.5 text-center text-[10px] font-bold tabular-nums text-muted-foreground transition-colors">
-                    {startIdx + idx + 1}
+                  <td
+                    className="pivot-timesheet-no-cell whitespace-nowrap border-r border-b border-border px-2 py-1.5 text-center text-[10px] font-bold normal-nums text-muted-foreground transition-colors"
+                    style={{ width: noColumnWidth, minWidth: noColumnWidth, maxWidth: noColumnWidth }}
+                    data-column-type="text"
+                  >
+                    {String(startIdx + idx + 1)}
                   </td>
                   <td className="min-w-[140px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[11px] font-semibold uppercase text-foreground transition-colors">
                     {row.business || "NORTH"}
