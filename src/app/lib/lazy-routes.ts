@@ -4,7 +4,7 @@ const RELOAD_GUARD_MS = 60_000;
 export function isDynamicImportError(error: unknown): boolean {
   const message =
     error instanceof Error ? error.message : String(error || "");
-  return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .+ failed|error loading dynamically imported module/i.test(
+  return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .+ failed|error loading dynamically imported module|Failed to load module script|Expected a JavaScript-or-Wasm module script/i.test(
     message,
   );
 }

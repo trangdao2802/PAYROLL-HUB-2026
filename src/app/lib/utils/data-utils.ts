@@ -441,6 +441,16 @@ export async function getExcelFileBuffer(
   const buffer = await file.arrayBuffer();
   if (file.name.toLowerCase().endsWith(".gsheet")) {
     const pointerText = new TextDecoder("utf-8").decode(buffer).trim();
+    if (!pointerText) {
+      throw new Error(`File Google Sheet đang trống (${file.name}).`);
+    }
+    if (looksLikeHtmlPayload(pointerText)) {
+      throw new Error(
+        `File ${file.name} chứa trang HTML thay vì dữ liệu Google Sheet. Vui lòng tải lại file từ Google Drive hoặc kiểm tra quyền chia sẻ.`,
+      );
+    }
+
+    let source = "";
     if (pointerText.startsWith("{")) {
       let pointer: {
         url?: unknown;
@@ -450,7 +460,7 @@ export async function getExcelFileBuffer(
       try {
         pointer = JSON.parse(pointerText) as typeof pointer;
       } catch {
-        // Nội dung .gsheet đã là CSV thật, không phải file con trỏ JSON.
+        throw new Error(`File liên kết Google Sheet không hợp lệ (${file.name}).`);
       }
 
       if (pointer) {
@@ -459,40 +469,60 @@ export async function getExcelFileBuffer(
         const resourceId = String(pointer.resource_id || "")
           .replace(/^spreadsheet:/i, "")
           .trim();
-        const source =
+        source =
           url ||
           (documentId
             ? `https://docs.google.com/spreadsheets/d/${documentId}`
             : resourceId
               ? `https://docs.google.com/spreadsheets/d/${resourceId}`
               : "");
+      }
+    } else if (/^https:\/\/docs\.google\.com\/spreadsheets\//i.test(pointerText)) {
+      source = pointerText;
+    }
 
-        if (source) {
-          try {
-            const downloadedFile = await fetchGoogleSheetAsFile(
-              source,
-              file.name,
-            );
-            return {
-              buffer: await downloadedFile.arrayBuffer(),
-              name: downloadedFile.name,
-            };
-          } catch (downloadErr: unknown) {
-            const msg =
-              downloadErr instanceof Error
-                ? downloadErr.message
-                : "Không thể tải Google Sheet";
-            throw new Error(`${msg} (${file.name})`);
-          }
-        }
+    if (source) {
+      try {
+        const downloadedFile = await fetchGoogleSheetAsFile(source, file.name);
+        return {
+          buffer: await downloadedFile.arrayBuffer(),
+          name: downloadedFile.name,
+        };
+      } catch (downloadErr: unknown) {
+        const msg =
+          downloadErr instanceof Error
+            ? downloadErr.message
+            : "Không thể tải Google Sheet";
+        throw new Error(`${msg} (${file.name})`);
       }
     }
+
+    if (pointerText.startsWith("{")) {
+      throw new Error(
+        `File ${file.name} không chứa đường dẫn Google Sheet hợp lệ.`,
+      );
+    }
+
+    return {
+      buffer,
+      name: file.name.replace(/\.gsheet$/i, ".csv"),
+    };
   }
 
   return {
     buffer,
     name: file.name,
   };
+}
+
+export function looksLikeHtmlPayload(value: string): boolean {
+  const preview = String(value || "")
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .slice(0, 2048);
+  return /^(?:<!--[\s\S]{0,512}?-->\s*)?<\s*(?:!doctype\s+html|html|head|body|script|title|meta|link)\b/i.test(
+    preview,
+  );
 }
 export function formatTime12Hour(timeStr: string): string {
   return String(timeStr);
@@ -760,6 +790,19 @@ export async function fetchGoogleSheetAsFile(
       }
     }
 
+    const fileBuffer = await response.arrayBuffer();
+    const payloadPreview = new TextDecoder("utf-8").decode(
+      fileBuffer.slice(0, 2048),
+    );
+    if (
+      contentType.includes("text/html") ||
+      looksLikeHtmlPayload(payloadPreview)
+    ) {
+      throw new Error(
+        "Dịch vụ Google Sheet trả về trang HTML thay vì dữ liệu. Vui lòng tải lại trang và kiểm tra quyền chia sẻ file.",
+      );
+    }
+
     const isExcel =
       contentType.includes("spreadsheetml") ||
       contentType.includes("application/vnd.ms-excel");
@@ -770,8 +813,6 @@ export async function fetchGoogleSheetAsFile(
         ? requestedName.replace(/\.(csv|txt|gsheet)$/i, extension)
         : requestedName.replace(/\.(xlsx?|xls)$/i, extension)
       : `${requestedName}${extension}`;
-    const fileBuffer = await response.arrayBuffer();
-
     if (fileBuffer.byteLength === 0) {
       throw new Error("Google Sheet trả về file rỗng.");
     }
@@ -801,7 +842,7 @@ export async function fetchGoogleSheetAsFile(
       const directRes = await fetch(directUrl);
       if (directRes.ok) {
         const text = await directRes.text();
-        if (text && !text.trim().toLowerCase().startsWith("<!doctype html>")) {
+        if (text && !looksLikeHtmlPayload(text)) {
           const requestedName = String(name || "GoogleSheet").trim();
           const finalName = requestedName.toLowerCase().endsWith(".csv")
             ? requestedName
@@ -824,7 +865,9 @@ export async function fetchGoogleSheetAsFile(
         const parsed = JSON.parse(responseText) as { error?: unknown };
         message = String(parsed.error || responseText);
       } catch {
-        message = responseText;
+        message = looksLikeHtmlPayload(responseText)
+          ? `Dịch vụ đọc Google Sheet tạm thời không khả dụng (HTTP ${response.status}).`
+          : responseText;
       }
     } catch {
       message = `Máy chủ trả về mã lỗi ${response.status}`;
@@ -872,7 +915,27 @@ export function isMoneyColumn(col: string): boolean {
     normalized.includes("BONUS")
   );
 }
-export async function fetchWithBackoff(fn: any): Promise<any> { return await fn(); }
+export async function fetchWithBackoff(
+  input: RequestInfo | URL | (() => Promise<Response>),
+  init?: RequestInit,
+  retries = 3,
+): Promise<Response> {
+  let attempt = 0;
+  while (true) {
+    const response =
+      typeof input === "function" ? await input() : await fetch(input, init);
+    if (
+      attempt >= retries ||
+      (response.status !== 429 && response.status < 500)
+    ) {
+      return response;
+    }
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(500 * 2 ** attempt, 4000)),
+    );
+    attempt += 1;
+  }
+}
 
 export function getHoldRowAmount(r: any): number {
   if (!r || typeof r !== "object") return 0;

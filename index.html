@@ -12,6 +12,48 @@
       <title>Payroll Hub | Systematic Design</title>
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
       <script>
+        (function () {
+          var reloadKey = 'payroll:dynamic-import-reload:app';
+          var reloadGuardMs = 60000;
+          var dynamicImportPattern = /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk .+ failed|error loading dynamically imported module|Failed to load module script|Expected a JavaScript-or-Wasm module script/i;
+
+          function errorMessage(value) {
+            if (!value) return '';
+            if (typeof value === 'string') return value;
+            return String(value.message || value.reason || value);
+          }
+
+          function isDynamicImportFailure(value, filename) {
+            var message = errorMessage(value);
+            return dynamicImportPattern.test(message) ||
+              (message.indexOf("Unexpected token '<'") !== -1 && String(filename || '').indexOf('/assets/') !== -1);
+          }
+
+          function reloadLatestVersion() {
+            var now = Date.now();
+            var lastReload = Number(window.sessionStorage.getItem(reloadKey) || 0);
+            if (lastReload && now - lastReload < reloadGuardMs) return false;
+            window.sessionStorage.setItem(reloadKey, String(now));
+            var url = new URL(window.location.href);
+            url.searchParams.set('__app_reload', String(now));
+            window.location.replace(url.toString());
+            return true;
+          }
+
+          window.addEventListener('error', function (event) {
+            if (!isDynamicImportFailure(event.error || event.message, event.filename)) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            reloadLatestVersion();
+          }, true);
+
+          window.addEventListener('unhandledrejection', function (event) {
+            if (!isDynamicImportFailure(event.reason, '')) return;
+            event.preventDefault();
+            reloadLatestVersion();
+          });
+        })();
+
         window.addEventListener('error', function(e) {
           if (
             e.message === 'Script error.' ||
@@ -34,4 +76,3 @@
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-  

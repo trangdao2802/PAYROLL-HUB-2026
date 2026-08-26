@@ -97,6 +97,16 @@ function parseCsvPreview(csvText: string): string[][] {
     .map((line) => line.split(",").map((cell) => cell.replace(/^"|"$/g, "")));
 }
 
+function looksLikeHtmlPayload(value: string): boolean {
+  const preview = String(value || "")
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .slice(0, 2048);
+  return /^(?:<!--[\s\S]{0,512}?-->\s*)?<\s*(?:!doctype\s+html|html|head|body|script|title|meta|link)\b/i.test(
+    preview,
+  );
+}
+
 async function fetchPublicRosterCsv(
   spreadsheetId: string,
 ): Promise<{ csvText: string; sheetTitle: string } | null> {
@@ -111,7 +121,7 @@ async function fetchPublicRosterCsv(
       const csvText = await response.text();
       if (
         !csvText ||
-        csvText.trim().toLowerCase().startsWith("<!doctype html>") ||
+        looksLikeHtmlPayload(csvText) ||
         !looksLikeRosterValues(parseCsvPreview(csvText))
       ) {
         continue;
@@ -164,6 +174,9 @@ export default async function handler(req: any, res: any) {
           const resPub = await fetchWithRetry(pubExportUrl);
           if (resPub.ok) {
             const txt = await resPub.text();
+            if (looksLikeHtmlPayload(txt)) {
+              throw new Error("Google trả về trang HTML thay vì dữ liệu CSV.");
+            }
             res.setHeader("Content-Type", "text/csv; charset=utf-8");
             return res.send(txt);
           }
@@ -222,7 +235,7 @@ export default async function handler(req: any, res: any) {
           csvText = await response.text();
           responseOk = true;
           // Check if it's an HTML login page instead of CSV
-          if (csvText.trim().toLowerCase().startsWith("<!doctype html>")) {
+          if (looksLikeHtmlPayload(csvText)) {
             console.log("[API] Public fetch returned HTML (login page), will fallback to credentials.");
             responseOk = false;
           } else {
@@ -483,6 +496,12 @@ export default async function handler(req: any, res: any) {
     
     if (!responseOk) {
       throw new Error("Không thể tải Google Sheet.");
+    }
+
+    if (looksLikeHtmlPayload(csvText)) {
+      throw new Error(
+        "Google Sheet trả về trang HTML thay vì dữ liệu. Vui lòng kiểm tra quyền chia sẻ file.",
+      );
     }
     
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
