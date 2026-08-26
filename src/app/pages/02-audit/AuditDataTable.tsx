@@ -915,13 +915,18 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const [itemsPerPage, setItemsPerPage] = useState(50);
 
     // Grid selection & editing
-    const anchorCellRef = useRef<{ r: number; c: number } | null>(null);
     const [activeCell, setActiveCellState] = useState<{
       r: number;
       c: number;
     } | null>(null);
-
-    const setActiveCell = useCallback((cell: { r: number; c: number } | null) => {
+    const activeCellSourceRef = useRef<"mouse" | "keyboard">("keyboard");
+    const anchorCellRef = useRef<{ r: number; c: number } | null>(null);
+    const lastActiveCellRef = useRef<{ r: number; c: number } | null>(null);
+    const setActiveCell = useCallback((
+      cell: { r: number; c: number } | null,
+      source: "mouse" | "keyboard" = "keyboard",
+    ) => {
+      activeCellSourceRef.current = source;
       setActiveCellState(cell);
       if (cell && itemsPerPage !== Infinity) {
         const ipp = Number(itemsPerPage);
@@ -1412,13 +1417,31 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       getItemKey: useCallback((index: number) => paginatedData[index]?.id || index, [paginatedData]),
     });
 
-    // Scroll active cell into view
+    // Scroll keyboard navigation into view. Mouse selection must stay exactly
+    // where the user clicked and must not trigger a virtualizer jump.
     useEffect(() => {
       if (activeCell && scrollContainerRef.current) {
         const startIdx = itemsPerPage === Infinity ? 0 : (currentPage - 1) * itemsPerPage;
         const endIdx = itemsPerPage === Infinity ? filteredAndSortedData.length - 1 : startIdx + itemsPerPage - 1;
-        
-        if (activeCell.r >= startIdx && activeCell.r <= endIdx) {
+
+        const activeCellChanged = !lastActiveCellRef.current ||
+          lastActiveCellRef.current.r !== activeCell.r ||
+          lastActiveCellRef.current.c !== activeCell.c;
+        lastActiveCellRef.current = activeCell;
+
+        if (itemsPerPage !== Infinity && (activeCell.r < startIdx || activeCell.r > endIdx)) {
+          if (activeCellChanged) {
+            const newPage = Math.floor(activeCell.r / itemsPerPage) + 1;
+            setCurrentPage(Math.max(1, Math.min(totalPages, newPage)));
+          }
+          return;
+        }
+
+        if (
+          activeCell.r >= startIdx &&
+          activeCell.r <= endIdx &&
+          activeCellSourceRef.current === "keyboard"
+        ) {
           const paginatedIndex = activeCell.r - startIdx;
           const container = scrollContainerRef.current;
 
@@ -1444,39 +1467,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           }
           rowVirtualizer.scrollToIndex(paginatedIndex, { align: "auto" });
         }
-        
-        requestAnimationFrame(() => {
-          const container = scrollContainerRef.current;
-          if (!container) return;
-          const td = container.querySelector(`td[data-r="${activeCell.r}"][data-c="${activeCell.c}"]`) as HTMLElement;
-          if (td) {
-            const containerRect = container.getBoundingClientRect();
-            const tdRect = td.getBoundingClientRect();
-
-            const headerHeight = container.querySelector("thead")?.offsetHeight || 42;
-            const footerHeight = (showFooter ? container.querySelector("tfoot")?.offsetHeight : 0) || 0;
-            const stickyFooterEl = container.querySelector(".sticky.bottom-0") as HTMLElement;
-            const extraFooter = stickyFooterEl ? stickyFooterEl.offsetHeight : 0;
-            const bottomSafety = Math.max(footerHeight, extraFooter, 36) + 16;
-            const topSafety = headerHeight + 8;
-
-            // Vertical view check
-            if (tdRect.bottom > containerRect.bottom - bottomSafety) {
-              container.scrollTop += (tdRect.bottom - (containerRect.bottom - bottomSafety));
-            } else if (tdRect.top < containerRect.top + topSafety) {
-              container.scrollTop -= ((containerRect.top + topSafety) - tdRect.top);
-            }
-
-            // Horizontal view check
-            if (tdRect.right > containerRect.right - 16) {
-              container.scrollLeft += (tdRect.right - (containerRect.right - 16));
-            } else if (tdRect.left < containerRect.left + 16) {
-              container.scrollLeft -= ((containerRect.left + 16) - tdRect.left);
-            }
-          }
-        });
       }
-    }, [activeCell, currentPage, itemsPerPage, filteredAndSortedData.length, rowHeight, showFooter]);
+    }, [activeCell, currentPage, itemsPerPage, filteredAndSortedData.length, rowHeight, showFooter, totalPages]);
 
     
     const virtualItems = rowVirtualizer.getVirtualItems();
@@ -1990,7 +1982,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             }
           }
           if (!isInsideRange) {
-            setActiveCell({ r, c });
+            setActiveCell({ r, c }, "mouse");
             setSelectionRange(null); // Clear range if right click outside
           }
         }
@@ -2011,7 +2003,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       if (e.button !== 0) return;
       if (filteredAndSortedData.length === 0) return;
       setIsSelecting(true);
-      setActiveCell({ r: 0, c: cIdx });
+      setActiveCell({ r: 0, c: cIdx }, "mouse");
       setSelectionRange({
         startR: 0,
         endR: filteredAndSortedData.length - 1,
@@ -2127,7 +2119,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         
         // Focus the scroll container to make sure arrow keys and paste events function correctly
         if (scrollContainerRef.current) {
-          scrollContainerRef.current.focus();
+          scrollContainerRef.current.focus({ preventScroll: true });
         }
 
         if (e.shiftKey && activeCell) {
@@ -2139,10 +2131,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             startC: anchorC,
             endC: c,
           });
-          setActiveCell({ r, c });
+          setActiveCell({ r, c }, "mouse");
         } else {
           anchorCellRef.current = { r, c };
-          setActiveCell({ r, c });
+          setActiveCell({ r, c }, "mouse");
           setSelectionRange({ startR: r, endR: r, startC: c, endC: c });
         }
       },
@@ -2157,7 +2149,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             if (prev.endR === r && prev.endC === c) return prev;
             return { ...prev, endR: r, endC: c };
           });
-          setActiveCell({ r, c });
+          setActiveCell({ r, c }, "mouse");
         }
       },
       [selectionRange],
@@ -2211,7 +2203,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             const { r, c } = editingCell;
             commitEdit();
             const nextR = Math.min(r + 1, filteredAndSortedData.length - 1);
-            setActiveCell({ r: nextR, c });
+            setActiveCell({ r: nextR, c }, "keyboard");
             if (nextR !== r) setTimeout(() => startEditing(nextR, c), 10);
           } else if (e.key === "Tab") {
             e.preventDefault();
@@ -2232,7 +2224,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 nextC = 0;
               }
             }
-            setActiveCell({ r: nextR, c: nextC });
+            setActiveCell({ r: nextR, c: nextC }, "keyboard");
             if (nextR !== r || nextC !== c)
               setTimeout(() => startEditing(nextR, nextC), 10);
           } else if (e.key === "Escape") {
@@ -2258,7 +2250,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           const nextR = e.ctrlKey || e.metaKey 
             ? filteredAndSortedData.length - 1 
             : Math.min(r + 1, filteredAndSortedData.length - 1);
-          setActiveCell({ r: nextR, c });
+          setActiveCell({ r: nextR, c }, "keyboard");
           if (e.shiftKey) {
             setSelectionRange({
               startR: anchorR,
@@ -2278,7 +2270,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
           const nextR = e.ctrlKey || e.metaKey ? 0 : Math.max(r - 1, 0);
-          setActiveCell({ r: nextR, c });
+          setActiveCell({ r: nextR, c }, "keyboard");
           if (e.shiftKey) {
             setSelectionRange({
               startR: anchorR,
@@ -2300,7 +2292,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           const nextC = e.ctrlKey || e.metaKey 
             ? visibleColumns.length - 1 
             : Math.min(c + 1, visibleColumns.length - 1);
-          setActiveCell({ r, c: nextC });
+          setActiveCell({ r, c: nextC }, "keyboard");
           if (e.shiftKey) {
             setSelectionRange({
               startR: anchorR,
@@ -2320,7 +2312,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         } else if (e.key === "ArrowLeft") {
           e.preventDefault();
           const nextC = e.ctrlKey || e.metaKey ? 0 : Math.max(c - 1, 0);
-          setActiveCell({ r, c: nextC });
+          setActiveCell({ r, c: nextC }, "keyboard");
           if (e.shiftKey) {
             setSelectionRange({
               startR: anchorR,
@@ -2343,7 +2335,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             ? Math.max(c - 1, 0)
             : Math.min(c + 1, visibleColumns.length - 1);
           anchorCellRef.current = { r, c: nextC };
-          setActiveCell({ r, c: nextC });
+          setActiveCell({ r, c: nextC }, "keyboard");
           setSelectionRange({ startR: r, endR: r, startC: nextC, endC: nextC });
         } else if (e.key === "Enter" || e.key === "F2") {
           e.preventDefault();
@@ -2704,7 +2696,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             ref={scrollContainerRef}
             tabIndex={0}
             className="table-body-region relative mb-0 min-h-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-scroll rounded-none border-0 bg-transparent opacity-100 outline-none custom-scrollbar"
-            onFocus={() => !activeCell && setActiveCell({ r: 0, c: 0 })}
+            onFocus={() => !activeCell && setActiveCell({ r: 0, c: 0 }, "keyboard")}
             
             onMouseMove={handleTableMouseMove}
             style={{ overscrollBehavior: "contain", marginBottom: "0px", overflowAnchor: "none" }}
@@ -2922,7 +2914,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     <DataRow
                       key={row.id ?? index}
                       row={row}
-                      rIdx={index}
+                      rIdx={itemsPerPage === Infinity ? index : (currentPage - 1) * itemsPerPage + index}
                       selectable={selectable}
                       showRowNumber={showRowNumber}
                       selectedRowIds={selectedRowIds}
@@ -2957,7 +2949,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     <DataRow
                       key={row.id ?? vi.index}
                       row={row}
-                      rIdx={vi.index}
+                      rIdx={itemsPerPage === Infinity ? vi.index : (currentPage - 1) * itemsPerPage + vi.index}
                       selectable={selectable}
                       showRowNumber={showRowNumber}
                       selectedRowIds={selectedRowIds}
