@@ -1057,7 +1057,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 80,
       render: (val: string, row: any) => {
         const displayBu = val || row.bu || "";
@@ -1070,7 +1069,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 140,
       render: (val: string, row: any) => (
         <span 
@@ -1090,7 +1088,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 140,
       render: (val: string, row: any) => {
         const displayVal = row._fullClassName || val || "KHÔNG CÓ LỚP HỌC";
@@ -1113,7 +1110,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 100,
       render: (val: string, row: any) => (
         <span 
@@ -1135,7 +1131,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 160,
       render: (val: string) => (
         <span className="font-bold text-foreground">
@@ -1149,7 +1144,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 90,
       align: "center",
       render: (val: string) => (
@@ -1172,7 +1166,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 100,
       align: "center",
       render: (val: any) => (
@@ -1190,7 +1183,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 90,
       align: "center",
       render: (val: any) => (
@@ -1203,7 +1195,6 @@ export function Audit() {
       group: "THÔNG TIN CHUNG",
       sortable: true,
       filterable: true,
-      autoRowSpan: true,
       width: 90,
       align: "center",
       render: (val: any) => (
@@ -1688,6 +1679,7 @@ export function Audit() {
               onExternalSearchChange={setSearchTerm}
               onRowClick={handleMainRowClick}
               storageKey="audit_main_v2"
+              rowHeight={36}
               className="border-t-0 flex-1"
               title="Class & Teaching Assistant Audit Overview"
               striped={false}
@@ -1705,6 +1697,7 @@ export function Audit() {
               externalSearchTerm=""
               onExternalSearchChange={setDetailManualFilter}
               storageKey="audit_detail_v2"
+              rowHeight={36}
               className="border-t-0 flex-1 audit-detail-table"
               title="Session-level Audit Discrepancy Details"
               striped={false}
