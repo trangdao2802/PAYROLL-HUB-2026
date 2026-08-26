@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { useAppData } from "../lib/contexts/AppDataContext";
 import { CENTER_MAPPING, getCenterInfoByAECode, getCenterInfoByL07, mapL07 } from "../lib/utils/center-utils";
 import { getVal, getExcelFileBuffer } from "../lib/utils/data-utils";
+import { sanitizeAllowedTaRules } from "../lib/utils/allowed-ta-rules";
 
 // ==========================================
 // 1. CONSTANTS & MAPPING PRE-CALCULATION
@@ -220,6 +221,11 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
 
   // Extract checkTAsData - stabilize reference
   const checkTAsDataRaw = useMemo(() => appData.Q_CheckTAs || [], [appData.Q_CheckTAs]);
+  const allowedTaRules = useMemo(
+    () => sanitizeAllowedTaRules(appData.Q_AllowedTARules),
+    [appData.Q_AllowedTARules],
+  );
+  const allowedTaRulesKey = useMemo(() => JSON.stringify(allowedTaRules), [allowedTaRules]);
   const centerMappingParam = useMemo(() => CENTER_MAPPING || {}, []);
 
   useEffect(() => {
@@ -237,7 +243,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
     }
 
     // Cache check: khÃ´ng gá»­i worker náº¿u params giá»‘ng há»‡t láº§n trÆ°á»›c
-    const cacheKey = `audit-in-class-v1|${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}`;
+    const cacheKey = `audit-in-class-v2|${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}|${allowedTaRulesKey}`;
     if (cacheKey === lastParamsCacheRef.current) return;
     lastParamsCacheRef.current = cacheKey;
 
@@ -261,7 +267,8 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
       fileNameA,
       centerMappingParam,
       bonusData,
-      bonusSheetName: bonusSheetNameActual
+      bonusSheetName: bonusSheetNameActual,
+      allowedTaRules,
     };
 
     const runMainThreadFallback = () => {
@@ -314,7 +321,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
     return () => {
       if (workerRef.current) { workerRef.current.terminate(); workerRef.current = null; }
     };
-  }, [fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, fuzzyThreshold, centerMappingParam, appData.Q_BonusData, appData.Q_TeacherHoursFileName, appData.Q_BonusSheetName]);
+  }, [fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, fuzzyThreshold, centerMappingParam, appData.Q_BonusData, appData.Q_TeacherHoursFileName, appData.Q_BonusSheetName, allowedTaRules, allowedTaRulesKey]);
 
   const fileNameB = appData.Timesheet_RosterFileName || "";
   const fileNameConfig = appData.Q_CheckTAsFileName || "";

@@ -60,6 +60,7 @@ export const CENTER_DATA: CenterInfo[] = [
   { l07:  "MKT LOCAL NORTH_HP", aeCode: "MKT HP", bus: "AHP", keys: ["MKT HP"] },
   { l07:  "MKT LOCAL NORTH_TN", aeCode: "MKT TN01.LNQ", bus: "ATN", keys: ["MKT TN01.LNQ","MKT TN1.LNQ"]},
   { l07:  "MKT LOCAL NORTH_TH", aeCode: "MKT TH01.TPU", bus: "ATH", keys: ["MKT TH01.TPU","MKT TH1.TPU"]},
+  { l07:  "MKT LOCAL NORTH_PT", aeCode: "MKT PT01.HVG", bus: "APT", keys: ["MKT PT01.HVG","MKT PT1.HVG"]},
 
 ];
 
@@ -272,20 +273,42 @@ export function resolveL07BuFromAeCode(code: string): { l07: string; bu: string 
   if (info) {
     return { l07: info.l07, bu: info.bus };
   }
-  return { l07: code, bu: "AHN" };
+  return { l07: code, bu: getBusinessFromL07(code) };
 }
 
 export function getBusinessFromL07(l07: string): string {
   if (!l07) return "AHN";
+  const rawUpper = String(l07).trim().toUpperCase();
+  const rawSpecial = rawUpper.replace(/[\s-]+/g, "_");
+
+  if (rawSpecial === "MKT_LOCAL_NORTH_HP" || rawSpecial === "HAI_PHONG") return "AHP";
+  if (rawSpecial === "MKT_LOCAL_NORTH_TH") return "ATH";
+  if (rawSpecial === "MKT_LOCAL_NORTH_PT") return "APT";
+  if (rawSpecial === "MKT_LOCAL_NORTH_TN") return "ATN";
+  if (["NTW", "CAMBRIDGE", "CONTEST", "JOB_FAIR", "MKT_LOCAL_NORTH"].includes(rawSpecial)) return "AHN";
+
   const mapped = mapL07(l07);
   const info = getCenterInfoByL07(mapped);
   if (info?.bus) return info.bus;
 
-  const upper = mapped.toUpperCase();
-  if (upper.startsWith("HP") || upper.includes("HAI PHONG") || upper.includes("AHP")) return "AHP";
-  if (upper.startsWith("TH") || upper.includes("THANH HOA") || upper.includes("ATH")) return "ATH";
-  if (upper.startsWith("TN") || upper.includes("THAI NGUYEN") || upper.includes("ATN")) return "ATN";
-  if (upper.startsWith("PT") || upper.includes("PHU THO") || upper.includes("APT")) return "APT";
+  const upper = String(mapped || l07).trim().toUpperCase();
+  const special = upper.replace(/[\s-]+/g, "_");
+
+  // Regional MKT aliases must be checked before the generic North bucket.
+  if (special === "MKT_LOCAL_NORTH_HP" || special === "HAI_PHONG") return "AHP";
+  if (special === "MKT_LOCAL_NORTH_TH") return "ATH";
+  if (special === "MKT_LOCAL_NORTH_PT") return "APT";
+  if (special === "MKT_LOCAL_NORTH_TN") return "ATN";
+  if (["NTW", "CAMBRIDGE", "CONTEST", "JOB_FAIR", "MKT_LOCAL_NORTH"].includes(special)) return "AHN";
+
+  // Standard L07 codes are identified only by their leading region code.
+  // Never inspect suffixes such as HN0002.THA or HN0019.NTN.
+  const prefix = upper.slice(0, 2);
+  if (prefix === "HP") return "AHP";
+  if (prefix === "TH") return "ATH";
+  if (prefix === "PT") return "APT";
+  if (prefix === "TN") return "ATN";
+  if (["HN", "BN", "HY", "VP", "VI", "QN", "AA"].includes(prefix)) return "AHN";
 
   return "AHN";
 }

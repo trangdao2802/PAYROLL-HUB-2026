@@ -73,6 +73,12 @@ export interface AppData {
   Master_RosterFileName?: string;
   Q_CheckTAsFileName?: string;
   Q_CheckTAs?: any[];
+  Q_AllowedTARules?: Array<{
+    id: string;
+    classNameContains: string;
+    studentCondition: string;
+    result: number;
+  }>;
   updatedAt?: any;
   lastSupabaseSyncAt?: string;
   /** Prevent automatic Supabase restore after the user explicitly clears Timesheet. */

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
-import React, { useMemo, useRef, useState, useEffect, useTransition, useCallback } from "react";
+import React, { useMemo, useRef, useState, useEffect, useTransition, useCallback, useDeferredValue } from "react";
 import { useLocation } from "react-router";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { useTimesheetCalculations } from "../../hooks/useTimesheetCalculations";
@@ -20,6 +20,7 @@ import {
   Search,
   ChevronDown,
   XCircle,
+  X,
   RefreshCw,
   SlidersHorizontal,
   Save,
@@ -395,6 +396,7 @@ export function TimesheetHub() {
   const uiSettings = useUiSettings();
   const navigate = useNavigate();
   const [isPending, startTransition] = useTransition();
+  const tableRef = useRef<any>(null);
 
   const [activeTab, setActiveTab] = useState<
     "roster_raw" | "employee" | "center" | "mkt_local_north"
@@ -561,13 +563,13 @@ export function TimesheetHub() {
   const [targetDate, setTargetDate] = useState("");
   const [targetCenter, setTargetCenter] = useState("");
   const [auditCascadeFilters, setAuditCascadeFilters] = useState<Record<string, string>>({});
+  const isAuditNavigation = useMemo(() => {
+    const from = String((location.state as any)?.from || "");
+    return from === "audit" || from === "audit_applied" || from.includes("audit");
+  }, [location.state]);
 
   const activeAuditFilterEntries = useMemo(() => {
     const navigationState = location.state as any;
-    const isAuditNavigation =
-      navigationState?.from === "audit" ||
-      navigationState?.from === "audit_applied" ||
-      String(navigationState?.from || "").includes("audit");
     if (!isAuditNavigation) return [];
 
     const labels: Record<string, string> = {
@@ -595,21 +597,43 @@ export function TimesheetHub() {
     addEntry("date", targetDate, "Date");
     addEntry("keyword", searchTerm, navigationState?.filterLabel || "Keyword");
     return entries;
-  }, [auditCascadeFilters, location.state, searchTerm, targetCenter, targetDate]);
+  }, [auditCascadeFilters, isAuditNavigation, location.state, searchTerm, targetCenter, targetDate]);
+
+  const handleDismissAuditFilters = useCallback(() => {
+    startTransition(() => {
+      setSearchTerm("");
+      setDebouncedSearchTerm("");
+      setTargetDate("");
+      setTargetCenter("");
+      setAuditCascadeFilters({});
+    });
+    tableRef.current?.clearAllFilters?.();
+    navigate(location.pathname, {
+      replace: true,
+      state: { from: "cleared", activeTab: "roster_raw" },
+    });
+    toast.success("Đã hủy bộ lọc Audit và giữ nguyên bảng Raw Data");
+  }, [location.pathname, navigate]);
 
   const handleClearFilters = useCallback(() => {
-    setSearchTerm("");
-    setTargetDate("");
-    setTargetCenter("");
-    setAuditCascadeFilters({});
-    setFromDate("");
-    setToDate("");
-    setDebouncedFromDate("");
-    setDebouncedToDate("");
-    updateAppData((prev) => ({
-      ...prev,
-      Timesheet_Dates: { from: "", to: "" },
-    }), false);
+    startTransition(() => {
+      setSearchTerm("");
+      setDebouncedSearchTerm("");
+      setTargetDate("");
+      setTargetCenter("");
+      setAuditCascadeFilters({});
+      setFromDate("");
+      setToDate("");
+      setDebouncedFromDate("");
+      setDebouncedToDate("");
+    });
+    updateAppData((prev) => {
+      if (!prev.Timesheet_Dates?.from && !prev.Timesheet_Dates?.to) return prev;
+      return {
+        ...prev,
+        Timesheet_Dates: { from: "", to: "" },
+      };
+    }, false);
     navigate(location.pathname, {
       replace: true,
       state: { from: "cleared" },
@@ -617,7 +641,7 @@ export function TimesheetHub() {
     if (tableRef.current) {
       tableRef.current.clearAllFilters();
     }
-  }, [navigate, location.pathname, updateAppData]);
+  }, [location.pathname, navigate, updateAppData]);
 
   const handleResetDateFilter = useCallback(() => {
     startTransition(() => {
@@ -729,12 +753,16 @@ export function TimesheetHub() {
   }, [activeTab, processedRosterData]);
 
   const currentData = useMemo(() => {
-    if (activeTab === "roster_raw") return processedRosterData;
+    if (activeTab === "roster_raw") {
+      // Raw Data should be usable immediately while the calculation worker is
+      // still enriching rows in the background.
+      return isCalculating ? calculatedRosterData : processedRosterData;
+    }
     if (activeTab === "employee") return employeeSummary;
     if (activeTab === "center") return centerSummary;
     if (activeTab === "mkt_local_north") return mktLocalNorthData;
     return [];
-  }, [activeTab, processedRosterData, employeeSummary, centerSummary, mktLocalNorthData]);
+  }, [activeTab, calculatedRosterData, centerSummary, employeeSummary, isCalculating, mktLocalNorthData, processedRosterData]);
 
   const rosterMetrics = useMemo(() => {
     let unpaidRows = 0;
@@ -841,6 +869,7 @@ export function TimesheetHub() {
 
     return data;
   }, [currentData, debouncedSearchTerm, targetDate, targetCenter, auditCascadeFilters]);
+  const deferredRawData = useDeferredValue(searchData);
 
   // Handle deep linking and navigation resets
   useEffect(() => {
@@ -1249,8 +1278,6 @@ export function TimesheetHub() {
       setIsSyncing(false);
     }
   }, [appData.Timesheet_Roster, appData.Q_Staff, appData.Q_Salary_Scale, updateAppData]);
-
-  const tableRef = useRef<any>(null);
 
   const handleFetchFromSupabase = useCallback(async (isSilent = false) => {
     if (!isSupabaseConfigured()) {
@@ -1900,19 +1927,30 @@ export function TimesheetHub() {
               }}
             >
               <div className="unified-table-frame table-container flex-1 flex flex-col min-h-0 relative bg-card border border-border rounded-none shadow-sm overflow-hidden" style={{ borderWidth: "0.2px" }}>
-                {(location.state?.from === "audit" || location.state?.from === "audit_applied" || (location.state?.from && String(location.state.from).includes("audit"))) && (
+                {isAuditNavigation && (
                   <div className="bg-rose-50 border-b border-rose-200 px-4 py-2 flex items-center justify-between z-[150] shrink-0">
                     <div className="flex items-center gap-2 text-rose-800 text-xs font-bold">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                       <span>Viewing source data from Audit Discrepancy Details</span>
                     </div>
-                    <button
-                      onClick={() => navigate("/audit", { state: { activeTab: "detail" } })}
-                      className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Back to Audit Discrepancy Details</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => navigate("/audit", { state: { activeTab: "detail" } })}
+                        className="flex items-center gap-2 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Back to Audit Discrepancy Details</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDismissAuditFilters}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 bg-white text-rose-700 shadow-sm transition-all hover:bg-rose-100 active:scale-95"
+                        title="Hủy lọc Audit và tiếp tục xem Raw Data"
+                        aria-label="Hủy lọc Audit và tiếp tục xem Raw Data"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1965,7 +2003,7 @@ export function TimesheetHub() {
                       )}
 
                       {/* Sync/Load Indicator */}
-                      {isCalculating || isPending ? (
+                      {(isCalculating && activeTab !== "roster_raw") || isPending ? (
                         <div className="flex-1 flex flex-col items-center justify-center bg-card/60 relative z-10 p-12">
                           <div className="relative">
                             <div className="w-12 h-12 border-3 border-accent/20 border-t-accent rounded-full animate-spin" />
@@ -1988,7 +2026,7 @@ export function TimesheetHub() {
                       ) : activeTab === "roster_raw" ? (
                         <RosterRawTable
                           tableRef={tableRef}
-                          data={searchData}
+                          data={deferredRawData}
                           onCellChange={handleRosterCellChange}
                           onDeleteRows={handleRosterDeleteRows}
                           showSidebar={showSidebar}

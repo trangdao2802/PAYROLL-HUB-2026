@@ -11,6 +11,8 @@ import {
   parseAnyDate,
   parseTimeStrToHours,
 } from "../lib/utils/data-utils";
+import { getBusinessFromL07 } from "../lib/utils/center-utils";
+import { evaluateAllowedTAs } from "../lib/utils/allowed-ta-rules";
 
 const RAW_MAPPINGS = [
   { l07: "BN0001.LTT", keys: ["NSL", "Ngo Si Lien", "BN01", "Ly Thai To", "Lý Thái Tổ", "BN1", "BN1.NSL"] },
@@ -130,27 +132,6 @@ function getL07FromFile(name: string): string {
   return "";
 }
 
-function getAllowedTAs(cls: string, students: number): number {
-  if (!Number.isFinite(students) || students <= 0) return 0;
-  let c = cls.toLowerCase().replace(/\s+/g, "");
-  c = c.replace(/kindy/g, "kdg").replace(/kin/g, "kdg");
-  if (c.includes("kdg1") || c.includes("kdg2")) return students < 15 ? 2 : 3;
-  if (c.includes("kdg3")) return students < 13 ? 1 : 2;
-  if (c.includes("pristarter") || c.includes("primarystarter")) return 2;
-  if (c.includes("pri1") || c.includes("primary1")) return students < 15 ? 1 : 2;
-  if (c.includes("pri") || c.includes("primary")) return 1;
-  if (c.includes("secstarter") || c.includes("secondarystarter")) return 1;
-  return 0;
-}
-
-function getBU(l07: string): string {
-  if (!l07) return "AHN";
-  const u = l07.toUpperCase().trim();
-  if (u.includes("TN") || u.startsWith("TN")) return "ATN";
-  if (u.includes("HP") || u.startsWith("HP") || u.startsWith("TH") || u.includes("TH")) return "ATH";
-  return "AHN";
-}
-
 export function isMr03NormalClassType(value: unknown): boolean {
   return String(value || "")
     .trim()
@@ -207,7 +188,7 @@ function isSpecificAuditDate(value: string): boolean {
 }
 
 export function runAuditComputation(params: any) {
-  const { fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, centerMappingParam, bonusData, bonusSheetName } = params;
+  const { fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, centerMappingParam, bonusData, bonusSheetName, allowedTaRules } = params;
   const cmap: Record<string,string> = centerMappingParam || {};
   const validCls = /(KDG\s*[1-3]|PRI\s*[1-6]|PRI\s*STARTER|PRIMARY\s*STARTER|SEC\s*(STARTER|FOUND))/i;
   const INVALID_TEACHERS = ["\u1ed1 v\u1ea5n", "no teacher", "tba", "to be assigned", "kh\u00f4ng c\u00f3"];
@@ -415,7 +396,7 @@ export function runAuditComputation(params: any) {
     if (!combined[key]) {
       combined[key] = { 
         center: cL07, 
-        bu: getBU(cL07),
+        bu: getBusinessFromL07(cL07),
         className: cls, 
         teacherHours: 0, 
         actualTA: 0, 
@@ -469,7 +450,7 @@ export function runAuditComputation(params: any) {
           if (!ns && !isSpecificAuditDate(dsf)) {
             ns = csMap[norm(mCA)+"_"+normClass(cn)] || 0;
           }
-          const aTAs = getAllowedTAs(cn, ns || 0);
+          const aTAs = evaluateAllowedTAs(cn, ns || 0, allowedTaRules);
           calcH += cv3; details.push({ dateObj:cd?cd.getTime():0, dateStr:dsf, name:tc, hours:cv3, allowedTAs:aTAs, numStudents:ns||0 });
         }
       });
@@ -479,7 +460,7 @@ export function runAuditComputation(params: any) {
       if (!combined[key2]) {
         combined[key2] = { 
           center: mCA, 
-          bu: getBU(mCA),
+          bu: getBusinessFromL07(mCA),
           className: cn, 
           teacherHours: 0, 
           actualTA: 0, 
@@ -556,7 +537,7 @@ export function runAuditComputation(params: any) {
 
         if (bPayment <= 0) continue;
 
-        const bu = getBU(mCen);
+        const bu = getBusinessFromL07(mCen);
         const key = norm(mCen) + "_BONUS_" + i; // Unique key per bonus row
         if (!combined[key]) {
           combined[key] = { 
@@ -612,8 +593,8 @@ export function runAuditComputation(params: any) {
       if (!fn2 && !isSpecificAuditDate(ds5)) { const nCls2 = normClass(data.className); const ck3 = norm(data.center)+"_"+nCls2; fn2 = csMap[ck3]||csMap[nCls2]||0; }
       if (fn2 > 0) {
         if (fn2 > data.numStudents) data.numStudents = fn2;
-        dd2.teacher.forEach((t: any) => { if (!t.numStudents) { t.numStudents = fn2; t.allowedTAs = getAllowedTAs(data.className, fn2); } });
-        dd2.ta.forEach((ta: any) => { if (!ta.numStudents) ta.numStudents = fn2; ta.allowedTAs = getAllowedTAs(data.className, fn2); });
+        dd2.teacher.forEach((t: any) => { if (!t.numStudents) { t.numStudents = fn2; t.allowedTAs = evaluateAllowedTAs(data.className, fn2, allowedTaRules); } });
+        dd2.ta.forEach((ta: any) => { if (!ta.numStudents) ta.numStudents = fn2; ta.allowedTAs = evaluateAllowedTAs(data.className, fn2, allowedTaRules); });
       }
     });
   });
@@ -635,7 +616,7 @@ export function runAuditComputation(params: any) {
     const sDates = Object.keys(data.dailyMap).sort((a: string, b: string) => { const d1t = parseAnyDate(a)?.getTime()||0; const d2t = parseAnyDate(b)?.getTime()||0; return d1t-d2t; });
     const aligned: any[] = [];
     sDates.forEach((date: string) => { const dd3 = data.dailyMap[date]; const mx = Math.max(dd3.ta.length, dd3.teacher.length); for (let i = 0; i < mx; i++) aligned.push({ date:i===0?date:"", fullDate:date, isFirstOfDay:i===0, rowSpan:mx, teacher:dd3.teacher[i]||null, ta:dd3.ta[i]||null }); });
-    const oATAs = getAllowedTAs(data.className, data.numStudents||0);
+    const oATAs = evaluateAllowedTAs(data.className, data.numStudents||0, allowedTaRules);
     results.push({ ...data, expected:exp, allowedTAs:oATAs, displayCenter:data.center, displayIds:dIds, diffText:diff, status, statusColor:sc2, compareKey:k, alignedRows:aligned });
   });
   results.sort((a: any, b: any) => { const rank: Record<string,number> = { rose:1, amber:2, emerald:3 }; if (rank[a.statusColor] !== rank[b.statusColor]) return rank[a.statusColor]-rank[b.statusColor]; return a.center.localeCompare(b.center); });

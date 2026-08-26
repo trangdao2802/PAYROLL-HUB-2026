@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { useTeacherTaAuditLogic } from "../../hooks/useTeacherTaAuditLogic";
 import { DataTable, Column } from "./AuditDataTable";
+import { AllowedTaRulesDialog } from "./AllowedTaRulesDialog";
 import {
   ShieldCheck,
   PlayCircle,
@@ -59,6 +60,10 @@ import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
+import {
+  evaluateAllowedTAs,
+  sanitizeAllowedTaRules,
+} from "../../lib/utils/allowed-ta-rules";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -214,12 +219,26 @@ export function Audit() {
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"main" | "detail">("main");
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showAllowedTaRules, setShowAllowedTaRules] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [detailManualFilter, setDetailManualFilter] = useState("");
   const deferredDetailFilter = useDeferredValue(detailManualFilter);
   const [isConfigHidden, setIsConfigHidden] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const allowedTaRules = useMemo(
+    () => sanitizeAllowedTaRules(appData.Q_AllowedTARules),
+    [appData.Q_AllowedTARules],
+  );
+
+  const handleSaveAllowedTaRules = useCallback((rules: typeof allowedTaRules) => {
+    updateAppData((prev) => ({
+      ...prev,
+      Q_AllowedTARules: rules.map((rule) => ({ ...rule })),
+      updatedAt: new Date().toISOString(),
+    }));
+    toast.success("Đã lưu quy tắc Allowed TAs");
+  }, [updateAppData]);
 
   useEffect(() => {
     const handleRequestTabChange = (e: any) => {
@@ -827,19 +846,6 @@ export function Audit() {
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
 
   const detailData = useMemo(() => {
-    const getLocalAllowedTAs = (cls: string, students: number): number => {
-      if (!Number.isFinite(students) || students <= 0) return 0;
-      let c = String(cls).toLowerCase().replace(/\s+/g, "");
-      c = c.replace(/kindy/g, "kdg").replace(/kin/g, "kdg");
-      if (c.includes("kdg1") || c.includes("kdg2")) return students < 15 ? 2 : 3;
-      if (c.includes("kdg3")) return students < 13 ? 1 : 2;
-      if (c.includes("pristarter") || c.includes("primarystarter")) return 2;
-      if (c.includes("pri1") || c.includes("primary1")) return students < 15 ? 1 : 2;
-      if (c.includes("pri") || c.includes("primary")) return 1;
-      if (c.includes("secstarter") || c.includes("secondarystarter")) return 1;
-      return 0;
-    };
-
     // Flatten session details before retaining discrepancy groups below.
     const resultsToMap = auditResults.results || [];
 
@@ -933,7 +939,7 @@ export function Audit() {
       }
 
       if (!allowedTAs) {
-        allowedTAs = getLocalAllowedTAs(current._parentClassName, maxStudentsInSpan);
+        allowedTAs = evaluateAllowedTAs(current._parentClassName, maxStudentsInSpan, allowedTaRules);
       }
 
       let actualTAsCount = 0;
@@ -1014,7 +1020,7 @@ export function Audit() {
     }
 
     return finalData;
-  }, [auditResults.results]);
+  }, [allowedTaRules, auditResults.results]);
 
   // Helper to capitalize names
   const capitalizeName = (name: any) => {
@@ -1365,6 +1371,14 @@ export function Audit() {
       className="page-audit flex-1 flex flex-col min-h-0 bg-transparent px-5 pb-5 pt-2 gap-4 w-full h-full overflow-hidden"
       style={{ paddingTop: "0px", paddingBottom: "12px", paddingRight: "20px", paddingLeft: "20px" }}
     >
+      {showAllowedTaRules && (
+        <AllowedTaRulesDialog
+          open
+          rules={allowedTaRules}
+          onOpenChange={setShowAllowedTaRules}
+          onSave={handleSaveAllowedTaRules}
+        />
+      )}
       <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-emerald-500/5 rounded-full blur-[100px] -z-10" />
 
@@ -1622,6 +1636,16 @@ export function Audit() {
                     <Settings className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-700">
                       Cài đặt Giao diện
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => setShowAllowedTaRules(true)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  >
+                    <ListOrdered className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold text-slate-700">
+                      Quy tắc Allowed TAs
                     </span>
                   </DropdownMenuItem>
 

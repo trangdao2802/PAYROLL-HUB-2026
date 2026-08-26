@@ -1,4 +1,5 @@
 import { AppData } from "../types";
+import { cloneDefaultAllowedTaRules } from "../lib/utils/allowed-ta-rules";
 
 export const INITIAL_APP_DATA: AppData = {
   Timesheet_InputList: [],
@@ -405,5 +406,6 @@ export const INITIAL_APP_DATA: AppData = {
   TA_Center_Summary: { headers: [], data: [] },
   Q_TeacherHours: [],
   Q_TeacherHoursFileName: "",
+  Q_AllowedTARules: cloneDefaultAllowedTaRules(),
   Timesheet_RosterEditHistory: [],
 };
