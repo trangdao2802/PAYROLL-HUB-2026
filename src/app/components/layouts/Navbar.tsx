@@ -61,6 +61,7 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
   "/audit": [
     { id: "main", label: "Audit Overview", icon: ShieldCheck },
     { id: "detail", label: "Audit Discrepancy Details", icon: AlertCircle },
+    { id: "rules", label: "Allowed TAs Rules", icon: ListChecks },
   ],
   "/master-ae": [
     { id: "Sheet1_AE", label: "Gross Pay", icon: Database },
@@ -107,7 +108,9 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
     return (localStorage.getItem("master_ae_active_tab") as string) || "Sheet1_AE";
   });
 
-  const [auditActiveTab, setAuditActiveTab] = useState("main");
+  const [auditActiveTab, setAuditActiveTab] = useState(() => (
+    sessionStorage.getItem("audit_active_tab") || "main"
+  ));
 
   useEffect(() => {
     const handleTabChange = (e: Event) => {
@@ -127,6 +130,7 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
       const detail = (e as CustomEvent).detail;
       if (detail && detail.tab) {
         setAuditActiveTab(detail.tab);
+        sessionStorage.setItem("audit_active_tab", detail.tab);
       }
     };
     window.addEventListener("audit-tab-changed", handleAuditTabChange);
@@ -215,7 +219,9 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
                            window.dispatchEvent(new CustomEvent("master-ae-request-tab-change", { detail: { tab: t.id } }));
                         }
                       }}
-                      className="text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-accent/10 text-foreground hover:text-accent focus:bg-accent/10 focus:text-accent transition-colors outline-none focus:outline-none focus-visible:outline-none"
+                      className={`text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-accent/10 hover:text-accent focus:bg-accent/10 focus:text-accent transition-colors outline-none focus:outline-none focus-visible:outline-none ${
+                        t.id === currentTabId ? "bg-accent/10 text-accent" : "text-foreground"
+                      }`}
                     >
                       <t.icon className="w-3.5 h-3.5 opacity-70 text-accent" />
                       {t.label}

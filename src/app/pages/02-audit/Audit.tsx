@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { useTeacherTaAuditLogic } from "../../hooks/useTeacherTaAuditLogic";
 import { DataTable, Column } from "./AuditDataTable";
-import { AllowedTaRulesDialog } from "./AllowedTaRulesDialog";
+import { AllowedTaRulesTable } from "./AllowedTaRulesTable";
 import {
   ShieldCheck,
   PlayCircle,
@@ -217,9 +217,11 @@ export function Audit() {
   const navigate = useNavigate();
 
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<"main" | "detail">("main");
+  const [activeTab, setActiveTab] = useState<"main" | "detail" | "rules">(() => {
+    const savedTab = sessionStorage.getItem("audit_active_tab");
+    return savedTab === "detail" || savedTab === "rules" ? savedTab : "main";
+  });
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [showAllowedTaRules, setShowAllowedTaRules] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [detailManualFilter, setDetailManualFilter] = useState("");
@@ -252,6 +254,7 @@ export function Audit() {
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("audit-tab-changed", { detail: { tab: activeTab } }));
+    sessionStorage.setItem("audit_active_tab", activeTab);
   }, [activeTab]);
 
   // GIẢI PHÁP CHỐNG LAG 1: Dùng useTransition để nhường luồng xử lý UI (Không làm kẹt/đơ nút bấm)
@@ -1371,20 +1374,12 @@ export function Audit() {
       className="page-audit flex-1 flex flex-col min-h-0 bg-transparent px-5 pb-5 pt-2 gap-4 w-full h-full overflow-hidden"
       style={{ paddingTop: "0px", paddingBottom: "12px", paddingRight: "20px", paddingLeft: "20px" }}
     >
-      {showAllowedTaRules && (
-        <AllowedTaRulesDialog
-          open
-          rules={allowedTaRules}
-          onOpenChange={setShowAllowedTaRules}
-          onSave={handleSaveAllowedTaRules}
-        />
-      )}
       <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-emerald-500/5 rounded-full blur-[100px] -z-10" />
 
       <div className="flex flex-col md:flex-row gap-2 w-full flex-1 min-h-0 min-w-0 relative z-10">
         {/* Left Panel - Source Selection (Swapped back to left) */}
-        {!isConfigHidden && (
+        {!isConfigHidden && activeTab !== "rules" && (
           <motion.div
             key="audit-config"
             initial={{ x: -320, opacity: 0 }}
@@ -1513,14 +1508,16 @@ export function Audit() {
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
             <div className="flex min-w-0 items-center gap-3">
-              <button
-                onClick={() => setIsConfigHidden(!isConfigHidden)}
-                className="flex items-center justify-center rounded-full border border-slate-200/90 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition-all shadow-xs cursor-pointer w-7 h-7 p-0 active:scale-95 shrink-0"
-                title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-                type="button"
-              >
-                <PanelLeft className="w-3.5 h-3.5 text-primary" />
-              </button>
+              {activeTab !== "rules" && (
+                <button
+                  onClick={() => setIsConfigHidden(!isConfigHidden)}
+                  className="flex items-center justify-center rounded-full border border-slate-200/90 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition-all shadow-xs cursor-pointer w-7 h-7 p-0 active:scale-95 shrink-0"
+                  title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                  type="button"
+                >
+                  <PanelLeft className="w-3.5 h-3.5 text-primary" />
+                </button>
+              )}
 
               {/* Active table name & detailed description */}
               <div className="flex flex-col min-w-0 py-0.5 select-none">
@@ -1535,7 +1532,7 @@ export function Audit() {
                         </span>
                       )}
                     </>
-                  ) : (
+                  ) : activeTab === "detail" ? (
                     <>
                       <ListOrdered className="w-4 h-4 text-emerald-700 shrink-0" />
                       <span className="text-emerald-800 font-extrabold">AUDIT DISCREPANCY DETAILS</span>
@@ -1545,12 +1542,22 @@ export function Audit() {
                         </span>
                       )}
                     </>
+                  ) : (
+                    <>
+                      <ListOrdered className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-primary font-extrabold">ALLOWED TAS RULES</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
+                        {allowedTaRules.length}
+                      </span>
+                    </>
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight px-1 mt-0.5">
-                  {activeTab === "main" 
-                    ? "Báo cáo kiểm toán tổng hợp chênh lệch dữ liệu giữa bảng lương và bảng chấm công" 
-                    : "Danh sách phân tích chi tiết từng trường hợp chênh lệch cần kiểm tra đối soát"}
+                  {activeTab === "main"
+                    ? "Báo cáo kiểm toán tổng hợp chênh lệch dữ liệu giữa bảng lương và bảng chấm công"
+                    : activeTab === "detail"
+                      ? "Danh sách phân tích chi tiết từng trường hợp chênh lệch cần kiểm tra đối soát"
+                      : "Thiết lập công thức Allowed TAs theo tên lớp và số lượng học sinh"}
                 </p>
               </div>
 
@@ -1640,7 +1647,7 @@ export function Audit() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => setShowAllowedTaRules(true)}
+                    onClick={() => setActiveTab("rules")}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   >
                     <ListOrdered className="w-4 h-4 text-primary" />
@@ -1682,7 +1689,13 @@ export function Audit() {
         </div>
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-0 px-0" style={{ paddingLeft: "0px", paddingRight: "0px" }}>
-          {auditResults?.isCalculating || isProcessing ? (
+          {activeTab === "rules" ? (
+            <AllowedTaRulesTable
+              key={JSON.stringify(allowedTaRules)}
+              rules={allowedTaRules}
+              onSave={handleSaveAllowedTaRules}
+            />
+          ) : auditResults?.isCalculating || isProcessing ? (
             <div className="flex-1 flex flex-col items-center justify-center bg-white/50 relative z-10 w-full h-full p-6">
               <div className="relative">
                 <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
