@@ -132,7 +132,7 @@ interface TimesheetSummaryPageProps {
 }
 
 export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPageProps = {}) {
-  const { appData, updateAppData } = useAppData();
+  const { appData, updateAppData, isHydrating } = useAppData();
 
   const [activeTab] = useState<"files">("files");
   const [fromDate] = useState("");
@@ -363,12 +363,12 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
 
 
   const rosterData = useMemo(
-    () => appData.Timesheet_Roster || [],
-    [appData.Timesheet_Roster],
+    () => (isHydrating ? [] : appData.Timesheet_Roster || []),
+    [appData.Timesheet_Roster, isHydrating],
   );
-  const salaryScaleData = useMemo(() => appData.Q_Salary_Scale || [], [appData.Q_Salary_Scale]);
-  const staffData = useMemo(() => appData.Q_Staff || [], [appData.Q_Staff]);
-  const cacheData = useMemo(() => appData.Q_Cache || [], [appData.Q_Cache]);
+  const salaryScaleData = useMemo(() => (isHydrating ? [] : appData.Q_Salary_Scale || []), [appData.Q_Salary_Scale, isHydrating]);
+  const staffData = useMemo(() => (isHydrating ? [] : appData.Q_Staff || []), [appData.Q_Staff, isHydrating]);
+  const cacheData = useMemo(() => (isHydrating ? [] : appData.Q_Cache || []), [appData.Q_Cache, isHydrating]);
   const inputRows = useMemo(() => appData.Timesheet_InputList || [
     { id: "1", l07: "", aeCode: "", bus: "", url: "", status: "pending" },
   ], [appData.Timesheet_InputList]);
