@@ -1486,6 +1486,12 @@ header.table-header,
   padding-right: 16px !important;
 }
 
+/* Audit's first child is the scrollable grid, not a title header. Keep the
+   table and both scrollbars flush with the frame on every Audit view. */
+.data-table-wrapper.audit-data-table-wrapper > div.table-body-region {
+  padding: 0 !important;
+}
+
 /* Table footer pagination & controls padding */
 .data-table-wrapper > footer,
 .data-table-wrapper > div:last-child {
