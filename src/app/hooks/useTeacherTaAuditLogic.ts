@@ -237,7 +237,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
     }
 
     // Cache check: khÃ´ng gá»­i worker náº¿u params giá»‘ng há»‡t láº§n trÆ°á»›c
-    const cacheKey = `${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}`;
+    const cacheKey = `audit-in-class-v1|${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}`;
     if (cacheKey === lastParamsCacheRef.current) return;
     lastParamsCacheRef.current = cacheKey;
 

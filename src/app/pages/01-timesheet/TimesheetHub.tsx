@@ -3,7 +3,13 @@ import React, { useMemo, useRef, useState, useEffect, useTransition, useCallback
 import { useLocation } from "react-router";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { useTimesheetCalculations } from "../../hooks/useTimesheetCalculations";
-import { normalizeDateFilterValue, parseMoneyToNumber, prepareDataForExport } from "../../lib/utils/data-utils";
+import {
+  getAuditRawType,
+  isAuditInClassType,
+  normalizeDateFilterValue,
+  parseMoneyToNumber,
+  prepareDataForExport,
+} from "../../lib/utils/data-utils";
 import { getBusinessFromL07, getCenterInfoByL07, mapL07 } from "../../lib/utils/center-utils";
 import { useUiSettings } from "../../lib/ui-settings";
 import { INITIAL_APP_DATA } from "../../constants/initial-data";
@@ -565,6 +571,7 @@ export function TimesheetHub() {
     if (!isAuditNavigation) return [];
 
     const labels: Record<string, string> = {
+      audit_type: "Type",
       l07: "L07",
       center: "Center",
       class: "Class",
@@ -756,6 +763,10 @@ export function TimesheetHub() {
         if (normalizedTargetCenter && rowL07 !== normalizedTargetCenter && rowCenterCode !== normalizedTargetCenter) return false;
 
         for (const [key, expected] of cascadeEntries) {
+          if (key === "audit_type") {
+            if (!isAuditInClassType(getAuditRawType(row))) return false;
+            continue;
+          }
           if (key === "ngay" || key === "date") {
             if (rowDate !== normalizeDateFilterValue(expected)) return false;
             continue;

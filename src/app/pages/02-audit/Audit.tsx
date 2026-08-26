@@ -32,7 +32,9 @@ import {
 } from "lucide-react";
 import {
   parseAnyDate,
+  getAuditRawType,
   getVal,
+  isAuditInClassType,
   formatIdNumber,
   prepareDataForExport,
   normalizeDateFilterValue,
@@ -273,9 +275,11 @@ export function Audit() {
     const idStr = String(row.taId || "").trim();
     const nameStr = String(row.taName || "").trim();
 
-    const cascadeFilters: Record<string, string> = {};
+    const cascadeFilters: Record<string, string> = {
+      audit_type: "IN-CLASS / IN-CLASS ATLS",
+    };
 
-    // Level 1: L07 (Center) - always included
+    // First condition: TYPE, then L07 (Center) and the remaining cascade.
     if (targetCenter) {
       cascadeFilters["l07"] = targetCenter;
     }
@@ -379,7 +383,9 @@ export function Audit() {
   const fromDate = appData.Timesheet_Dates?.from || "";
   const toDate = appData.Timesheet_Dates?.to || "";
   const rosterData = useMemo(
-    () => appData.Timesheet_Roster || [],
+    () => (appData.Timesheet_Roster || []).filter(
+      (row: any) => isAuditInClassType(getAuditRawType(row)),
+    ),
     [appData.Timesheet_Roster],
   );
 

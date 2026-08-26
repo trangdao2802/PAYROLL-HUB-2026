@@ -355,6 +355,40 @@ export function getVal(
 
   return firstDefinedValue;
 }
+
+export const AUDIT_RAW_TYPE_ALIASES = [
+  "type",
+  "TYPE",
+  "task type",
+  "task code",
+  "activity code",
+  "event type",
+  "tk_type",
+  "code",
+  "loại",
+  "loại công việc",
+] as const;
+
+export function normalizeAuditRawType(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[‐‑‒–—−]/g, "-")
+    .replace(/\s*-\s*/g, "-")
+    .replace(/\s+/g, " ");
+}
+
+export function getAuditRawType(
+  row: Record<string, unknown> | null | undefined,
+): string {
+  return String(getVal(row, AUDIT_RAW_TYPE_ALIASES) || "").trim();
+}
+
+export function isAuditInClassType(value: unknown): boolean {
+  const normalized = normalizeAuditRawType(value);
+  return normalized === "IN-CLASS" || normalized === "IN-CLASS ATLS";
+}
+
 export function parseTimeStrToHours(timeValue: unknown): number {
   if (timeValue === null || timeValue === undefined || timeValue === "") return 0;
 

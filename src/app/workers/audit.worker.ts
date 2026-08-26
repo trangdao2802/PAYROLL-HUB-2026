@@ -4,7 +4,13 @@
  * Toan bo logic doi soat GV / TA chay tren worker thread.
  * Import helpers tu data-utils (Vite worker supports imports).
  */
-import { parseAnyDate, getVal, parseTimeStrToHours } from "../lib/utils/data-utils";
+import {
+  getAuditRawType,
+  getVal,
+  isAuditInClassType,
+  parseAnyDate,
+  parseTimeStrToHours,
+} from "../lib/utils/data-utils";
 
 const RAW_MAPPINGS = [
   { l07: "BN0001.LTT", keys: ["NSL", "Ngo Si Lien", "BN01", "Ly Thai To", "Lý Thái Tổ", "BN1", "BN1.NSL"] },
@@ -161,7 +167,8 @@ export function runAuditComputation(params: any) {
   }
 
   let minB: number|null = null, maxB: number|null = null;
-  rosterData.forEach((row: any) => { 
+  rosterData.forEach((row: any) => {
+    if (!isAuditInClassType(getAuditRawType(row))) return;
     const dv = getVal(row, ["date","ng\u00E0y","tk_date","session date"]); 
     const d = parseAnyDate(dv, fbYr || new Date().getFullYear()); 
     if (d && !isNaN(d.getTime())) { 
@@ -310,6 +317,11 @@ export function runAuditComputation(params: any) {
   const cenB = new Set<string>(), cenOnlyA = new Set<string>();
 
   rosterData.forEach((row: any) => {
+    // Raw Data must be constrained by TYPE before any center, class, date or
+    // duration logic. Only the two official classroom types belong to Audit.
+    const rawType = getAuditRawType(row);
+    if (!isAuditInClassType(rawType)) return;
+
     let cL07 = getL07FromFile(row._sourceFile || "");
     if (!cL07) {
       const cc = String(row.l07 || getVal(row, ["l07", "trung tâm (l07)", "cơ sở (l07)", "mã l07", "ma l07", "center code", "office code", "center", "cơ sở", "trung tâm", "trung tam", "chi nhánh", "mã trung tâm", "ma trung tam", "location", "site", "branch", "region", "vùng", "miền", "khu vực", "campus", "office", "area", "ma co so", "mã ae", "ma ae", "ae", "ae code", "ae_code", "ae name", "ae_name", "ae-code"]) || "");
@@ -320,24 +332,6 @@ export function runAuditComputation(params: any) {
     let cls = String(getVal(row, ["class", "lớp", "class name", "mã lớp"]) || "").trim().toUpperCase();
     if (!cls) cls = "KHÔNG CÓ LỚP HỌC";
     if (cls !== "KHÔNG CÓ LỚP HỌC" && !validCls.test(normClass(cls))) return;
-    const rawType = String(getVal(row, ["type", "code", "task code", "activity code", "task type", "tk_type", "loại công việc"]) || "").trim();
-    const typeUpper = rawType.toUpperCase();
-    const typeLower = rawType.toLowerCase();
-    const isMktLocal = cL07 === "MKT LOCAL NORTH" || cL07 === "MKT LOCAL SOUTH" || cL07.startsWith("MKT LOCAL NORTH_") || cL07.startsWith("MKT LOCAL SOUTH_");
-    const isAllowedType = isMktLocal || 
-                          typeUpper === "IN-CLASS" || 
-                          typeUpper === "IN-CLASS ATLS" || 
-                          typeLower.includes("in-class") || 
-                          typeLower.includes("sms") || 
-                          typeLower.includes("tutoring") || 
-                          typeLower.includes("tutorial") || 
-                          typeLower.includes("club") || 
-                          typeLower.includes("demo") || 
-                          typeLower.includes("waiting class") || 
-                          typeLower.includes("parent meeting") || 
-                          typeLower.includes("report") ||
-                          typeLower.includes("intern");
-    if (!isAllowedType) return;
     const dv2 = getVal(row, ["date", "ngày", "tk_date", "session date", "sessiondate", "ngày học", "ngày tháng"]);
     let rDB: Date | null = parseAnyDate(dv2, prefYr); if (!rDB) return;
     if (fDate && rDB < fDate) return; if (tDate && rDB > tDate) return;
