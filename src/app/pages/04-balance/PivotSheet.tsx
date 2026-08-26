@@ -29,6 +29,8 @@ import {
   buildPivotFromAppData,
   formatPivotTypeHeader,
   getPivotDataMonths,
+  getPivotSourceLabels,
+  markPivotZhnSource,
   readPivotMktTypeCache,
   PIVOT_CACHE_VERSION,
   updatePivotMktTypeCache,
@@ -826,6 +828,7 @@ export function PivotSheet() {
             if (!newGroupedData[bu]) newGroupedData[bu] = {};
             if (!newGroupedData[bu][l07]) newGroupedData[bu][l07] = {};
             if (!newGroupedData[bu][l07][item.month]) newGroupedData[bu][l07][item.month] = {};
+            markPivotZhnSource(newGroupedData[bu][l07][item.month], l07, rawCenter);
 
             chargeCols.forEach(col => {
               const rawVal = row[col.index];
@@ -1431,11 +1434,15 @@ export function PivotSheet() {
           });
           buGrandTotal += rowTotal;
           superGrandTotal += rowTotal;
+          const sourceLabels = getPivotSourceLabels(safeGroupedData[bu][l07][month]);
+          const displayL07 = sourceLabels.length > 0
+            ? `${l07} — ${sourceLabels.join(" / ")}`
+            : l07;
 
           const rowData: any[] = [];
           if (!hiddenColumns.no) rowData.push(rowId++);
           if (!hiddenColumns.business) rowData.push(bu);
-          if (!hiddenColumns.charge) rowData.push(l07);
+          if (!hiddenColumns.charge) rowData.push(displayL07);
           if (!hiddenColumns.month) rowData.push(month);
           rowData.push(...rowVals);
           if (!hiddenColumns.grandTotal) rowData.push(rowTotal);
@@ -1496,6 +1503,7 @@ export function PivotSheet() {
     l07: string;
     values: number[];
     rowTotal: number;
+    sourceLabels: string[];
   }> = [];
 
   let rIdx = 1;
@@ -1542,7 +1550,8 @@ export function PivotSheet() {
           bu,
           l07,
           values,
-          rowTotal
+          rowTotal,
+          sourceLabels: getPivotSourceLabels(safeGroupedData[bu][l07][month]),
         });
       });
     });
@@ -1622,7 +1631,12 @@ export function PivotSheet() {
     const nextWidths: Record<string, number> = {
       no: measureCol("No.", rowsToMeasure.map((_, i) => i + 1), 60, 100),
       business: measureCol("Business", rowsToMeasure.map(r => r.bu), 90, 350),
-      charge: measureCol("L07", rowsToMeasure.map(r => r.l07), 160, 600),
+      charge: measureCol(
+        "L07",
+        rowsToMeasure.map(r => [r.l07, ...r.sourceLabels].join(" · ")),
+        160,
+        600,
+      ),
       month: measureCol("Tháng", rowsToMeasure.map(r => r.month), 80, 180),
       grandTotal: measureCol("TỔNG CỘNG", rowsToMeasure.map(r => r.rowTotal), 130, 350),
     };
@@ -1767,7 +1781,9 @@ export function PivotSheet() {
               style={{ width: columnWidths["charge"] || 220, minWidth: columnWidths["charge"] || 220, maxWidth: columnWidths["charge"] || 220 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "l07", item.l07)}
               className="cursor-pointer truncate border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-left text-xs font-medium text-card-foreground transition-colors"
-              title={`Nhấp đúp để sửa L07 (${item.l07})`}
+              title={item.sourceLabels.length > 0
+                ? `L07 ${item.l07} — Khoản: ${item.sourceLabels.join(" / ")}. Nhấp đúp để sửa L07.`
+                : `Nhấp đúp để sửa L07 (${item.l07})`}
             >
               {isEditingThisRow && editingCell.field === "l07" ? (
                 <input
@@ -1782,7 +1798,14 @@ export function PivotSheet() {
                   className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-xs font-medium text-foreground outline-none ring-2 ring-primary/15"
                 />
               ) : (
-                <span>{item.l07}</span>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0">{item.l07}</span>
+                  {item.sourceLabels.length > 0 && (
+                    <span className="truncate rounded border border-primary/15 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary/75">
+                      Khoản: {item.sourceLabels.join(" / ")}
+                    </span>
+                  )}
+                </div>
               )}
             </td>
           )}

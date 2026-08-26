@@ -5,9 +5,11 @@ import {
 } from "./center-utils";
 import { parseDurationToHours } from "../schemas/excel-schema";
 
-export const PIVOT_CACHE_VERSION = 10;
+export const PIVOT_CACHE_VERSION = 11;
 export const PIVOT_MKT_TYPE_CACHE_KEY = "pivot_master_mkt_type_data";
 export const PIVOT_MKT_TYPE_CACHE_VERSION = 2;
+export const PIVOT_SOURCE_MARKER_PREFIX = "__PIVOT_SOURCE__";
+export const ZHN_SHARED_L07 = "ZHN0000.GY";
 
 export type PivotGroupedData = Record<
   string,
@@ -20,6 +22,52 @@ export interface PivotMktTypeCache {
   typeColumns: string[];
   months: string[];
   updatedAt: number;
+}
+
+export function normalizePivotL07(l07Raw: string): string {
+  const l07 = String(l07Raw || "").trim();
+  const upper = l07.toUpperCase();
+  if (upper === "CAMBRIDGE" || upper === "CONTEST") return ZHN_SHARED_L07;
+  return l07;
+}
+
+export function getPivotZhnSourceLabel(...sourceValues: unknown[]): string {
+  for (const value of sourceValues) {
+    const normalized = String(value || "").trim().toUpperCase();
+    if (!normalized) continue;
+    if (normalized.includes("CONTEST")) return "CONTEST";
+    if (normalized.includes("CAMBRIDGE")) return "CAMBRIDGE";
+  }
+  return "";
+}
+
+export function markPivotZhnSource(
+  values: Record<string, number>,
+  l07Raw: string,
+  ...sourceValues: unknown[]
+): void {
+  if (normalizePivotL07(l07Raw).toUpperCase() !== ZHN_SHARED_L07) return;
+  const sourceLabel = getPivotZhnSourceLabel(l07Raw, ...sourceValues);
+  if (!sourceLabel) return;
+  values[`${PIVOT_SOURCE_MARKER_PREFIX}${sourceLabel}`] = 1;
+}
+
+export function getPivotSourceLabels(values: Record<string, number> = {}): string[] {
+  const preferredOrder = ["CAMBRIDGE", "CONTEST"];
+  return Object.keys(values || {})
+    .filter((key) => key.startsWith(PIVOT_SOURCE_MARKER_PREFIX) && Number(values[key]) !== 0)
+    .map((key) => key.slice(PIVOT_SOURCE_MARKER_PREFIX.length))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a);
+      const bIndex = preferredOrder.indexOf(b);
+      if (aIndex !== -1 || bIndex !== -1) {
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      }
+      return a.localeCompare(b);
+    });
 }
 
 export function formatPivotTypeHeader(typeRaw: string): string {
@@ -66,6 +114,7 @@ export function formatPivotTypeHeader(typeRaw: string): string {
 
 export function isMktRosterTypeColumn(typeRaw: string): boolean {
   if (!typeRaw) return false;
+  if (String(typeRaw).startsWith(PIVOT_SOURCE_MARKER_PREFIX)) return false;
   const type = formatPivotTypeHeader(typeRaw);
   if (!type || type === "EXCLUDE" || type === "ADD" || type === "CANCEL" || type === "UNSPECIFIED") return false;
   const standardGross = new Set([
@@ -358,6 +407,10 @@ export function sanitizePivotData(
         Object.keys(l07Obj).forEach(rawType => {
           const amount = l07Obj[rawType];
           if (!amount || isNaN(amount)) return;
+          if (rawType.startsWith(PIVOT_SOURCE_MARKER_PREFIX)) {
+            newGroupedData[bu][l07][rawType] = 1;
+            return;
+          }
           const cleanType = formatPivotTypeHeader(rawType);
           if (cleanType === "EXCLUDE" || cleanType === "ADD" || cleanType === "CANCEL") return;
 
@@ -420,13 +473,13 @@ const STANDARD_GROSS_PAY_CHARGES: { key: string; type: string }[] = [
   { key: "BONUS", type: "EXTRA SUMMER INSTRUCTORS" },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function buildPivotFromAppData(
   sheet1Rows: any[] = [],
   _holdRows: any[] = [],
   rosterRows: any[] = [],
   reportingMonth?: string,
 ) {
+  void _holdRows;
   const newGroupedData: Record<string, Record<string, Record<string, Record<string, number>>>> = {};
   const uniqueTypes = new Set<string>();
   const activeReportingMonth = String(reportingMonth || "")
@@ -441,7 +494,14 @@ export function buildPivotFromAppData(
     return isNaN(num) ? 0 : num;
   };
 
-  const addAmount = (buRaw: string, l07Raw: string, monthRaw: string, typeRaw: string, amount: number) => {
+  const addAmount = (
+    buRaw: string,
+    l07Raw: string,
+    monthRaw: string,
+    typeRaw: string,
+    amount: number,
+    sourceRaw?: unknown,
+  ) => {
     if (!amount || isNaN(amount)) return;
     let bu = (buRaw || "").trim().toUpperCase();
     const sourceMonth = (monthRaw || "").trim();
@@ -461,7 +521,7 @@ export function buildPivotFromAppData(
       bu = "OTHER";
     }
 
-    const l07 = (l07Raw || "UNKNOWN").trim();
+    const l07 = normalizePivotL07((l07Raw || "UNKNOWN").trim());
     const type = formatPivotTypeHeader(typeRaw);
 
     if (type === "EXCLUDE" || type === "ADD" || type === "CANCEL") return;
@@ -471,6 +531,7 @@ export function buildPivotFromAppData(
     if (!newGroupedData[bu]) newGroupedData[bu] = {};
     if (!newGroupedData[bu][l07]) newGroupedData[bu][l07] = {};
     if (!newGroupedData[bu][l07][month]) newGroupedData[bu][l07][month] = {};
+    markPivotZhnSource(newGroupedData[bu][l07][month], l07, sourceRaw);
     if (!newGroupedData[bu][l07][month][type]) newGroupedData[bu][l07][month][type] = 0;
     newGroupedData[bu][l07][month][type] += amount;
   };
@@ -478,7 +539,16 @@ export function buildPivotFromAppData(
   sheet1Rows.forEach((row) => {
     if (!row) return;
     const bu = row["Business"] || row["BU"] || "";
-    const l07 = row["L07"] || row["Center"] || row["CHARGE TO CENTER"] || "";
+    const rawL07 = row["L07"] || row["Center"] || row["CHARGE TO CENTER"] || "";
+    const l07 = normalizePivotL07(rawL07);
+    const sourceCenter =
+      row["_rawAE"] ||
+      row["Center"] ||
+      row["CENTER"] ||
+      row["Mã ae"] ||
+      row["MÃ AE"] ||
+      row["Note"] ||
+      rawL07;
     const month = row["_fileMonth"] || row["Tháng báo cáo"] || row["Tháng"] || row["month"] || activeReportingMonth || "03.2026";
     if (!l07) return;
 
@@ -506,7 +576,7 @@ export function buildPivotFromAppData(
         const amt = parseMoney(row[key]);
         if (amt !== 0) {
           seenTypesInRow.add(type);
-          addAmount(bu, l07, month, type, amt);
+          addAmount(bu, l07, month, type, amt, sourceCenter);
         }
       }
     });
@@ -538,7 +608,7 @@ export function buildPivotFromAppData(
           const amt = parseMoney(row[key]);
           if (amt !== 0) {
             seenTypesInRow.add(cleanType);
-            addAmount(bu, l07, month, cleanType, amt);
+            addAmount(bu, l07, month, cleanType, amt, sourceCenter);
           }
         }
       }
@@ -550,7 +620,7 @@ export function buildPivotFromAppData(
       const type = row["Type"] || row["LOẠI"] || row["Phân loại"] || row["Nghiệp vụ"] || "UNSPECIFIED";
       const cleanType = formatPivotTypeHeader(type);
       if (totalPay !== 0 && cleanType !== "EXCLUDE" && cleanType !== "ADD" && cleanType !== "CANCEL") {
-        addAmount(bu, l07, month, cleanType, totalPay);
+        addAmount(bu, l07, month, cleanType, totalPay, sourceCenter);
       }
     }
   });
@@ -620,7 +690,7 @@ export function buildPivotFromAppData(
     }
 
     if (salary > 0 && l07 && rowType !== "EXCLUDE") {
-      addAmount(bu, l07, month, rowType, salary);
+      addAmount(bu, l07, month, rowType, salary, center);
     }
   });
 
