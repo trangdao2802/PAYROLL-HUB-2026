@@ -3555,21 +3555,14 @@ export function BulkPayment({
                             className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
-                            TOTAL PAYMENT
+                            TOTAL BANK AE
                           </th>
                           <th
-                            colSpan={2}
+                            colSpan={3}
                             className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-900 whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             FROM ACC
-                          </th>
-                          <th
-                            rowSpan={2}
-                            className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-900 align-middle whitespace-normal"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
-                          >
-                            TOTAL BANK ACC
                           </th>
                           <th
                             rowSpan={2}
@@ -3605,6 +3598,12 @@ export function BulkPayment({
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             HOLD AE
+                          </th>
+                          <th
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-800 whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            TOTAL BANK ACC
                           </th>
                         </tr>
                       </thead>
