@@ -117,17 +117,17 @@
   --popover-foreground: #3A3129;
   --muted: #DFD9DF;
   --muted-foreground: #6B5B70;
-  --table-grid-color: rgba(58, 49, 41, 0.08);
-  --grid-line-color: rgba(58, 49, 41, 0.08);
-  --table-border-color: rgba(58, 49, 41, 0.08);
-  --table-header-bg: #413644;
-  --table-footer-bg: #CFC4D6;
-  --table-column-header-bg: #E3DBE8;
-  --table-data-bg: #F9F8FA;
+  --table-grid-color: #CFCDC2;
+  --grid-line-color: #CFCDC2;
+  --table-border-color: #CFCDC2;
+  --table-header-bg: #DFD9DF;
+  --table-footer-bg: #DFD9DF;
+  --table-column-header-bg: #C4CBD5;
+  --table-data-bg: #F6F7F7;
   --ring: #413644;
   --sky: #B4C0CB; 
   --rose: #8E659A;
-  --peach: #CFC4D6;
+  --peach: #DFD9DF;
   --radius: 12px;
 
   --stripe-color1: #FFFFFF;
@@ -672,7 +672,7 @@
   .unified-table-frame th,
   .analysis-data-table th,
   .reconcile-table-region th {
-    background-color: var(--table-column-header-bg, #E3DBE8) !important;
+    background-color: var(--table-column-header-bg, #C4CBD5) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.1em !important;
     font-weight: 700 !important;

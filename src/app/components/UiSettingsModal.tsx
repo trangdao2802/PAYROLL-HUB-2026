@@ -1716,6 +1716,7 @@ export function UiSettingsModal({
                               tableHeaderBg: presetData.tableHeaderBg,
                               tableFooterBg: presetData.tableFooterBg,
                               tableColumnHeaderBg: presetData.tableColumnHeaderBg,
+                              tableDataBg: presetData.tableDataBg,
                               tableFont: presetData.tableFont,
                               tableRadius: presetData.tableRadius,
                             }));

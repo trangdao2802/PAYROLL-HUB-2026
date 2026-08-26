@@ -86,6 +86,7 @@ export interface TastePreset {
   tableHeaderBg: string;
   tableFooterBg: string;
   tableColumnHeaderBg?: string;
+  tableDataBg: string;
   tableFont: string;
   tableRadius: string;
 }
@@ -100,10 +101,11 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     border: "#CFCDC2",
     stripeColor1: "#F6F7F7",
     stripeColor2: "#DFD9DF",
-    gridLineColor: "rgba(58, 49, 41, 0.08)",
-    tableHeaderBg: "#CFC4D6",
-    tableFooterBg: "#CFC4D6",
-    tableColumnHeaderBg: "#E3DBE8",
+    gridLineColor: "#CFCDC2",
+    tableHeaderBg: "#DFD9DF",
+    tableFooterBg: "#DFD9DF",
+    tableColumnHeaderBg: "#C4CBD5",
+    tableDataBg: "#F6F7F7",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
   },
@@ -120,6 +122,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableHeaderBg: "#F1EFEB",
     tableFooterBg: "#F1EFEB",
     tableColumnHeaderBg: "#F1EFEB",
+    tableDataBg: "#F9F8F6",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
   },
@@ -136,6 +139,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableHeaderBg: "#F4F4F5",
     tableFooterBg: "#F4F4F5",
     tableColumnHeaderBg: "#E4E4E7",
+    tableDataBg: "#FAFAFA",
     tableFont: "var(--font-inter)",
     tableRadius: "6px",
   },
@@ -152,6 +156,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableHeaderBg: "#FAF0DD",
     tableFooterBg: "#FAF0DD",
     tableColumnHeaderBg: "#F8EAD3",
+    tableDataBg: "#FDFBF7",
     tableFont: "var(--font-nunito)",
     tableRadius: "16px",
   }
@@ -177,11 +182,11 @@ export const defaultSettings: UiSettings = {
   showHelp: true,
   stripeColor1: "#F6F7F7",
   stripeColor2: "#DFD9DF",
-  gridLineColor: "rgba(58, 49, 41, 0.08)",
-  tableHeaderBg: "#CFC4D6",
-  tableFooterBg: "#CFC4D6",
-  tableColumnHeaderBg: "#E3DBE8",
-  tableDataBg: "#FCFBFD",
+  gridLineColor: "#CFCDC2",
+  tableHeaderBg: "#DFD9DF",
+  tableFooterBg: "#DFD9DF",
+  tableColumnHeaderBg: "#C4CBD5",
+  tableDataBg: "#F6F7F7",
   showPivotSubtotals: true,
   showGrandTotals: true,
   showMktCols: true,
@@ -486,10 +491,10 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
   root.style.setProperty("--table-grid-color", effectiveGrid);
   root.style.setProperty("--table-border-color", effectiveGrid);
 
-  root.style.setProperty("--table-header-bg", settings.tableHeaderBg || "#B9AABF");
-  root.style.setProperty("--table-footer-bg", settings.tableFooterBg || settings.tableHeaderBg || "#B9AABF");
-  root.style.setProperty("--table-column-header-bg", settings.tableColumnHeaderBg || "#D7CFDD");
-  root.style.setProperty("--table-data-bg", settings.tableDataBg || "#FAF8FC");
+  root.style.setProperty("--table-header-bg", settings.tableHeaderBg || "#DFD9DF");
+  root.style.setProperty("--table-footer-bg", settings.tableFooterBg || settings.tableHeaderBg || "#DFD9DF");
+  root.style.setProperty("--table-column-header-bg", settings.tableColumnHeaderBg || "#C4CBD5");
+  root.style.setProperty("--table-data-bg", settings.tableDataBg || "#F6F7F7");
 
   if (settings.titleAlign) {
     const [flexAlign, textAlign] = settings.titleAlign.split("|");
@@ -645,7 +650,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .total-row th,
     tr.total-row td,
     tr.total-row th {
-      background-color: ${settings.tableColumnHeaderBg || "#D7CFDD"} !important;
+      background-color: ${settings.tableColumnHeaderBg || "#C4CBD5"} !important;
       color: ${settings.accent || "#7B4F85"} !important;
       border-left: none !important;
       border-right: none !important;
@@ -668,8 +673,8 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .bulk-payment-data-panel .table-footer-pagination,
     .analysis-table-frame > .unified-table-frame-header,
     .analysis-data-table > .table-footer-pagination {
-      background: ${settings.tableHeaderBg || "#B9AABF"} !important;
-      background-color: ${settings.tableHeaderBg || "#B9AABF"} !important;
+      background: ${settings.tableHeaderBg || "#DFD9DF"} !important;
+      background-color: ${settings.tableHeaderBg || "#DFD9DF"} !important;
     }
 
     .table-footer-pagination,
@@ -904,6 +909,10 @@ export async function loadUiSettings(): Promise<UiSettings> {
           | "stripeColor1"
           | "stripeColor2"
           | "gridLineColor"
+          | "tableHeaderBg"
+          | "tableFooterBg"
+          | "tableColumnHeaderBg"
+          | "tableDataBg"
         >,
         previousValue: string,
       ) => {
@@ -922,6 +931,11 @@ export async function loadUiSettings(): Promise<UiSettings> {
       migrateDefaultColor("stripeColor1", "#FFFFFF");
       migrateDefaultColor("stripeColor2", "#EFECE8");
       migrateDefaultColor("gridLineColor", "rgba(77, 54, 83, 0.06)");
+      migrateDefaultColor("gridLineColor", "rgba(58, 49, 41, 0.08)");
+      migrateDefaultColor("tableHeaderBg", "#CFC4D6");
+      migrateDefaultColor("tableFooterBg", "#CFC4D6");
+      migrateDefaultColor("tableColumnHeaderBg", "#E3DBE8");
+      migrateDefaultColor("tableDataBg", "#FCFBFD");
     }
     // Force valid hex for specific fields
     if (!isValidColor(result.accent)) result.accent = defaultSettings.accent;
@@ -940,6 +954,8 @@ export async function loadUiSettings(): Promise<UiSettings> {
       result.tableFooterBg = defaultSettings.tableFooterBg;
     if (result.tableColumnHeaderBg && !isValidColor(result.tableColumnHeaderBg))
       result.tableColumnHeaderBg = defaultSettings.tableColumnHeaderBg;
+    if (result.tableDataBg && !isValidColor(result.tableDataBg))
+      result.tableDataBg = defaultSettings.tableDataBg;
     if (!/^\d+(?:\.\d+)?(?:px|rem|em)$/.test(result.fontSize || ""))
       result.fontSize = defaultSettings.fontSize;
 
