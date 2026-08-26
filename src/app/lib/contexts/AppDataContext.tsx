@@ -49,7 +49,6 @@ const getSplitStorageKey = (field: keyof AppData) =>
 interface AppDataCtx {
   appData: AppData;
   isLoading: boolean;
-  isHydrating: boolean;
 }
 
 interface AppActionsCtx {
@@ -1036,12 +1035,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   }, [state.present, computedHoldAE]);
 
   const dataValue = useMemo<AppDataCtx>(
-    () => ({
-      appData: computedPresent,
-      isLoading,
-      isHydrating: isStorageHydrating,
-    }),
-    [computedPresent, isLoading, isStorageHydrating],
+    () => ({ appData: computedPresent, isLoading }),
+    [computedPresent, isLoading],
   );
 
   const actionsValue = useMemo<AppActionsCtx>(
@@ -1083,7 +1078,6 @@ export function useAppData() {
   return {
     appData: dataCtx.appData,
     isLoading: dataCtx.isLoading,
-    isHydrating: dataCtx.isHydrating,
     updateAppData: actionsCtx.updateAppData,
     undo: actionsCtx.undo,
     redo: actionsCtx.redo,

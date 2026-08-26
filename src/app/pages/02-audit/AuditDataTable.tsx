@@ -740,7 +740,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       className,
       striped = false,
       resizableColumns = true,
-      rowHeight: fixedRowHeight,
       style: customStyle,
       onFilteredDataChange,
       autoHideZeroSumColumns = true,
@@ -1373,12 +1372,12 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       relaxed: 64,
     }), []);
 
-    const [rowHeight, setRowHeight] = useState(() => fixedRowHeight ?? 52); // px
+    const [rowHeight, setRowHeight] = useState(52); // px
 
     useEffect(() => {
-      const targetHeight = fixedRowHeight ?? densityHeights[rowDensity] ?? 52;
+      const targetHeight = densityHeights[rowDensity] || 52;
       setRowHeight(targetHeight);
-    }, [rowDensity, densityHeights, fixedRowHeight]);
+    }, [rowDensity, densityHeights]);
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [vsContainerWidth, setVsContainerWidth] = useState(1000);
