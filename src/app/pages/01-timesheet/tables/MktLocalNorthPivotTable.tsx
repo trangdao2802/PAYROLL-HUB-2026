@@ -254,22 +254,28 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                   </td>
                 </tr>
                 {showBusinessSubtotal && subtotal && (
-                  <tr className="h-10 font-black uppercase tracking-wider text-[10.5px]">
+                  <tr
+                    className="h-10 font-black uppercase tracking-wider text-[10.5px] [&>td]:border-primary/30"
+                    style={{
+                      backgroundColor:
+                        "color-mix(in srgb, var(--primary) 22%, var(--card))",
+                    }}
+                  >
                     <td
                       colSpan={3}
-                      className="border-r border-b border-border px-3.5 py-2 text-primary bg-primary/10 whitespace-nowrap"
+                      className="border-r border-b px-3.5 py-2 text-primary whitespace-nowrap"
                     >
                       TỔNG BU {business}
                     </td>
                     {types.map((type) => (
                       <td
                         key={type}
-                        className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-foreground bg-primary/10 whitespace-nowrap min-w-[120px]"
+                        className="border-r border-b px-3.5 py-2 text-right tabular-nums text-primary whitespace-nowrap min-w-[120px]"
                       >
                         {formatMoneyVND(subtotal.totals[type] || 0).replace(" ₫", "")}
                       </td>
                     ))}
-                    <td className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-primary bg-primary/15 whitespace-nowrap min-w-[150px]">
+                    <td className="border-r border-b px-3.5 py-2 text-right tabular-nums text-primary whitespace-nowrap min-w-[150px]">
                       {formatMoneyVND(subtotal.grandTotal).replace(" ₫", "")}
                     </td>
                   </tr>
