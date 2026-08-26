@@ -150,6 +150,61 @@ function getBU(l07: string): string {
   return "AHN";
 }
 
+export function isMr03NormalClassType(value: unknown): boolean {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ") === "normal class";
+}
+
+/**
+ * MR.07 exports Session Date as MM/DD/YYYY. The shared date parser treats
+ * slash dates as DD/MM/YYYY, so ambiguous dates were swapped and values such
+ * as 07/31/2026 were rejected completely.
+ */
+export function parseMr07SessionDate(
+  value: unknown,
+  preferredYear?: number,
+): Date | null {
+  if (value instanceof Date || typeof value === "number") {
+    return parseAnyDate(value, preferredYear);
+  }
+
+  const raw = String(value ?? "").trim();
+  const usDate = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (usDate) {
+    const month = Number(usDate[1]);
+    const day = Number(usDate[2]);
+    let year = Number(usDate[3]);
+    if (year < 100) year += 2000;
+    const parsed = new Date(year, month - 1, day);
+    if (
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day
+    ) {
+      return parsed;
+    }
+  }
+
+  return parseAnyDate(value, preferredYear);
+}
+
+function toAuditDateKey(date: Date): string {
+  return (
+    String(date.getDate()).padStart(2, "0") +
+    "/" +
+    String(date.getMonth() + 1).padStart(2, "0") +
+    "/" +
+    date.getFullYear()
+  );
+}
+
+function isSpecificAuditDate(value: string): boolean {
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(value);
+}
+
 export function runAuditComputation(params: any) {
   const { fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, centerMappingParam, bonusData, bonusSheetName } = params;
   const cmap: Record<string,string> = centerMappingParam || {};
@@ -284,7 +339,7 @@ export function runAuditComputation(params: any) {
       else if (s.includes("session date") || s.includes("ng\u00E0y d\u1EA1y") || s.includes("ng\u00E0y h\u1ECDc")) { if (cm.sessionDate === -1) cm.sessionDate = idx; }
     }));
     if (cfgMatrix) {
-      for (let idx = 0; idx < dR2.length; idx++) { if ([cm.class, cm.center].includes(idx)) continue; const dt = parseAnyDate(dR2[idx], prefYr); if (dt) cm.dates.push({ index: idx, date: dt }); }
+      for (let idx = 0; idx < dR2.length; idx++) { if ([cm.class, cm.center].includes(idx)) continue; const dt = parseMr07SessionDate(dR2[idx], prefYr); if (dt) cm.dates.push({ index: idx, date: dt }); }
       const ds2 = Math.max(cfgHdr, cfgDt)+1;
       for (let i = ds2; i < checkTAsDataRaw.length; i++) {
         const ra: any[] = Array.isArray(checkTAsDataRaw[i]) ? checkTAsDataRaw[i] : Object.values(checkTAsDataRaw[i]);
@@ -292,7 +347,7 @@ export function runAuditComputation(params: any) {
         cm.dates.forEach((di: any) => {
           const val = parseInt(String(ra[di.index] || "").replace(/[^0-9]/g,""), 10) || 0;
           if (val > 0) {
-            const ds3 = String(di.date.getDate()).padStart(2,"0")+"/"+String(di.date.getMonth()+1).padStart(2,"0")+"/"+di.date.getFullYear();
+            const ds3 = toAuditDateKey(di.date);
             ctaMap[norm(ctr)+"_"+normClass(cls)+"_"+ds3] = val; ctaMap[normClass(cls)+"_"+ds3] = val;
             const ck = norm(ctr)+"_"+normClass(cls); if (!csMap[ck] || csMap[ck] < val) csMap[ck] = val; if (!csMap[normClass(cls)] || csMap[normClass(cls)] < val) csMap[normClass(cls)] = val;
           }
@@ -303,11 +358,11 @@ export function runAuditComputation(params: any) {
         const rr: any[] = Array.isArray(checkTAsDataRaw[i]) ? checkTAsDataRaw[i] : Object.values(checkTAsDataRaw[i]);
         const cls = String(rr[cm.class] || "").trim(); const ctr = resolveCenter(String(rr[cm.center] || ""), cmap);
         const numS = parseInt(String(rr[cm.students] || "").replace(/[^0-9]/g,""), 10) || 0;
-        const sDt = parseAnyDate(rr[cm.sessionDate], prefYr); if (!cls) continue;
+        const sDt = parseMr07SessionDate(rr[cm.sessionDate], prefYr); if (!cls) continue;
         const nCls = normClass(cls), nCtr = norm(ctr);
         if (numS > 0) {
           const ck = nCtr+"_"+nCls; if (!csMap[ck] || csMap[ck] < numS) csMap[ck] = numS; if (!csMap[nCls] || csMap[nCls] < numS) csMap[nCls] = numS;
-          if (sDt) { const ds4 = String(sDt.getDate()).padStart(2,"0")+"/"+String(sDt.getMonth()+1).padStart(2,"0")+"/"+sDt.getFullYear(); ctaMap[nCtr+"_"+nCls+"_"+ds4] = numS; ctaMap[nCls+"_"+ds4] = numS; }
+          if (sDt) { const ds4 = toAuditDateKey(sDt); ctaMap[nCtr+"_"+nCls+"_"+ds4] = numS; ctaMap[nCls+"_"+ds4] = numS; }
         }
       }
     }
@@ -385,8 +440,8 @@ export function runAuditComputation(params: any) {
       const cA = String(row[colM.center] || ""); const mCA = resolveCenter(cA, cmap);
       if (!(VALID_CENTERS as Set<string>).has(mCA)) continue;
       if (!cenB.has(mCA)) { cenOnlyA.add(mCA); continue; }
-      const tr2 = colM.type !== -1 ? String(row[colM.type] || "") : "normal"; const tp = tr2.toLowerCase().replace(/[\s-]/g,"");
-      if (tp && !tp.includes("normal")) continue;
+      const tr2 = colM.type !== -1 ? row[colM.type] : "";
+      if (!isMr03NormalClassType(tr2)) continue;
       let cn = String(row[colM.className] || "").trim().toUpperCase(); if (!cn) cn = "KH\u00D4NG C\u00D3 L\u1EACP H\u1ECCC";
       if (cn !== "KH\u00D4NG C\u00D3 L\u1EACP H\u1ECCC" && !validCls.test(normClass(cn))) continue;
       const tc = String(row[colM.teacher] || "").trim().toLowerCase();
@@ -408,7 +463,11 @@ export function runAuditComputation(params: any) {
         if (inRange) {
           const dsf = cd ? String(cd.getDate()).padStart(2,"0")+"/"+String(cd.getMonth()+1).padStart(2,"0")+"/"+cd.getFullYear() : di.keyStr;
           const kNT = norm(mCA)+"_"+normClass(cn)+"_"+dsf; const kWT = kNT+"_"+norm(tc);
-          let ns: number = numSA > 0 ? numSA : (ctaMap[kWT] || ctaMap[kNT] || csMap[norm(mCA)+"_"+normClass(cn)] || 0);
+          const exactMr07Students = ctaMap[kWT] || ctaMap[kNT] || 0;
+          let ns: number = exactMr07Students || numSA || 0;
+          if (!ns && !isSpecificAuditDate(dsf)) {
+            ns = csMap[norm(mCA)+"_"+normClass(cn)] || 0;
+          }
           const aTAs = getAllowedTAs(cn, ns || 0);
           calcH += cv3; details.push({ dateObj:cd?cd.getTime():0, dateStr:dsf, name:tc, hours:cv3, allowedTAs:aTAs, numStudents:ns||0 });
         }
@@ -549,7 +608,7 @@ export function runAuditComputation(params: any) {
       dd2.teacher.forEach((t: any) => { if (t.numStudents > fn2) fn2 = t.numStudents; });
       dd2.ta.forEach((ta: any) => { if (ta.numStudents > fn2) fn2 = ta.numStudents; });
       if (!fn2) { const sk = norm(data.center)+"_"+normClass(data.className)+"_"+ds5; const sk2 = normClass(data.className)+"_"+ds5; fn2 = ctaMap[sk]||ctaMap[sk2]||0; }
-      if (!fn2) { const nCls2 = normClass(data.className); const ck3 = norm(data.center)+"_"+nCls2; fn2 = csMap[ck3]||csMap[nCls2]||0; }
+      if (!fn2 && !isSpecificAuditDate(ds5)) { const nCls2 = normClass(data.className); const ck3 = norm(data.center)+"_"+nCls2; fn2 = csMap[ck3]||csMap[nCls2]||0; }
       if (fn2 > 0) {
         if (fn2 > data.numStudents) data.numStudents = fn2;
         dd2.teacher.forEach((t: any) => { if (!t.numStudents) { t.numStudents = fn2; t.allowedTAs = getAllowedTAs(data.className, fn2); } });
@@ -561,7 +620,7 @@ export function runAuditComputation(params: any) {
   const results: any[] = []; let sumT = 0, sumA2 = 0, sumE = 0;
   Object.keys(combined).forEach((k) => {
     const data = combined[k];
-    if (data.teacherDetails.length === 0) return; if (data.teacherHours === 0 && data.actualTA === 0) return;
+    if (data.teacherDetails.length === 0 && data.taDetails.length === 0) return; if (data.teacherHours === 0 && data.actualTA === 0) return;
     sumT += data.teacherHours; sumA2 += data.actualTA;
     let exp = 0; Object.keys(data.dailyMap).forEach((dk) => { data.dailyMap[dk].teacher.forEach((t: any) => { exp += t.hours*(t.allowedTAs !== undefined ? t.allowedTAs : 0); }); }); sumE += exp;
     let status = "Kh\u1EDBp", sc2 = "emerald", diff = "";

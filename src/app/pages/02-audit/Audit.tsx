@@ -971,7 +971,9 @@ export function Audit() {
           spanTeacherName = allSessions[k].teacher.name;
         }
       }
-      if (!spanTeacherName) {
+      if (totalTeacherHoursForSpan <= 0) {
+        spanTeacherName = "Không có giáo viên";
+      } else if (!spanTeacherName) {
         spanTeacherName = current._fallbackTeacherName || "";
       }
       
@@ -1017,6 +1019,9 @@ export function Audit() {
   const capitalizeName = (name: any) => {
     const n = (name == null || name === "-" || name === "undefined") ? "" : String(name).trim();
     if (!n) return "";
+    if (n.toLocaleLowerCase("vi-VN") === "không có giáo viên") {
+      return "Không có giáo viên";
+    }
     return n
       .toLowerCase()
       .split(" ")
