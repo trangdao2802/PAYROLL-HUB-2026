@@ -2616,8 +2616,8 @@ export function AEDataConfig({
           className="data-table-wrapper master-config-data-table flex-1 min-h-0 flex flex-col w-full max-w-full p-0 font-[family-name:var(--font-table,var(--font-main))] overflow-hidden"
           style={{ padding: "0px" }}
         >
-          <div className="table-body-region flex-1 min-h-0 w-full max-w-full overflow-auto custom-scrollbar bg-card shadow-none">
-            <table className="master-config-table min-w-max w-full border-separate border-spacing-0 table-auto text-left" style={{ borderWidth: "0px" }}>
+          <div className="table-body-region master-config-table-region relative flex-1 min-h-0 w-full max-w-full overflow-auto custom-scrollbar bg-card shadow-none">
+            <table className="master-config-table relative z-10 min-w-max w-full border-separate border-spacing-0 table-auto text-left" style={{ borderWidth: "0px" }}>
               <thead>
                 <tr className="bg-muted/20">
                   <th
@@ -2665,29 +2665,7 @@ export function AEDataConfig({
                 </tr>
               </thead>
               <tbody className="bg-card text-card-foreground">
-                {paginatedData.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-muted-foreground border border-border bg-muted/10"
-                    >
-                      <div className="flex flex-col items-center gap-6">
-                        <div className="w-24 h-24 bg-primary/5 rounded-3xl flex items-center justify-center border border-primary/10">
-                          <FileSpreadsheet className="w-10 h-10 text-primary/20" />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="font-bold uppercase text-lg tracking-tight text-primary/40 font-display">
-                            Chưa có file From AE
-                          </p>
-                          <p className="text-[0.625rem] font-bold uppercase opacity-40 tracking-widest">
-                            Thêm dòng hoặc upload file để bắt đầu
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedData.map((row, idx) => (
+                {paginatedData.map((row, idx) => (
                     <tr
                       key={row.id}
                       className="group transition-colors hover:bg-muted/20"
@@ -2875,14 +2853,59 @@ export function AEDataConfig({
                         </button>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ))}
               </tbody>
             </table>
+
+            {paginatedData.length === 0 && (
+              <div
+                className="master-config-empty-state absolute inset-x-0 bottom-0 top-[40px] z-0 flex min-h-[220px] items-center justify-center border-t border-border bg-[var(--table-data-bg,var(--card,#fff))] px-6 py-8 text-center text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex max-w-md flex-col items-center gap-4">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/10 bg-primary/5">
+                    <FileSpreadsheet className="h-9 w-9 text-primary/25" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="font-display text-base font-bold uppercase tracking-tight text-primary/55">
+                      {appData.Ae_Global_Inputs.length === 0
+                        ? "Chưa có file From AE"
+                        : "Không tìm thấy file phù hợp"}
+                    </p>
+                    <p className="text-[0.625rem] font-bold uppercase tracking-widest text-muted-foreground/65">
+                      {appData.Ae_Global_Inputs.length === 0
+                        ? "Thêm dòng hoặc upload file để bắt đầu"
+                        : "Hãy thay đổi hoặc xóa nội dung tìm kiếm"}
+                    </p>
+                  </div>
+                  {appData.Ae_Global_Inputs.length === 0 && (
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={addRow}
+                        className="flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-card px-3 text-[0.625rem] font-bold uppercase tracking-wide text-primary shadow-sm transition-colors hover:bg-primary/5"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Thêm dòng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[0.625rem] font-bold uppercase tracking-wide text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+                      >
+                        <UploadCloud className="h-3.5 w-3.5" />
+                        Upload file
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
         </div>
 
         <div 
-          className="table-footer-pagination unified-table-frame-footer flex min-h-[52px] shrink-0 items-center justify-between border-t border-border bg-card/90 px-4 py-2"
+          className="master-config-footer table-footer-pagination unified-table-frame-footer flex h-[52px] min-h-[52px] max-h-[52px] shrink-0 items-center justify-between border-t border-border bg-card/90 px-4 py-2"
         >
           <div className="flex items-center gap-3">
             <button
