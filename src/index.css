@@ -2114,6 +2114,23 @@ label.audit-source-card__body:hover {
   border-bottom: none !important;
   border-bottom-width: 0px !important;
 }
+
+/* Pivot Timesheet BU subtotals need an explicit cell fill. A row-level
+   background is hidden by table cell surfaces in the production theme. */
+.pivot-bu-subtotal-row > td {
+  background: #ddd3e1 !important;
+  background-color: #ddd3e1 !important;
+  border-color: #b9aabd !important;
+  color: #413644 !important;
+}
+
+.dark .pivot-bu-subtotal-row > td {
+  background: #58495b !important;
+  background-color: #58495b !important;
+  border-color: #806f85 !important;
+  color: #ffffff !important;
+}
+
 td:has(> div > span:empty), td:empty {
   border-right-color: transparent !important;
   border-left-color: transparent !important;

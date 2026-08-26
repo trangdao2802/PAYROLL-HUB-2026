@@ -254,13 +254,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                   </td>
                 </tr>
                 {showBusinessSubtotal && subtotal && (
-                  <tr
-                    className="h-10 font-black uppercase tracking-wider text-[10.5px] [&>td]:border-primary/30"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in srgb, var(--primary) 22%, var(--card))",
-                    }}
-                  >
+                  <tr className="pivot-bu-subtotal-row h-10 font-black uppercase tracking-wider text-[10.5px]">
                     <td
                       colSpan={3}
                       className="border-r border-b px-3.5 py-2 text-primary whitespace-nowrap"
