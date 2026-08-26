@@ -828,6 +828,7 @@ export function Audit() {
 
   const detailData = useMemo(() => {
     const getLocalAllowedTAs = (cls: string, students: number): number => {
+      if (!Number.isFinite(students) || students <= 0) return 0;
       let c = String(cls).toLowerCase().replace(/\s+/g, "");
       c = c.replace(/kindy/g, "kdg").replace(/kin/g, "kdg");
       if (c.includes("kdg1") || c.includes("kdg2")) return students < 15 ? 2 : 3;
@@ -1184,7 +1185,7 @@ export function Audit() {
           className={`tabular-nums font-bold w-full h-full flex items-center justify-center ${val && val !== "0" && val !== 0 ? "text-primary" : "text-muted-foreground/30"}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {val && val !== "0" && val !== 0 ? val : ""}
+          {val === null || val === undefined || val === "" ? "0" : val}
         </div>
       ),
     },
@@ -1197,7 +1198,7 @@ export function Audit() {
       width: 90,
       align: "center",
       render: (val: any) => (
-        <div className="tabular-nums font-bold text-slate-600 w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>{val || ""}</div>
+        <div className="tabular-nums font-bold text-slate-600 w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>{val === null || val === undefined || val === "" ? "0" : val}</div>
       ),
     },
     {

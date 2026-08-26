@@ -131,6 +131,7 @@ function getL07FromFile(name: string): string {
 }
 
 function getAllowedTAs(cls: string, students: number): number {
+  if (!Number.isFinite(students) || students <= 0) return 0;
   let c = cls.toLowerCase().replace(/\s+/g, "");
   c = c.replace(/kindy/g, "kdg").replace(/kin/g, "kdg");
   if (c.includes("kdg1") || c.includes("kdg2")) return students < 15 ? 2 : 3;
@@ -427,9 +428,9 @@ export function runAuditComputation(params: any) {
       };
     }
     combined[key].actualTA += dur;
-    combined[key].taDetails.push({ dateObj: rDB.getTime(), dateStr: ds, id: rid, name: fn, type: rawType, hours: dur, numStudents: 0 });
+    combined[key].taDetails.push({ dateObj: rDB.getTime(), dateStr: ds, id: rid, name: fn, type: rawType, hours: dur, numStudents: 0, allowedTAs: 0 });
     if (!combined[key].dailyMap[ds]) combined[key].dailyMap[ds] = { ta: [], teacher: [] };
-    combined[key].dailyMap[ds].ta.push({ id: rid, name: fn, hours: dur, numStudents: 0 });
+    combined[key].dailyMap[ds].ta.push({ id: rid, name: fn, hours: dur, numStudents: 0, allowedTAs: 0 });
   });
   // --- BUOC 2: Scan File A ---
   if (hRow !== -1) {
