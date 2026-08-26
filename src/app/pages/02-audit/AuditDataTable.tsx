@@ -1464,11 +1464,54 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } else if (rowBottom > viewBottom - bottomSafety) {
               container.scrollTop = rowBottom - container.clientHeight + bottomSafety;
             }
+
+            // Keep the active column visible as ArrowLeft/ArrowRight moves the
+            // selection. The previous implementation only followed the row,
+            // leaving the selected cell outside the horizontal viewport.
+            const leadingWidth = (selectable ? 56 : 0) + (showRowNumber ? 50 : 0);
+            const cellLeft = visibleColumns
+              .slice(0, activeCell.c)
+              .reduce((sum, col) => {
+                const width = columnWidths[col.key] || col.width || 150;
+                return sum + (typeof width === "number" ? width : parseInt(String(width), 10) || 150);
+              }, leadingWidth);
+            const activeColumn = visibleColumns[activeCell.c];
+            const rawCellWidth = activeColumn
+              ? columnWidths[activeColumn.key] || activeColumn.width || 150
+              : 150;
+            const cellWidth = typeof rawCellWidth === "number"
+              ? rawCellWidth
+              : parseInt(String(rawCellWidth), 10) || 150;
+            const cellRight = cellLeft + cellWidth;
+            const horizontalSafety = 12;
+            const viewLeft = container.scrollLeft;
+            const viewRight = viewLeft + container.clientWidth;
+
+            if (cellLeft < viewLeft + horizontalSafety) {
+              container.scrollLeft = Math.max(0, cellLeft - horizontalSafety);
+            } else if (cellRight > viewRight - horizontalSafety) {
+              container.scrollLeft = Math.min(
+                container.scrollWidth - container.clientWidth,
+                cellRight - container.clientWidth + horizontalSafety,
+              );
+            }
           }
           rowVirtualizer.scrollToIndex(paginatedIndex, { align: "auto" });
         }
       }
-    }, [activeCell, currentPage, itemsPerPage, filteredAndSortedData.length, rowHeight, showFooter, totalPages]);
+    }, [
+      activeCell,
+      columnWidths,
+      currentPage,
+      filteredAndSortedData.length,
+      itemsPerPage,
+      rowHeight,
+      selectable,
+      showFooter,
+      showRowNumber,
+      totalPages,
+      visibleColumns,
+    ]);
 
     
     const virtualItems = rowVirtualizer.getVirtualItems();
