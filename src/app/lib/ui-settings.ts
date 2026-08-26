@@ -93,14 +93,14 @@ export interface TastePreset {
 export const TASTE_PRESETS: Record<string, TastePreset> = {
   systematic: {
     id: "systematic",
-    name: "Hushed Elegance (Mặc định)",
-    bg: "#EAE7EE",
+    name: "Earthy Lilac (Mặc định)",
+    bg: "#F6F7F7",
     accent: "#413644",
-    text: "#4D3653",
-    border: "#D3CCD8",
-    stripeColor1: "#FFFFFF",
-    stripeColor2: "#EFECE8",
-    gridLineColor: "rgba(77, 54, 83, 0.06)",
+    text: "#3A3129",
+    border: "#CFCDC2",
+    stripeColor1: "#F6F7F7",
+    stripeColor2: "#DFD9DF",
+    gridLineColor: "rgba(58, 49, 41, 0.08)",
     tableHeaderBg: "#CFC4D6",
     tableFooterBg: "#CFC4D6",
     tableColumnHeaderBg: "#E3DBE8",
@@ -158,13 +158,13 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
 };
 
 export const defaultSettings: UiSettings = {
-  bg: "#EAE7EE",
+  bg: "#F6F7F7",
   bgImage: "",
   bgImageStyle: "cover",
   bgImageOpacity: 100,
   accent: "#413644",
-  text: "#4D3653",
-  border: "#D3CCD8",
+  text: "#3A3129",
+  border: "#CFCDC2",
   fontSize: "13px",
   tablePadding: "12px 16px",
   sidebarPos: "left",
@@ -175,9 +175,9 @@ export const defaultSettings: UiSettings = {
   tableFont: "var(--font-main)",
   autoSave: true,
   showHelp: true,
-  stripeColor1: "#FFFFFF",
-  stripeColor2: "#EFECE8",
-  gridLineColor: "rgba(77, 54, 83, 0.06)",
+  stripeColor1: "#F6F7F7",
+  stripeColor2: "#DFD9DF",
+  gridLineColor: "rgba(58, 49, 41, 0.08)",
   tableHeaderBg: "#CFC4D6",
   tableFooterBg: "#CFC4D6",
   tableColumnHeaderBg: "#E3DBE8",
@@ -703,9 +703,9 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     }
 
     body, #root, .bg-background {
-      background: radial-gradient(circle at 15% 15%, ${settings.stripeColor1 || "#FFFFFF"} 0%, transparent 65%),
-                  radial-gradient(circle at 85% 85%, ${settings.stripeColor2 || "#E3E6EA"} 0%, transparent 65%),
-                  linear-gradient(135deg, ${settings.stripeColor1 || "#FFFFFF"} 0%, ${settings.stripeColor2 || "#E3E6EA"} 100%) !important;
+      background: radial-gradient(circle at 18% 14%, ${settings.stripeColor1 || "#F6F7F7"} 0%, transparent 58%),
+                  radial-gradient(circle at 82% 86%, ${settings.stripeColor2 || "#DFD9DF"} 0%, transparent 62%),
+                  linear-gradient(135deg, ${settings.stripeColor1 || "#F6F7F7"} 0%, ${settings.stripeColor2 || "#DFD9DF"} 100%) !important;
       background-attachment: fixed !important;
     }
 
@@ -891,6 +891,37 @@ export async function loadUiSettings(): Promise<UiSettings> {
       result.accent.toUpperCase() === "#8E659A"
     ) {
       result.accent = defaultSettings.accent;
+    }
+    // Migrate only untouched values from the previous default palette. Custom
+    // user colors and non-default presets remain unchanged.
+    if (result.preset === "systematic") {
+      const migrateDefaultColor = (
+        key: keyof Pick<
+          UiSettings,
+          | "bg"
+          | "text"
+          | "border"
+          | "stripeColor1"
+          | "stripeColor2"
+          | "gridLineColor"
+        >,
+        previousValue: string,
+      ) => {
+        const currentValue = result[key];
+        if (
+          typeof currentValue === "string" &&
+          currentValue.toUpperCase() === previousValue.toUpperCase()
+        ) {
+          result[key] = defaultSettings[key];
+        }
+      };
+
+      migrateDefaultColor("bg", "#EAE7EE");
+      migrateDefaultColor("text", "#4D3653");
+      migrateDefaultColor("border", "#D3CCD8");
+      migrateDefaultColor("stripeColor1", "#FFFFFF");
+      migrateDefaultColor("stripeColor2", "#EFECE8");
+      migrateDefaultColor("gridLineColor", "rgba(77, 54, 83, 0.06)");
     }
     // Force valid hex for specific fields
     if (!isValidColor(result.accent)) result.accent = defaultSettings.accent;

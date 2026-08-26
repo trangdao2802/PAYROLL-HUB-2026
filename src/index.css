@@ -93,37 +93,37 @@
   --font-weight-bold: 600;
   --tracking-tight: 0.02em;
 
-  /* Hushed Elegance Palette - Accent/Table: #413644 */
-  --bg: #EAE7EE;
-  --surface: #FCFBFD;
-  --ink: #413644;
+  /* Earthy Lilac Palette - Accent/Table: #413644 */
+  --bg: #F6F7F7;
+  --surface: #F9F8FA;
+  --ink: #3A3129;
   --ink-muted: #6B5B70;
   --accent: #413644;
-  --accent-soft: #F2EEF5;
-  --border: #D3CCD8;
+  --accent-soft: #DFD9DF;
+  --border: #CFCDC2;
   --radius-btn: 99px;
   --radius-card: 12px;
 
-  --background: #EAE7EE;
-  --foreground: #413644;
-  --card: #FCFBFD; 
-  --card-foreground: #413644;
+  --background: #F6F7F7;
+  --foreground: #3A3129;
+  --card: #F9F8FA;
+  --card-foreground: #3A3129;
   --primary: #413644;
   --primary-foreground: #FFFFFF; 
-  --secondary: #B4C0CB;
-  --secondary-foreground: #413644;
+  --secondary: #C4CBD5;
+  --secondary-foreground: #3A3129;
   --accent-foreground: #FFFFFF;
-  --popover: #FCFBFD;
-  --popover-foreground: #413644;
-  --muted: #E3DBE8;
+  --popover: #F9F8FA;
+  --popover-foreground: #3A3129;
+  --muted: #DFD9DF;
   --muted-foreground: #6B5B70;
-  --table-grid-color: rgba(65, 54, 68, 0.08);
-  --grid-line-color: rgba(65, 54, 68, 0.08);
-  --table-border-color: rgba(65, 54, 68, 0.08);
+  --table-grid-color: rgba(58, 49, 41, 0.08);
+  --grid-line-color: rgba(58, 49, 41, 0.08);
+  --table-border-color: rgba(58, 49, 41, 0.08);
   --table-header-bg: #413644;
   --table-footer-bg: #CFC4D6;
   --table-column-header-bg: #E3DBE8;
-  --table-data-bg: #FCFBFD;
+  --table-data-bg: #F9F8FA;
   --ring: #413644;
   --sky: #B4C0CB; 
   --rose: #8E659A;
@@ -1106,9 +1106,9 @@ div[class*="bg-slate-200/30"] {
 }
 
 body, #root, .bg-background {
-  background: radial-gradient(circle at 25% 25%, var(--stripe-color1, #F6F4F0) 0%, transparent 75%),
-              radial-gradient(circle at 75% 75%, var(--stripe-color2, #F4ECD8) 0%, transparent 75%),
-              linear-gradient(135deg, var(--stripe-color1, #F6F4F0) 0%, var(--stripe-color2, #F4ECD8) 100%) !important;
+  background: radial-gradient(circle at 18% 14%, var(--stripe-color1, #F6F7F7) 0%, transparent 58%),
+              radial-gradient(circle at 82% 86%, var(--stripe-color2, #DFD9DF) 0%, transparent 62%),
+              linear-gradient(135deg, var(--stripe-color1, #F6F7F7) 0%, var(--stripe-color2, #DFD9DF) 100%) !important;
   background-attachment: fixed !important;
 }
 
@@ -2162,4 +2162,55 @@ label.audit-source-card__body:hover {
 td:has(> div > span:empty), td:empty {
   border-right-color: transparent !important;
   border-left-color: transparent !important;
+}
+
+/* Timesheet control rail: a compact, tactile scrollbar using the Earthy
+   Lilac palette. This is intentionally scoped so table scrollbars stay slim. */
+.timesheet-card-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin !important;
+  scrollbar-color: color-mix(in srgb, var(--primary, #413644) 82%, #a5aba3)
+    color-mix(in srgb, var(--border, #cfcdc2) 58%, transparent) !important;
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--border, #cfcdc2) 58%, transparent) !important;
+  border: 3px solid var(--card, #f9f8fa);
+  border-radius: 999px !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #413644) 10%, transparent);
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 48px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary, #413644) 72%, #a5aba3),
+    var(--primary, #413644)
+  ) padding-box !important;
+  border: 2px solid transparent;
+  border-radius: 999px !important;
+  box-shadow: 0 1px 3px rgba(58, 49, 41, 0.2);
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary, #413644) 88%, #c4cbd5),
+    #3a3129
+  ) padding-box !important;
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.timesheet-card-scrollbar::-webkit-scrollbar-corner {
+  background: transparent !important;
 }

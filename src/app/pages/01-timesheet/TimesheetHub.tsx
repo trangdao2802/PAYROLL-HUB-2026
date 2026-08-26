@@ -1556,7 +1556,7 @@ export function TimesheetHub() {
                   <div className="flex flex-col h-full overflow-hidden w-full side-panel">
 
                     {/* Scrollable Container for all Sidebar content */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col min-h-0 gap-4 w-full pr-1">
+                    <div className="timesheet-card-scrollbar flex-1 overflow-y-auto flex flex-col min-h-0 gap-4 w-full pr-2">
                       {/* Always show Summary */}
                       <div className="animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 flex flex-col gap-2.5">
                         <div id="summary-heading-container" className="mb-0">
