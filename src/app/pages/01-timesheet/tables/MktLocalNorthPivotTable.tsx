@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect, useMemo } from "react";
-import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
 import {
   Select,
@@ -29,6 +29,7 @@ interface MktLocalNorthPivotTableProps {
   };
   showSidebar?: boolean;
   onToggleSidebar?: () => void;
+  onCellChange?: (row: MktLocalNorthPivotTableRow, field: string, value: unknown) => void;
 }
 
 export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = ({
@@ -37,9 +38,59 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
   grandTotals,
   showSidebar = true,
   onToggleSidebar,
+  onCellChange,
 }) => {
   const [itemsPerPage, setItemsPerPage] = useState<number | typeof Infinity>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [editingCell, setEditingCell] = useState<{
+    rowKey: string;
+    field: string;
+    row: MktLocalNorthPivotTableRow;
+  } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const cancelBlurRef = useRef(false);
+
+  const rowKeyOf = (row: MktLocalNorthPivotTableRow) =>
+    `${row.business}||${row.chargeToCenterMkt}`;
+
+  const startEditing = (
+    row: MktLocalNorthPivotTableRow,
+    field: string,
+    value: unknown,
+  ) => {
+    if (!onCellChange) return;
+    cancelBlurRef.current = false;
+    setEditingCell({ rowKey: rowKeyOf(row), field, row });
+    setEditValue(String(value ?? ""));
+  };
+
+  const commitEditing = () => {
+    if (!editingCell || cancelBlurRef.current) {
+      cancelBlurRef.current = false;
+      return;
+    }
+    onCellChange?.(editingCell.row, editingCell.field, editValue);
+    setEditingCell(null);
+  };
+
+  const cancelEditing = () => {
+    cancelBlurRef.current = true;
+    setEditingCell(null);
+  };
+
+  const isEditing = (row: MktLocalNorthPivotTableRow, field: string) =>
+    editingCell?.rowKey === rowKeyOf(row) && editingCell.field === field;
+
+  const editInputProps = {
+    autoFocus: true,
+    value: editValue,
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => setEditValue(event.target.value),
+    onBlur: commitEditing,
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") event.currentTarget.blur();
+      if (event.key === "Escape") cancelEditing();
+    },
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -56,6 +107,20 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
 
   const startIdx = itemsPerPage === Infinity ? 0 : (validCurrentPage - 1) * Number(itemsPerPage);
   const endIdx = itemsPerPage === Infinity ? rows.length : Math.min(startIdx + Number(itemsPerPage), rows.length);
+
+  const businessSubtotals = useMemo(() => {
+    const subtotals = new Map<string, { totals: Record<string, number>; grandTotal: number }>();
+    rows.forEach((row) => {
+      const business = row.business || "NORTH";
+      const subtotal = subtotals.get(business) || { totals: {}, grandTotal: 0 };
+      types.forEach((type) => {
+        subtotal.totals[type] = (subtotal.totals[type] || 0) + (row.values[type] || 0);
+      });
+      subtotal.grandTotal += row.total || 0;
+      subtotals.set(business, subtotal);
+    });
+    return subtotals;
+  }, [rows, types]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
@@ -83,6 +148,11 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
               Bảng tổng hợp phân bổ chi phí MKT Local North theo loại công việc & bộ phận
             </p>
+            {onCellChange && (
+              <span className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold text-primary/65">
+                <Pencil className="h-2.5 w-2.5" /> Nhấp đúp L07 hoặc số tiền để chỉnh sửa
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
@@ -130,30 +200,83 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                 </td>
               </tr>
             ) : (
-              paginatedRows.map((row, idx) => (
-                <tr key={idx} className="transition-all hover:bg-muted/40 group h-9 border-b border-border">
+              paginatedRows.map((row, idx) => {
+                const business = row.business || "NORTH";
+                const nextRow = rows[startIdx + idx + 1];
+                const showBusinessSubtotal = !nextRow || (nextRow.business || "NORTH") !== business;
+                const subtotal = businessSubtotals.get(business);
+
+                return (
+                <React.Fragment key={rowKeyOf(row)}>
+                <tr className="transition-all hover:bg-muted/40 group h-9 border-b border-border">
                   <td className="border-r border-b border-border px-2 py-1.5 text-center tabular-nums font-bold text-muted-foreground text-[10px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap">
                     {startIdx + idx + 1}
                   </td>
                   <td className="border-r border-b border-border px-3.5 py-1.5 font-bold text-foreground uppercase text-[11px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[140px]">
                     {row.business || "NORTH"}
                   </td>
-                  <td className="border-r border-b border-border px-3.5 py-1.5 font-bold text-muted-foreground uppercase text-[10.5px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[180px]">
-                    {row.chargeToCenterMkt || "—"}
+                  <td
+                    className="border-r border-b border-border px-3.5 py-1.5 font-bold text-muted-foreground uppercase text-[10.5px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[180px]"
+                    onDoubleClick={() => startEditing(row, "chargeToCenterMkt", row.chargeToCenterMkt)}
+                    title={onCellChange ? "Nhấp đúp để sửa L07" : undefined}
+                  >
+                    {isEditing(row, "chargeToCenterMkt") ? (
+                      <input
+                        {...editInputProps}
+                        className="h-7 w-full min-w-[150px] rounded-md border border-primary/35 bg-white px-2 text-[11px] font-bold uppercase text-foreground outline-none ring-2 ring-primary/15"
+                      />
+                    ) : (
+                      row.chargeToCenterMkt || "—"
+                    )}
                   </td>
                   {types.map((type) => (
                     <td 
                       key={type} 
                       className={`border-r border-b border-border px-3.5 py-1.5 text-right tabular-nums text-[11px] group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[120px] ${row.values[type] ? "text-foreground font-bold" : "text-muted-foreground/40"}`}
+                      onDoubleClick={() => startEditing(row, type, row.values[type] || 0)}
+                      title={onCellChange ? `Nhấp đúp để sửa ${type}` : undefined}
                     >
-                      {row.values[type] ? formatMoneyVND(row.values[type]).replace(" ₫", "") : "—"}
+                      {isEditing(row, type) ? (
+                        <input
+                          {...editInputProps}
+                          inputMode="decimal"
+                          className="h-7 w-full min-w-[100px] rounded-md border border-primary/35 bg-white px-2 text-right text-[11px] font-bold text-foreground outline-none ring-2 ring-primary/15"
+                        />
+                      ) : row.values[type] ? (
+                        formatMoneyVND(row.values[type]).replace(" ₫", "")
+                      ) : (
+                        "—"
+                      )}
                     </td>
                   ))}
                   <td className="border-r border-b border-border px-3.5 py-1.5 text-right tabular-nums text-[11px] font-black text-foreground bg-muted/20 group-hover:bg-muted/40 transition-colors whitespace-nowrap min-w-[150px]">
                     {formatMoneyVND(row.total).replace(" ₫", "")}
                   </td>
                 </tr>
-              ))
+                {showBusinessSubtotal && subtotal && (
+                  <tr className="h-10 font-black uppercase tracking-wider text-[10.5px]">
+                    <td
+                      colSpan={3}
+                      className="border-r border-b border-border px-3.5 py-2 text-primary bg-primary/10 whitespace-nowrap"
+                    >
+                      TỔNG BU {business}
+                    </td>
+                    {types.map((type) => (
+                      <td
+                        key={type}
+                        className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-foreground bg-primary/10 whitespace-nowrap min-w-[120px]"
+                      >
+                        {formatMoneyVND(subtotal.totals[type] || 0).replace(" ₫", "")}
+                      </td>
+                    ))}
+                    <td className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-primary bg-primary/15 whitespace-nowrap min-w-[150px]">
+                      {formatMoneyVND(subtotal.grandTotal).replace(" ₫", "")}
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
+                );
+              })
             )}
           </tbody>
           <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] bg-muted/95 backdrop-blur-xs">

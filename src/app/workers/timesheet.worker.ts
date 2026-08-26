@@ -9,6 +9,7 @@ import {
   generateUUID,
 } from "../lib/utils/data-utils";
 import {
+  getBusinessFromL07,
   getCenterInfoByAECode,
   getCenterInfoByL07,
   mapL07,
@@ -236,6 +237,16 @@ export function calculateTimesheet(params: any) {
         durationHours = parseFloat(fallbackStr.replace(",", "."));
       }
     }
+    const durationOverride = Number(t._durationOverride);
+    if (
+      t._durationOverride !== undefined &&
+      t._durationOverride !== null &&
+      t._durationOverride !== "" &&
+      Number.isFinite(durationOverride) &&
+      durationOverride >= 0
+    ) {
+      durationHours = durationOverride;
+    }
 
     let classSize = 0;
     const classSizeVal = getVal(t, ["class size", "sĩ số", "sỹ số", "no of students", "number of student", "number of students", "students", "số hv", "số học viên", "sĩ số lớp", "total students", "số lượng học viên", "sĩ số thực tế", "sỹ số thực tế", "actual size", "size", "số lượng", "sĩ số cơ sở"]);
@@ -296,15 +307,32 @@ export function calculateTimesheet(params: any) {
       centerBusiness = (centerInfoForBus as any)?.bus || "";
     }
     if (centerBusiness === "AHN_HP") centerBusiness = "AHP";
-    if (l07) {
-      const upperL07 = String(l07).toUpperCase().trim();
-      if (upperL07 === "MKT LOCAL NORTH") {
-        centerBusiness = "AHN";
-      }
+    const allocationL07 = String(chargeToCenterMkt || l07 || "").trim();
+    const canonicalAllocationL07 = mapL07(allocationL07) || allocationL07;
+    const canonicalAllocationInfo = getCenterInfoByL07(canonicalAllocationL07);
+    if (canonicalAllocationInfo?.bus) {
+      // The allocation center is authoritative for MKT rows. In particular,
+      // TN0001.LNQ must always resolve to ATN and TH0001.TPU to ATH even when
+      // an imported/configured row still carries the legacy AHN business.
+      centerBusiness = canonicalAllocationInfo.bus;
+    } else if (isMktLocal && allocationL07) {
+      centerBusiness = getBusinessFromL07(allocationL07);
+    } else if (l07 && String(l07).toUpperCase().trim() === "MKT LOCAL NORTH") {
+      centerBusiness = "AHN";
     }
 
     const detailRow = {
       id: generateUUID(),
+
+      // Keep the source identity across the worker boundary so edits in Raw
+      // Data and Pivot Timesheet can update the exact imported roster row.
+      _uuid: t._uuid,
+      _rowId: t._rowId,
+      _recordId: t._recordId,
+      _sourceKey: t._uuid || t._recordId || t._rowId,
+      _sourceFile: t._sourceFile,
+      _mktPivotValueOverride: t._mktPivotValueOverride,
+      _durationOverride: t._durationOverride,
       
       // 12 properties required for roster-raw table
       center: rCen || rawAeCode || "",

@@ -60,7 +60,11 @@ export function mapExcelRosterRow(
     chargeToCenterMkt = rawChargeToCenter || rawCenter;
   }
 
-  const business = getBusinessFromL07(l07);
+  const business = getBusinessFromL07(
+    (isMktFile || regionalMktL07) && chargeToCenterMkt
+      ? chargeToCenterMkt
+      : l07,
+  );
   const employeeId = String(
     getVal(row, [
       "id number",

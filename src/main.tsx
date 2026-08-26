@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
+import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
 
 declare global {
@@ -10,6 +11,13 @@ declare global {
     };
   }
 }
+
+window.addEventListener("vite:preloadError", (event: Event) => {
+  const preloadError = (event as Event & { payload?: unknown }).payload;
+  if (!isDynamicImportError(preloadError)) return;
+  event.preventDefault();
+  reloadLatestAppVersion("vite-preload");
+});
 
 const staticSupabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || "",

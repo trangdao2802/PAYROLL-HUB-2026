@@ -336,7 +336,10 @@ export async function syncRosterToSupabase(
       duration: Number(getVal(r, ["duration", "Duration", "Số giờ", "Working Hours", "workingHours"])) || 0,
       notes: String(getVal(r, ["notes", "Notes", "Ghi chú"])).trim(),
       charge_to_center_mkt: String(getVal(r, ["chargeToCenterMkt", "charge_to_center_mkt", "Charge to Center MKT"])).trim(),
-      unique_id
+      unique_id,
+      // Preserve edit-only metadata (including Pivot allocation overrides)
+      // so a later Supabase restore does not silently discard user changes.
+      raw_data: r,
     });
   });
 

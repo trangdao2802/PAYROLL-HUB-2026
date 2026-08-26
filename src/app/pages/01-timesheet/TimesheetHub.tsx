@@ -3,7 +3,8 @@ import React, { useMemo, useRef, useState, useEffect, useTransition, useCallback
 import { useLocation } from "react-router";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { useTimesheetCalculations } from "../../hooks/useTimesheetCalculations";
-import { normalizeDateFilterValue, prepareDataForExport } from "../../lib/utils/data-utils";
+import { normalizeDateFilterValue, parseMoneyToNumber, prepareDataForExport } from "../../lib/utils/data-utils";
+import { getBusinessFromL07, getCenterInfoByL07, mapL07 } from "../../lib/utils/center-utils";
 import { useUiSettings } from "../../lib/ui-settings";
 import { INITIAL_APP_DATA } from "../../constants/initial-data";
 import {
@@ -73,6 +74,17 @@ const containerVariants = {
     },
   },
 } as const;
+
+function getRosterSourceKey(row: any): string {
+  return String(
+    row?._sourceKey ||
+      row?._uuid ||
+      row?._recordId ||
+      row?._rowId ||
+      row?.id ||
+      "",
+  );
+}
 
 function DebouncedSearchInput({
   value,
@@ -922,14 +934,23 @@ export function TimesheetHub() {
       chargeToCenterMkt: string;
       values: Record<string, number>;
       total: number;
+      sourceRowKeys: string[];
+      sourceRowKeysByType: Record<string, string[]>;
     }>();
 
     searchData.forEach((r: any) => {
       const type = String(r.taskType || r.type || r.sourceType || "").trim().toUpperCase();
       if (!type) return; // skip empty data as requested
 
-      const bus = String(r.business || "").trim();
       const chargeMkt = String(r.chargeToCenterMkt || r.charge_to_center_mkt || r.center || r.l07 || "").trim();
+      // Pivot allocation follows the destination L07, not the generic MKT
+      // source BU. This makes TN0001.LNQ -> ATN and TH0001.TPU -> ATH
+      // authoritative even for rows imported with a stale AHN value.
+      const canonicalChargeMkt = mapL07(chargeMkt);
+      const knownAllocation = getCenterInfoByL07(canonicalChargeMkt);
+      const bus = knownAllocation?.bus
+        || String(r.business || "").trim()
+        || getBusinessFromL07(chargeMkt || String(r.l07 || ""));
       const key = `${bus}||${chargeMkt}`;
 
       if (!map.has(key)) {
@@ -939,13 +960,29 @@ export function TimesheetHub() {
           chargeToCenterMkt: chargeMkt,
           values: {},
           total: 0,
+          sourceRowKeys: [],
+          sourceRowKeysByType: {},
         });
       }
 
       const item = map.get(key)!;
+      const sourceRowKey = getRosterSourceKey(r);
+      if (sourceRowKey && !item.sourceRowKeys.includes(sourceRowKey)) {
+        item.sourceRowKeys.push(sourceRowKey);
+      }
+      if (!item.sourceRowKeysByType[type]) item.sourceRowKeysByType[type] = [];
+      if (sourceRowKey && !item.sourceRowKeysByType[type].includes(sourceRowKey)) {
+        item.sourceRowKeysByType[type].push(sourceRowKey);
+      }
       const hours = Number(r.workingHours ?? r.duration) || 0;
       // Value: working hours * 20,000 as requested
-      const value = hours * 20000;
+      const rawOverride = r._mktPivotValueOverride;
+      const hasOverride =
+        rawOverride !== undefined &&
+        rawOverride !== null &&
+        rawOverride !== "" &&
+        Number.isFinite(Number(rawOverride));
+      const value = hasOverride ? Number(rawOverride) : hours * 20000;
 
       item.values[type] = (item.values[type] || 0) + value;
       item.total += value;
@@ -972,6 +1009,60 @@ export function TimesheetHub() {
 
     return { totals, grandTotal };
   }, [mktPivotRows, mktPivotUniqueTypes]);
+
+  const handleMktPivotCellChange = useCallback((row: any, field: string, value: unknown) => {
+    const sourceKeys = new Set<string>(
+      field === "chargeToCenterMkt"
+        ? row.sourceRowKeys || []
+        : row.sourceRowKeysByType?.[field] || [],
+    );
+    if (sourceKeys.size === 0) {
+      toast.error("Không tìm thấy dòng dữ liệu nguồn để cập nhật.");
+      return;
+    }
+
+    if (field === "chargeToCenterMkt") {
+      const rawL07 = String(value || "").trim();
+      if (!rawL07) {
+        toast.error("L07 không được để trống.");
+        return;
+      }
+      const canonicalL07 = mapL07(rawL07) || rawL07;
+      const canonicalBusiness = getBusinessFromL07(canonicalL07);
+      updateAppData((prev) => ({
+        ...prev,
+        Timesheet_Roster: (prev.Timesheet_Roster || []).map((sourceRow: any) =>
+          sourceKeys.has(getRosterSourceKey(sourceRow))
+            ? {
+                ...sourceRow,
+                chargeToCenterMkt: canonicalL07,
+                charge_to_center_mkt: canonicalL07,
+                business: canonicalBusiness,
+              }
+            : sourceRow,
+        ),
+        updatedAt: new Date().toISOString(),
+      }), true);
+      toast.success(`Đã cập nhật L07 ${canonicalL07} · BU ${canonicalBusiness}`);
+      return;
+    }
+
+    const nextAmount = Math.max(0, parseMoneyToNumber(value));
+    let overrideApplied = false;
+    updateAppData((prev) => ({
+      ...prev,
+      Timesheet_Roster: (prev.Timesheet_Roster || []).map((sourceRow: any) => {
+        if (!sourceKeys.has(getRosterSourceKey(sourceRow))) return sourceRow;
+        if (!overrideApplied) {
+          overrideApplied = true;
+          return { ...sourceRow, _mktPivotValueOverride: nextAmount };
+        }
+        return { ...sourceRow, _mktPivotValueOverride: 0 };
+      }),
+      updatedAt: new Date().toISOString(),
+    }), true);
+    toast.success("Đã cập nhật giá trị Pivot Timesheet.");
+  }, [updateAppData]);
 
   const handleExportExcel = () => {
     if (currentData.length === 0) return;
@@ -1324,8 +1415,12 @@ export function TimesheetHub() {
     updateAppData((prev) => {
       const qRoster = prev.Timesheet_Roster || [];
       const updatedRoster = qRoster.map((r) => {
-        const isMatch = (r._uuid && row._uuid && r._uuid === row._uuid) || 
-                        (!r._uuid && r._rowId === row._rowId && r.ma_nv === row.ma_nv && r.ngay === row.ngay && r.gio_vao === row.gio_vao);
+        const sourceKey = getRosterSourceKey(row);
+        const isMatch = sourceKey
+          ? getRosterSourceKey(r) === sourceKey
+          : r.ma_nv === row.ma_nv &&
+            r.ngay === row.ngay &&
+            r.gio_vao === row.gio_vao;
         if (isMatch) {
           return {
             ...r,
@@ -1339,6 +1434,18 @@ export function TimesheetHub() {
             ...(colKey === "gio_ra" ? { to: value } : {}),
             ...(colKey === "to" ? { gio_ra: value } : {}),
             ...(colKey === "notes" ? { notes: value } : {}),
+            ...(colKey === "chargeToCenterMkt"
+              ? { charge_to_center_mkt: value }
+              : {}),
+            ...(colKey === "charge_to_center_mkt"
+              ? { chargeToCenterMkt: value }
+              : {}),
+            ...(colKey === "duration"
+              ? { workingHours: value, _durationOverride: value }
+              : {}),
+            ...(["gio_vao", "from", "gio_ra", "to"].includes(colKey)
+              ? { _durationOverride: undefined }
+              : {}),
           };
         }
         return r;
@@ -1834,6 +1941,7 @@ export function TimesheetHub() {
                           rows={mktPivotRows}
                           types={mktPivotUniqueTypes}
                           grandTotals={mktPivotGrandTotals}
+                          onCellChange={handleMktPivotCellChange}
                           showSidebar={showSidebar}
                           onToggleSidebar={() => setShowSidebar(!showSidebar)}
                         />
