@@ -3658,7 +3658,7 @@ export function BulkPayment({
                                   {isUnmatched ? "DISC" : item.serialNo}
                                 </td>
                                 <td
-                                  className="p-2.5 font-bold text-slate-800 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] cursor-pointer"
+                                  className="group/link p-2.5 font-bold text-slate-800 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] cursor-pointer"
                                   title="Click để chuyển tới bảng nguồn Gross Pay / Hold AE"
                                   onClick={() => {
                                     if (onTabChange) {
@@ -3694,7 +3694,7 @@ export function BulkPayment({
                                     <span>
                                       {formatIdNumber(item.docId) || "N/A"}
                                     </span>
-                                    <ExternalLink className="w-3 h-3 text-sky-500 opacity-70" />
+                                    <ExternalLink className="w-3 h-3 text-sky-500 opacity-20 transition-opacity duration-200 group-hover/link:opacity-75" />
                                   </div>
                                 </td>
                                 <td className="p-2.5 text-[10px] text-slate-700 font-medium border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))]">
@@ -3703,7 +3703,7 @@ export function BulkPayment({
                                     : "-"}
                                 </td>
                                 <td
-                                  className={`p-2.5 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${!isUnmatched ? "cursor-pointer" : ""}`}
+                                  className={`group/link p-2.5 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${!isUnmatched ? "cursor-pointer" : ""}`}
                                   title={
                                     !isUnmatched
                                       ? "Click để xem giao dịch bên Bank Export"
@@ -3729,7 +3729,7 @@ export function BulkPayment({
                                       {item.accountNo || "⚠️ Chưa có STK"}
                                     </span>
                                     {!isUnmatched && (
-                                      <ExternalLink className="w-3 h-3 opacity-70" />
+                                      <ExternalLink className="w-3 h-3 opacity-20 transition-opacity duration-200 group-hover/link:opacity-75" />
                                     )}
                                   </div>
                                   {item.bankName && item.bankName !== "N/A" && (
@@ -3739,7 +3739,7 @@ export function BulkPayment({
                                   )}
                                 </td>
                                 <td
-                                  className="p-2.5 tabular-nums border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] cursor-pointer"
+                                  className="group/link p-2.5 tabular-nums border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] cursor-pointer"
                                   title="Click để chuyển tới bảng nguồn Gross Pay/Hold AE"
                                   onClick={() => {
                                     if (onTabChange) {
@@ -3778,7 +3778,7 @@ export function BulkPayment({
                                         item.accountNo ||
                                         "⚠️ Chưa có STK"}
                                     </span>
-                                    <ExternalLink className="w-3 h-3 opacity-70" />
+                                    <ExternalLink className="w-3 h-3 opacity-20 transition-opacity duration-200 group-hover/link:opacity-75" />
                                   </div>
                                 </td>
                                 <td className="p-2.5 text-right tabular-nums font-bold text-emerald-700 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))]">
