@@ -1959,42 +1959,48 @@ export function PivotSheet() {
             </p>
           </div>
 
-          {/* TỔNG TIỀN right after title */}
-          <div className="ml-auto hidden flex-col items-end border-l border-border/60 pl-4 sm:flex">
-              <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+          {/* Compact right-side controls. Keep their combined width bounded so
+              the month selector cannot be pushed outside the table card. */}
+          <div className="ml-auto grid shrink-0 grid-cols-[minmax(108px,auto)_108px_28px] items-center gap-1.5">
+            {/* TỔNG TIỀN */}
+            <div className="flex min-w-[108px] flex-col items-stretch border-l border-border/60 pl-2">
+              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 TỔNG TIỀN
               </span>
-              <div className="rounded-md border border-border/60 bg-card px-2.5 py-0.5 shadow-2xs">
-                <span className="text-xs font-black tracking-tight text-primary tabular-nums">
+              <div className="mt-0.5 flex h-7 min-w-[100px] items-center justify-center rounded-md border border-border/70 bg-card px-3 shadow-2xs">
+                <span className="whitespace-nowrap text-[11px] font-black tracking-tight text-primary tabular-nums">
                   {formatNumber(superGrandTotal)}
                 </span>
               </div>
-          </div>
+            </div>
 
-          <div className="flex shrink-0 items-center gap-2">
             {/* Month Filter Selector */}
-            <div className="flex h-7 w-[132px] items-center gap-1.5 rounded-full border border-border bg-card px-2.5 shadow-2xs">
-              <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">Tháng:</span>
-              <select
-                value={selectedMonthFilter}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedMonthFilter(val);
-                  try {
-                    localStorage.setItem("pivot_master_selected_month_filter", val);
-                  } catch {
-                    // ignore
-                  }
-                }}
-                className="min-w-0 flex-1 cursor-pointer bg-transparent py-0.5 text-[10px] font-semibold text-foreground focus:outline-none"
-              >
-                <option value="ALL">Tất cả</option>
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+            <div className="flex h-7 w-[108px] min-w-0 items-center gap-1 rounded-full border border-border bg-card px-2 shadow-2xs">
+              <span className="shrink-0 whitespace-nowrap text-[9px] font-bold text-muted-foreground">Tháng:</span>
+              <div className="relative min-w-0 flex-1">
+                <select
+                  value={selectedMonthFilter}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedMonthFilter(val);
+                    try {
+                      localStorage.setItem("pivot_master_selected_month_filter", val);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0.5 pr-3 text-[9px] font-semibold text-foreground focus:outline-none"
+                  aria-label="Chọn tháng Pivot Master"
+                >
+                  <option value="ALL">Tất cả</option>
+                  {availableMonths.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              </div>
             </div>
 
             {/* Settings button & dropdown */}
@@ -2082,6 +2088,21 @@ export function PivotSheet() {
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Xuất Excel</span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-2 flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Giao diện bảng</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        window.dispatchEvent(new Event("open-ui-settings"));
+                      }}
+                      className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-primary/20 bg-primary/[0.05] px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
+                      <span>Chỉnh sửa giao diện bảng</span>
                     </button>
                   </div>
 
