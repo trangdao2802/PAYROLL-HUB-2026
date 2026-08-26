@@ -2,10 +2,11 @@
 import {
   getBusinessFromL07,
   resolveMktRosterCenter,
+  resolveSummerBonusCenterL07,
 } from "./center-utils";
 import { parseDurationToHours } from "../schemas/excel-schema";
 
-export const PIVOT_CACHE_VERSION = 11;
+export const PIVOT_CACHE_VERSION = 12;
 export const PIVOT_MKT_TYPE_CACHE_KEY = "pivot_master_mkt_type_data";
 export const PIVOT_MKT_TYPE_CACHE_VERSION = 2;
 export const PIVOT_SOURCE_MARKER_PREFIX = "__PIVOT_SOURCE__";
@@ -538,9 +539,21 @@ export function buildPivotFromAppData(
 
   sheet1Rows.forEach((row) => {
     if (!row) return;
-    const bu = row["Business"] || row["BU"] || "";
     const rawL07 = row["L07"] || row["Center"] || row["CHARGE TO CENTER"] || "";
-    const l07 = normalizePivotL07(rawL07);
+    const isSummerBonusRow = [
+      "Extra Summer Instructors",
+      "CHARGE TO EXTRA SUMMER INSTRUCTORS",
+      "Charge Extra Summer Instructors",
+      "Extra Instructors",
+      "CHARGE TO EXTRA INSTRUCTORS",
+      "BONUS",
+    ].some((key) => parseMoney(row[key]) !== 0) ||
+      String(row["Note"] || row["Sheet Source"] || "").toUpperCase().includes("SUMMER BONUS");
+    const summerCenter = isSummerBonusRow
+      ? resolveSummerBonusCenterL07(rawL07)
+      : null;
+    const l07 = summerCenter?.l07 || normalizePivotL07(rawL07);
+    const bu = summerCenter?.business || row["Business"] || row["BU"] || "";
     const sourceCenter =
       row["_rawAE"] ||
       row["Center"] ||

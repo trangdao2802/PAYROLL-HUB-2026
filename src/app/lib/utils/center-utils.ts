@@ -234,6 +234,77 @@ export function mapL07(l07OrAeCode: string): string {
   return cleaned;
 }
 
+export interface SummerBonusCenterResolution {
+  l07: string;
+  business: string;
+}
+
+/**
+ * Normalize the compact center codes used by the Summer Bonus sheet.
+ *
+ * The source commonly omits zero padding (HN24.TCY, BN1.LTT, HY1.ECP).
+ * Prefer the registered center for the same region/sequence, then derive the
+ * numeric width from the center registry so newly-created codes are handled
+ * without adding one hard-coded alias per center. The numeric width is taken
+ * from the center registry, including VP1.PCT becoming VP0001.PCT.
+ */
+export function resolveSummerBonusCenterL07(rawCenter: unknown): SummerBonusCenterResolution {
+  const cleaned = String(rawCenter || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s*\.\s*/g, ".")
+    .replace(/\s+/g, " ");
+
+  if (!cleaned) return { l07: "", business: "" };
+
+  const compactCode = cleaned.match(/^([A-Z]{2,3})0*(\d{1,4})\.([A-Z0-9]{2,5})$/);
+  if (compactCode) {
+    const [, region, sequenceRaw, suffix] = compactCode;
+    const sequence = Number(sequenceRaw);
+
+    const registeredByRegionAndSequence = CENTER_DATA.filter((info) => {
+      const match = info.l07.toUpperCase().match(/^([A-Z]{2,3})(\d+)\.([A-Z0-9]+)$/);
+      return Boolean(
+        match &&
+        match[1] === region &&
+        Number(match[2]) === sequence,
+      );
+    });
+
+    const exactRegistered = registeredByRegionAndSequence.find((info) => {
+      const registeredSuffix = info.l07.toUpperCase().split(".")[1] || "";
+      return registeredSuffix === suffix;
+    });
+    const registered = exactRegistered || (
+      registeredByRegionAndSequence.length === 1
+        ? registeredByRegionAndSequence[0]
+        : null
+    );
+
+    if (registered) {
+      return { l07: registered.l07, business: registered.bus };
+    }
+
+    const registeredWidths = CENTER_DATA
+      .map((info) => info.l07.toUpperCase().match(/^([A-Z]{2,3})(\d+)\./))
+      .filter((match): match is RegExpMatchArray => Boolean(match && match[1] === region))
+      .map((match) => match[2].length);
+    const numericWidth = registeredWidths.length > 0
+      ? Math.max(...registeredWidths)
+      : sequenceRaw.length;
+    const l07 = `${region}${String(sequence).padStart(numericWidth, "0")}.${suffix}`;
+    return { l07, business: getBusinessFromL07(l07) };
+  }
+
+  const mapped = mapL07(cleaned);
+  const info = getCenterInfoByL07(mapped);
+  const l07 = info?.l07 || mapped || cleaned;
+  return {
+    l07,
+    business: info?.bus || getBusinessFromL07(l07),
+  };
+}
+
 export function getCenterInfoByAECode(aeCode: string): { l07: string; aeCode: string; bus: string } | null {
   if (!aeCode) return null;
   const cleaned = String(aeCode).trim();

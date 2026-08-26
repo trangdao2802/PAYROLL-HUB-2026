@@ -66,6 +66,7 @@ import {
   getCenterInfoByL07,
   getCenterInfoByAECode,
   resolveMktAndCenterL07,
+  resolveSummerBonusCenterL07,
 } from "../../lib/utils/center-utils";
 import { parseDurationToHours } from "../../lib/schemas/excel-schema";
 import { toast } from "sonner";
@@ -1205,25 +1206,10 @@ export function AEDataConfig({
                     let l07 = centerVal;
                     let business = "";
                     const centerKey = centerVal.toLowerCase();
-                    if (aeMap[centerKey]) {
-                      l07 = aeMap[centerKey].name;
-                      business = aeMap[centerKey].bus;
-                    } else {
-                      const info = getCenterInfoByAECode(centerVal);
-                      if (info) {
-                        l07 = info.l07;
-                        business = info.bus;
-                      } else {
-                        const mapped = mapL07(centerVal);
-                        const info2 = getCenterInfoByL07(mapped);
-                        if (info2) {
-                          l07 = info2.l07;
-                          business = info2.bus;
-                        } else {
-                          l07 = mapped;
-                        }
-                      }
-                    }
+                    const mappedSummerCenter = aeMap[centerKey]?.name || centerVal;
+                    const resolvedSummerCenter = resolveSummerBonusCenterL07(mappedSummerCenter);
+                    l07 = resolvedSummerCenter.l07;
+                    business = resolvedSummerCenter.business || aeMap[centerKey]?.bus || "";
                     
                     sheet1Data.push({
                       "No.": sheet1Data.length + 1,
