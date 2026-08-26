@@ -1756,11 +1756,15 @@ div.audit-data-table-wrapper {
   border-radius: 0 !important;
 }
 
-/* Pivot rows and totals remain regular weight; headers retain hierarchy. */
-.pivot-master-table tbody td,
-.pivot-master-table tbody td > span,
-.pivot-master-table tfoot td {
+/* Pivot data rows follow the same regular-weight hierarchy as DataTable. */
+.pivot-master-table tbody tr:not(.pivot-master-subtotal-row) > td,
+.pivot-master-table tbody tr:not(.pivot-master-subtotal-row) > td > span {
   font-weight: 400 !important;
+}
+
+.pivot-master-table tbody tr.pivot-master-subtotal-row > td,
+.pivot-master-table tfoot td {
+  font-weight: 800 !important;
 }
 
 /* Compact Audit source rail: each source keeps one frame, a small state line,
@@ -2115,16 +2119,24 @@ label.audit-source-card__body:hover {
   border-bottom-width: 0px !important;
 }
 
-/* Pivot Timesheet BU subtotals need an explicit cell fill. A row-level
-   background is hidden by table cell surfaces in the production theme. */
-.pivot-bu-subtotal-row > td {
+/* Custom Pivot grids use the same hover and subtotal hierarchy as DataTable.
+   The selectors intentionally outrank the runtime table-theme cell fill. */
+.pivot-table-container table.pivot-timesheet-table tbody tr:not(.pivot-bu-subtotal-row):hover > td,
+.pivot-master-frame table.pivot-master-table tbody tr.pivot-master-data-row:hover > td {
+  background: color-mix(in srgb, var(--primary, #413644) 5%, var(--card, #ffffff)) !important;
+  background-color: color-mix(in srgb, var(--primary, #413644) 5%, var(--card, #ffffff)) !important;
+}
+
+.pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
+.pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td {
   background: #ddd3e1 !important;
   background-color: #ddd3e1 !important;
   border-color: #b9aabd !important;
   color: #413644 !important;
 }
 
-.dark .pivot-bu-subtotal-row > td {
+.dark .pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
+.dark .pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td {
   background: #58495b !important;
   background-color: #58495b !important;
   border-color: #806f85 !important;

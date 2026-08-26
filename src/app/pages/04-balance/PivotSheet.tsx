@@ -1706,8 +1706,8 @@ export function PivotSheet() {
     if (paginatedRows.length === 0) {
       return (
         <tr>
-          <td colSpan={6 + safeTypeColumns.length} className="py-12 text-center text-slate-400 text-sm bg-white">
-            <span>Chưa có dữ liệu. Vui lòng tải file ở bảng <span className="font-semibold text-slate-600">Cài đặt & Tải file (Master)</span> và nhấn <span className="font-semibold text-slate-600">Xử lý dữ liệu</span>.</span>
+          <td colSpan={6 + safeTypeColumns.length} className="bg-card py-12 text-center text-sm text-muted-foreground">
+            <span>Chưa có dữ liệu. Vui lòng tải file ở bảng <span className="font-semibold text-foreground/70">Cài đặt & Tải file (Master)</span> và nhấn <span className="font-semibold text-foreground/70">Xử lý dữ liệu</span>.</span>
           </td>
         </tr>
       );
@@ -1721,12 +1721,12 @@ export function PivotSheet() {
       return (
         <React.Fragment key={`${item.bu}-${item.l07}-${item.month}`}>
           <tr
-            className="transition-colors border-b border-border bg-[var(--table-data-bg,var(--card))] hover:bg-primary/[0.025]"
+            className="pivot-master-data-row border-b border-border bg-[var(--table-data-bg,var(--card))] transition-colors"
           >
           {!hiddenColumns.no && (
             <td 
               style={{ width: columnWidths["no"] || 50, minWidth: columnWidths["no"] || 50, maxWidth: columnWidths["no"] || 50 }}
-              className="py-2 px-2 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] tabular-nums text-muted-foreground text-xs relative group/no"
+              className="group/no relative border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2 py-2 text-center text-xs tabular-nums text-muted-foreground"
             >
               <span>{item.globalRowId}</span>
               <button
@@ -1742,7 +1742,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["business"] || 90, minWidth: columnWidths["business"] || 90, maxWidth: columnWidths["business"] || 90 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "bu", item.bu)}
-              className="py-2 px-2.5 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] font-bold text-card-foreground text-xs bg-primary/[0.02] cursor-pointer hover:bg-primary/[0.06] transition-colors"
+              className="cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs font-semibold text-card-foreground transition-colors"
               title="Nhấp đúp để sửa Business"
             >
               {isEditingThisRow && editingCell.field === "bu" ? (
@@ -1755,7 +1755,7 @@ export function PivotSheet() {
                     if (e.key === "Escape") handleCancelEdit();
                   }}
                   onBlur={handleSaveEdit}
-                  className="w-full bg-amber-50 border border-amber-400 font-bold text-slate-900 text-xs px-1.5 py-0.5 rounded outline-none focus:ring-1 focus:ring-amber-500 text-center"
+                  className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-center text-xs font-semibold text-foreground outline-none ring-2 ring-primary/15"
                 />
               ) : (
                 <span>{item.bu}</span>
@@ -1766,7 +1766,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["charge"] || 220, minWidth: columnWidths["charge"] || 220, maxWidth: columnWidths["charge"] || 220 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "l07", item.l07)}
-              className="py-2 px-2.5 text-left border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-card-foreground font-medium truncate text-xs cursor-pointer hover:bg-primary/[0.06] transition-colors"
+              className="cursor-pointer truncate border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-left text-xs font-medium text-card-foreground transition-colors"
               title={`Nhấp đúp để sửa L07 (${item.l07})`}
             >
               {isEditingThisRow && editingCell.field === "l07" ? (
@@ -1779,7 +1779,7 @@ export function PivotSheet() {
                     if (e.key === "Escape") handleCancelEdit();
                   }}
                   onBlur={handleSaveEdit}
-                  className="w-full bg-amber-50 border border-amber-400 font-medium text-slate-900 text-xs px-1.5 py-0.5 rounded outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-xs font-medium text-foreground outline-none ring-2 ring-primary/15"
                 />
               ) : (
                 <span>{item.l07}</span>
@@ -1790,7 +1790,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["month"] || 90, minWidth: columnWidths["month"] || 90, maxWidth: columnWidths["month"] || 90 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "month", item.month)}
-              className="py-2 px-2.5 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-card-foreground text-xs tabular-nums cursor-pointer hover:bg-primary/[0.06] transition-colors"
+              className="cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs tabular-nums text-card-foreground transition-colors"
               title="Nhấp đúp để sửa Tháng"
             >
               {isEditingThisRow && editingCell.field === "month" ? (
@@ -1803,7 +1803,7 @@ export function PivotSheet() {
                     if (e.key === "Escape") handleCancelEdit();
                   }}
                   onBlur={handleSaveEdit}
-                  className="w-full bg-amber-50 border border-amber-400 tabular-nums text-slate-900 text-xs px-1.5 py-0.5 rounded outline-none focus:ring-1 focus:ring-amber-500 text-center"
+                  className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-center text-xs tabular-nums text-foreground outline-none ring-2 ring-primary/15"
                 />
               ) : (
                 <span>{item.month}</span>
@@ -1821,7 +1821,7 @@ export function PivotSheet() {
                 key={colKey}
                 style={{ width: w, minWidth: w, maxWidth: w }}
                 onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, type, val)}
-                className={`py-2 px-2.5 text-right border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] tabular-nums text-xs cursor-pointer hover:bg-primary/[0.06] transition-colors ${val > 0 ? "text-card-foreground font-semibold" : "text-muted-foreground"}`}
+                className={`cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-right text-xs font-normal tabular-nums transition-colors ${val > 0 ? "text-card-foreground" : "text-muted-foreground"}`}
                 title={`Nhấp đúp để sửa ${type}`}
               >
                 {isEditingThisRow && editingCell.field === type ? (
@@ -1834,7 +1834,7 @@ export function PivotSheet() {
                       if (e.key === "Escape") handleCancelEdit();
                     }}
                     onBlur={handleSaveEdit}
-                    className="w-full bg-amber-50 border border-amber-400 tabular-nums text-slate-900 text-xs px-1.5 py-0.5 rounded outline-none focus:ring-1 focus:ring-amber-500 text-right"
+                    className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-right text-xs tabular-nums text-foreground outline-none ring-2 ring-primary/15"
                   />
                 ) : (
                   <span>{val ? formatNumber(val) : "0"}</span>
@@ -1845,18 +1845,18 @@ export function PivotSheet() {
           {!hiddenColumns.grandTotal && (
             <td 
               style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
-              className="py-2 px-3 text-right border-b border-border tabular-nums font-bold text-primary text-xs bg-primary/[0.035]"
+              className="border-b border-border px-3 py-2 text-right text-xs font-semibold tabular-nums text-primary"
             >
               {item.rowTotal ? formatNumber(item.rowTotal) : "0"}
             </td>
           )}
           </tr>
           {showBuSubtotal && buSubtotal && (
-            <tr className="border-b-2 border-border bg-primary/10 text-primary font-bold shadow-xs">
+            <tr className="pivot-master-subtotal-row total-row border-b-2 border-border font-bold text-primary shadow-xs">
               {pivotLabelColumnSpan > 0 && (
                 <td
                   colSpan={pivotLabelColumnSpan}
-                  className="border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-primary/10 px-2.5 py-2 text-left text-xs font-bold text-primary"
+                  className="border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-left text-xs font-bold text-primary"
                 >
                   TỔNG CỘNG {item.bu}
                 </td>
@@ -1870,7 +1870,7 @@ export function PivotSheet() {
                   <td
                     key={`${item.bu}-${type}`}
                     style={{ width, minWidth: width, maxWidth: width }}
-                    className="border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-primary/10 px-2.5 py-2 text-right tabular-nums text-xs font-bold text-primary"
+                    className="border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-right text-xs font-bold tabular-nums text-primary"
                   >
                     {value ? formatNumber(value) : "0"}
                   </td>
@@ -1883,7 +1883,7 @@ export function PivotSheet() {
                     minWidth: columnWidths["grandTotal"] || 140,
                     maxWidth: columnWidths["grandTotal"] || 140,
                   }}
-                  className="bg-primary/10 px-3 py-2 text-right tabular-nums text-xs font-bold text-primary"
+                  className="px-3 py-2 text-right text-xs font-bold tabular-nums text-primary"
                 >
                   {buSubtotal.rowTotal ? formatNumber(buSubtotal.rowTotal) : "0"}
                 </td>
@@ -1944,58 +1944,36 @@ export function PivotSheet() {
     <div className="pivot-master-frame unified-table-frame relative flex h-full w-full flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground">
       {/* HEADER SECTION */}
       <div 
-        className="unified-table-frame-header flex min-h-[54px] flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-2 bg-[var(--table-header-bg,#FAF3E8)]"
-        style={{ height: "70.9888px" }}
+        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
       >
-        <div className="flex w-full items-center gap-3" style={{ height: "63.9888px" }}>
+        <div className="flex w-full min-w-0 items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shrink-0">
             <FileSpreadsheet className="h-4 w-4" />
           </div>
-          <div className="min-w-0" style={{ width: "400.0745px" }}>
-            <h1 
-              className="truncate font-sans font-bold tracking-tight text-foreground"
-              style={{ fontSize: "15px", fontFamily: "Quicksand, sans-serif", lineHeight: "17.25px", width: "400.074px" }}
-            >
+          <div className="min-w-0">
+            <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
               Pivot Master
-            </h1>
-            <p 
-              className="truncate font-medium text-muted-foreground mt-0.5"
-              style={{ fontSize: "9px", paddingTop: "0px", paddingBottom: "0px", paddingLeft: "0px", paddingRight: "0px", lineHeight: "11px", height: "21.9988px", width: "400.074px" }}
-            >
+            </h3>
+            <p className="truncate text-[10px] font-medium leading-[14px] text-muted-foreground">
               Tổng hợp chi phí theo BU, L07 và loại · {totalCenters} trung tâm
             </p>
           </div>
 
-          {/* Vertical Divider between Title & TỔNG TIỀN */}
-          <div className="h-6 w-[1px] bg-border/80 mx-1 shrink-0 self-center" />
-
           {/* TỔNG TIỀN right after title */}
-          <div 
-            className="hidden sm:flex items-center pl-2.5 pr-3 h-[38px] border-l border-border/80"
-            style={{ height: "38px" }}
-          >
-            <div className="flex flex-col items-end leading-tight text-right w-full">
-              <span 
-                className="text-[9px] font-bold uppercase tracking-widest text-[#5a5a5a]"
-                style={{ fontSize: "9px", paddingTop: "2px" }}
-              >
+          <div className="ml-auto hidden flex-col items-end border-l border-border/60 pl-4 sm:flex">
+              <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 TỔNG TIỀN
               </span>
-              <span 
-                className="tabular-nums text-[12px] font-normal"
-                style={{ color: "#434142", paddingTop: "8px" }}
-              >
-                {formatNumber(superGrandTotal)}
-              </span>
-            </div>
+              <div className="rounded-md border border-border/60 bg-card px-2.5 py-0.5 shadow-2xs">
+                <span className="text-xs font-black tracking-tight text-primary tabular-nums">
+                  {formatNumber(superGrandTotal)}
+                </span>
+              </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {/* Month Filter Selector */}
-            <div 
-              className="flex items-center gap-1.5 bg-[var(--card)] border border-primary/20 rounded-md px-2 py-0.5 shadow-2xs h-[24px]"
-              style={{ width: "126.517px" }}
-            >
+            <div className="flex h-7 w-[132px] items-center gap-1.5 rounded-full border border-border bg-card px-2.5 shadow-2xs">
               <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">Tháng:</span>
               <select
                 value={selectedMonthFilter}
@@ -2008,8 +1986,7 @@ export function PivotSheet() {
                     // ignore
                   }
                 }}
-                className="bg-transparent text-[10px] font-semibold text-foreground focus:outline-none cursor-pointer py-0.5"
-                style={{ fontSize: "10px", lineHeight: "normal", width: "75.3697px" }}
+                className="min-w-0 flex-1 cursor-pointer bg-transparent py-0.5 text-[10px] font-semibold text-foreground focus:outline-none"
               >
                 <option value="ALL">Tất cả</option>
                 {availableMonths.map((m) => (
@@ -2025,8 +2002,7 @@ export function PivotSheet() {
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="flex items-center justify-center rounded-full border border-primary/20 bg-[var(--card)] text-[var(--card-foreground)] shadow-2xs hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary transition-all cursor-pointer active:scale-95"
-                style={{ height: "25.9876px", width: "25.9876px" }}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-card-foreground shadow-2xs transition-all hover:border-primary/40 hover:bg-primary/[0.05] hover:text-primary active:scale-95"
                 title="Cài đặt & Tiện ích Pivot Master"
                 aria-label="Cài đặt Pivot Master"
               >
@@ -2191,12 +2167,11 @@ export function PivotSheet() {
 
       {/* MAIN DATA TABLE */}
       <div 
-        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]"
-        style={{ paddingLeft: "0px", paddingRight: "0px" }}
+        className="table-body-region flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]"
       >
-        <div className="flex-1 overflow-auto relative">
+        <div className="relative flex-1 overflow-auto custom-scrollbar">
           <table
-            className="pivot-master-table min-h-full border-collapse select-none table-fixed text-left text-xs"
+            className="pivot-master-table border-separate border-spacing-0 select-none table-fixed bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs"
             style={{
               fontFamily: "var(--font-table, var(--font-main))",
               fontSize: "13px",
@@ -2352,12 +2327,12 @@ export function PivotSheet() {
 
             {/* GRAND TOTAL FOOTER ROW */}
             {paginatedRows.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#DFD6C5)] text-primary font-black shadow-sm">
-                <tr>
+              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-black text-primary shadow-sm">
+                <tr className="total-row">
                   {pivotLabelColumnSpan > 0 && (
                     <td
                       colSpan={pivotLabelColumnSpan}
-                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#DFD6C5)] px-2.5 py-2.5 text-left text-primary"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left font-black text-primary"
                     >
                       TỔNG CỘNG TẤT CẢ
                     </td>
@@ -2371,7 +2346,7 @@ export function PivotSheet() {
                       <td 
                         key={idx} 
                         style={{ width: w, minWidth: w, maxWidth: w }}
-                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#DFD6C5)] px-2.5 py-2.5 text-right tabular-nums text-xs text-primary"
+                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-xs font-black tabular-nums text-primary"
                       >
                         {v ? formatNumber(v) : "0"}
                       </td>
@@ -2380,7 +2355,7 @@ export function PivotSheet() {
                   {!hiddenColumns.grandTotal && (
                     <td 
                       style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
-                      className="border-r-0 border-l-0 px-3 py-2.5 text-right tabular-nums text-xs text-primary bg-[var(--table-column-header-bg,#DFD6C5)]"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-xs font-black tabular-nums text-primary"
                     >
                       {superGrandTotal ? formatNumber(superGrandTotal) : "0"}
                     </td>
@@ -2393,12 +2368,11 @@ export function PivotSheet() {
 
         {/* PAGINATION FOOTER — đồng bộ với các bảng Master */}
         <div
-          className="unified-table-frame-footer flex min-h-[52px] flex-wrap items-center justify-between gap-3 border-t border-border bg-[var(--table-footer-bg,var(--table-header-bg,#FAF3E8))] px-6 py-1.5 text-[var(--muted-foreground)]"
-          style={{ backgroundColor: "var(--table-footer-bg, var(--table-header-bg, #FAF3E8))" }}
+          className="table-footer-pagination unified-table-frame-footer flex h-[52px] shrink-0 items-center justify-between gap-3 border-t border-border bg-[var(--table-footer-bg,var(--table-header-bg,#FAF3E8))] px-3 py-1.5 text-muted-foreground"
         >
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-slate-600">
+              <span className="whitespace-nowrap text-[11px] font-medium text-muted-foreground">
                 Hiển thị:
               </span>
               <Select
@@ -2411,12 +2385,11 @@ export function PivotSheet() {
                 }}
               >
                 <SelectTrigger
-                  className="rounded-full border-slate-200 bg-white px-3 font-sans text-[11px] font-bold normal-case text-slate-700 shadow-2xs transition-colors hover:bg-slate-50"
-                  style={{ height: "26px", width: "95px" }}
+                  className="h-5 w-[90px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
                 >
                   <SelectValue placeholder="Chọn..." />
                 </SelectTrigger>
-                <SelectContent className="z-[99999] border-[#e7dbdc] bg-popover font-sans opacity-100">
+                <SelectContent className="z-[99999] border-border bg-popover font-sans opacity-100">
                   <SelectItem value="10" className="font-sans text-[11px] font-medium normal-case">10 dòng</SelectItem>
                   <SelectItem value="20" className="font-sans text-[11px] font-medium normal-case">20 dòng</SelectItem>
                   <SelectItem value="50" className="font-sans text-[11px] font-medium normal-case">50 dòng</SelectItem>
@@ -2426,14 +2399,20 @@ export function PivotSheet() {
               </Select>
             </div>
 
+            <span className="whitespace-nowrap border-l border-border pl-3 text-[11px] font-medium text-muted-foreground">
+              {totalRowsCount === 0
+                ? "0 dòng"
+                : `Hiển thị ${startIndex + 1} - ${endIndex} / ${totalRowsCount} dòng`}
+            </span>
+
           </div>
 
-          <div className="flex h-6 items-center gap-1 border-l border-slate-200 pl-4">
+          <div className="flex h-6 items-center gap-1 border-l border-border pl-4">
             <button
               type="button"
               onClick={() => setCurrentPage(1)}
               disabled={validCurrentPage <= 1}
-              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-3xs transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white"
+              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang đầu"
             >
               <ChevronsLeft className="h-3.5 w-3.5" />
@@ -2442,14 +2421,14 @@ export function PivotSheet() {
               type="button"
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
               disabled={validCurrentPage <= 1}
-              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-3xs transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white"
+              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang trước"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
 
             <span 
-              className="min-w-[90px] whitespace-nowrap px-3 text-center font-display uppercase tracking-widest text-slate-700/80"
+              className="min-w-[90px] whitespace-nowrap px-3 text-center font-display uppercase tracking-widest text-foreground/70"
               style={{ fontWeight: "normal", fontSize: "10px", lineHeight: "16px" }}
             >
               TRANG {validCurrentPage} / {totalPages}
@@ -2461,7 +2440,7 @@ export function PivotSheet() {
                 setCurrentPage((page) => Math.min(totalPages, page + 1))
               }
               disabled={validCurrentPage >= totalPages}
-              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-3xs transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white"
+              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang sau"
             >
               <ChevronRight className="h-3.5 w-3.5" />
@@ -2470,7 +2449,7 @@ export function PivotSheet() {
               type="button"
               onClick={() => setCurrentPage(totalPages)}
               disabled={validCurrentPage >= totalPages}
-              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-3xs transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white"
+              className="flex h-7 w-7 cursor-pointer select-none items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang cuối"
             >
               <ChevronsRight className="h-3.5 w-3.5" />

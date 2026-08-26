@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from "lucide-react";
+import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
 import {
   Select,
@@ -127,9 +127,9 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0">
       {/* Header Info - Consistent with other tables */}
       <div 
-        className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[54px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
+        className="unified-table-frame-header table-header flex min-h-[50px] w-full shrink-0 items-center justify-between border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3.5 py-2"
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2">
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
@@ -147,12 +147,8 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
             </h3>
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
               Bảng tổng hợp phân bổ chi phí MKT Local North theo loại công việc & bộ phận
+              {onCellChange ? " · Nhấp đúp L07 hoặc số tiền để chỉnh sửa" : ""}
             </p>
-            {onCellChange && (
-              <span className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold text-primary/65">
-                <Pencil className="h-2.5 w-2.5" /> Nhấp đúp L07 hoặc số tiền để chỉnh sửa
-              </span>
-            )}
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
@@ -169,25 +165,26 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto custom-scrollbar relative bg-card">
-        <table className="w-full min-h-full border-separate border-spacing-0 font-sans text-[12px] min-w-max" style={{ borderCollapse: "separate" }}>
-          <thead className="sticky top-0 z-[110] bg-muted/90 backdrop-blur-xs">
-            <tr className="h-10">
-              <th className="border-r border-b border-border px-2 py-2 text-center font-black uppercase tracking-wider text-foreground bg-muted/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] text-[10px] w-12 min-w-[50px]">
+      <div className="pivot-table-container flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]">
+        <div className="table-body-region relative min-h-0 flex-1 overflow-auto custom-scrollbar">
+          <table className="pivot-timesheet-table w-full min-w-max border-separate border-spacing-0 bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs">
+          <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]">
+            <tr>
+              <th className="w-12 min-w-[50px] border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-primary">
                 No.
               </th>
-              <th className="border-r border-b border-border px-3.5 py-2 text-left font-black uppercase tracking-wider text-foreground bg-muted/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] text-[10px] min-w-[140px] whitespace-nowrap">
+              <th className="min-w-[140px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-primary">
                 BUSINESS
               </th>
-              <th className="border-r border-b border-border px-3.5 py-2 text-left font-black uppercase tracking-wider text-foreground bg-muted/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] text-[10px] min-w-[180px] whitespace-nowrap">
+              <th className="min-w-[180px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-primary">
                 L07
               </th>
               {types.map((type) => (
-                <th key={type} className="border-r border-b border-border px-3.5 py-2 text-right font-black uppercase tracking-wider text-foreground bg-muted/90 shadow-[0_1px_0_rgba(0,0,0,0.05)] text-[10px] min-w-[120px] whitespace-nowrap">
+                <th key={type} className="min-w-[120px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-primary">
                   {type}
                 </th>
               ))}
-              <th className="border-r border-b border-border px-3.5 py-2 text-right font-black uppercase tracking-wider text-primary-foreground bg-primary shadow-[0_1px_0_rgba(0,0,0,0.05)] text-[10px] min-w-[150px] whitespace-nowrap">
+              <th className="min-w-[150px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-primary">
                 GRAND TOTAL
               </th>
             </tr>
@@ -208,15 +205,15 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
 
                 return (
                 <React.Fragment key={rowKeyOf(row)}>
-                <tr className="transition-all hover:bg-muted/40 group h-9 border-b border-border">
-                  <td className="border-r border-b border-border px-2 py-1.5 text-center tabular-nums font-bold text-muted-foreground text-[10px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap">
+                <tr className="group border-b border-border transition-colors">
+                  <td className="whitespace-nowrap border-r border-b border-border px-2 py-1.5 text-center text-[10px] font-bold tabular-nums text-muted-foreground transition-colors">
                     {startIdx + idx + 1}
                   </td>
-                  <td className="border-r border-b border-border px-3.5 py-1.5 font-bold text-foreground uppercase text-[11px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[140px]">
+                  <td className="min-w-[140px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[11px] font-semibold uppercase text-foreground transition-colors">
                     {row.business || "NORTH"}
                   </td>
                   <td
-                    className="border-r border-b border-border px-3.5 py-1.5 font-bold text-muted-foreground uppercase text-[10.5px] bg-card group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[180px]"
+                    className="min-w-[180px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[10.5px] font-medium uppercase text-muted-foreground transition-colors"
                     onDoubleClick={() => startEditing(row, "chargeToCenterMkt", row.chargeToCenterMkt)}
                     title={onCellChange ? "Nhấp đúp để sửa L07" : undefined}
                   >
@@ -232,7 +229,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                   {types.map((type) => (
                     <td 
                       key={type} 
-                      className={`border-r border-b border-border px-3.5 py-1.5 text-right tabular-nums text-[11px] group-hover:bg-muted/30 transition-colors whitespace-nowrap min-w-[120px] ${row.values[type] ? "text-foreground font-bold" : "text-muted-foreground/40"}`}
+                      className={`min-w-[120px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-right text-[11px] font-normal tabular-nums transition-colors ${row.values[type] ? "text-foreground" : "text-muted-foreground/40"}`}
                       onDoubleClick={() => startEditing(row, type, row.values[type] || 0)}
                       title={onCellChange ? `Nhấp đúp để sửa ${type}` : undefined}
                     >
@@ -249,12 +246,12 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                       )}
                     </td>
                   ))}
-                  <td className="border-r border-b border-border px-3.5 py-1.5 text-right tabular-nums text-[11px] font-black text-foreground bg-muted/20 group-hover:bg-muted/40 transition-colors whitespace-nowrap min-w-[150px]">
+                  <td className="min-w-[150px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-right text-[11px] font-semibold tabular-nums text-foreground transition-colors">
                     {formatMoneyVND(row.total).replace(" ₫", "")}
                   </td>
                 </tr>
                 {showBusinessSubtotal && subtotal && (
-                  <tr className="pivot-bu-subtotal-row h-10 font-black uppercase tracking-wider text-[10.5px]">
+                  <tr className="pivot-bu-subtotal-row total-row font-black uppercase tracking-wider text-[10.5px]">
                     <td
                       colSpan={3}
                       className="border-r border-b px-3.5 py-2 text-primary whitespace-nowrap"
@@ -279,31 +276,31 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
               })
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] bg-muted/95 backdrop-blur-xs">
-            <tr className="font-black uppercase tracking-wider text-[11px] h-11">
+          <tfoot className="sticky bottom-0 z-20 bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+            <tr className="total-row font-black uppercase tracking-wider text-[11px]">
               <td 
                 colSpan={3} 
-                className="border-r border-b border-border px-3.5 py-2 text-foreground font-black bg-muted/90 whitespace-nowrap min-w-[370px]"
+                className="min-w-[370px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 font-black text-primary"
               >
                 TỔNG CỘNG (SUMMARY TOTAL)
               </td>
               {types.map((type) => (
-                <td key={type} className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-[11px] font-black text-foreground bg-muted/90 whitespace-nowrap min-w-[120px]">
+                <td key={type} className="min-w-[120px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 text-right text-[11px] font-black tabular-nums text-primary">
                   {formatMoneyVND(grandTotals.totals[type] || 0).replace(" ₫", "")}
                 </td>
               ))}
-              <td className="border-r border-b border-border px-3.5 py-2 text-right tabular-nums text-[11px] font-black text-primary-foreground bg-primary whitespace-nowrap min-w-[150px]">
+              <td className="min-w-[150px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 text-right text-[11px] font-black tabular-nums text-primary">
                 {formatMoneyVND(grandTotals.grandTotal).replace(" ₫", "")}
               </td>
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* FOOTER BAR WITH PAGE SIZE SELECTOR MATCHING SỐ GIỜ LÀM VIỆC (DATATABLE) */}
       <div 
-        className="px-4 py-2 border-t border-border flex flex-wrap items-center justify-between gap-4 text-xs font-sans bg-card text-foreground shrink-0"
-        style={{ minHeight: "44px" }}
+        className="table-footer-pagination flex h-[52px] shrink-0 items-center justify-between gap-4 border-t border-border bg-[var(--table-footer-bg,var(--table-header-bg,#FAF3E8))] px-3 py-1.5 text-xs text-foreground"
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -318,17 +315,16 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
               }}
             >
               <SelectTrigger 
-                className="rounded-[15px] px-2.5 text-[12px] font-bold text-foreground border-border bg-card hover:bg-muted/60 transition-colors shadow-2xs cursor-pointer h-7" 
-                style={{ height: "28px", width: "100px" }}
+                className="h-5 w-[90px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
               >
                 <SelectValue placeholder="Chọn..." />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border z-[99999] opacity-100 shadow-xl rounded-xl">
-                <SelectItem value="10" className="text-[12px] font-bold cursor-pointer">10 dòng</SelectItem>
-                <SelectItem value="20" className="text-[12px] font-bold cursor-pointer">20 dòng</SelectItem>
-                <SelectItem value="50" className="text-[12px] font-bold cursor-pointer">50 dòng</SelectItem>
-                <SelectItem value="100" className="text-[12px] font-bold cursor-pointer">100 dòng</SelectItem>
-                <SelectItem value="all" className="text-[12px] font-bold cursor-pointer">Tất cả</SelectItem>
+              <SelectContent className="z-[99999] rounded-xl border-border bg-popover opacity-100 shadow-xl">
+                <SelectItem value="10" className="cursor-pointer text-[11px] font-medium normal-case">10 dòng</SelectItem>
+                <SelectItem value="20" className="cursor-pointer text-[11px] font-medium normal-case">20 dòng</SelectItem>
+                <SelectItem value="50" className="cursor-pointer text-[11px] font-medium normal-case">50 dòng</SelectItem>
+                <SelectItem value="100" className="cursor-pointer text-[11px] font-medium normal-case">100 dòng</SelectItem>
+                <SelectItem value="all" className="cursor-pointer text-[11px] font-medium normal-case">Tất cả</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -344,11 +340,11 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
 
         {/* Pagination Navigation Controls */}
         {itemsPerPage !== Infinity && totalPages > 1 && (
-          <div className="flex items-center gap-1">
+          <div className="flex h-6 items-center gap-1 border-l border-border pl-4">
             <button
               onClick={() => setCurrentPage(1)}
               disabled={validCurrentPage === 1}
-              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang đầu"
             >
               <ChevronsLeft className="w-3.5 h-3.5" />
@@ -356,20 +352,20 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={validCurrentPage === 1}
-              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang trước"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <span className="text-[11px] font-bold px-2.5 text-foreground">
-              Trang {validCurrentPage} / {totalPages}
+            <span className="min-w-[90px] whitespace-nowrap px-3 text-center text-[10px] font-normal uppercase tracking-widest text-foreground/70">
+              TRANG {validCurrentPage} / {totalPages}
             </span>
 
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={validCurrentPage === totalPages}
-              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang sau"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -377,7 +373,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={validCurrentPage === totalPages}
-              className="p-1.5 rounded-lg border border-border bg-card hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-foreground/70 shadow-3xs transition-all hover:bg-muted/60 hover:text-foreground active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
               title="Trang cuối"
             >
               <ChevronsRight className="w-3.5 h-3.5" />
