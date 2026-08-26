@@ -1961,7 +1961,7 @@ export function PivotSheet() {
 
           {/* Compact right-side controls. Keep their combined width bounded so
               the month selector cannot be pushed outside the table card. */}
-          <div className="ml-auto grid shrink-0 grid-cols-[minmax(108px,auto)_108px_28px] items-center gap-1.5">
+          <div className="ml-auto grid shrink-0 grid-cols-[minmax(108px,auto)_108px_28px] items-end gap-1.5">
             {/* TỔNG TIỀN */}
             <div className="flex min-w-[108px] flex-col items-stretch border-l border-border/60 pl-2">
               <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
@@ -1975,9 +1975,11 @@ export function PivotSheet() {
             </div>
 
             {/* Month Filter Selector */}
-            <div className="flex h-7 w-[108px] min-w-0 items-center gap-1 rounded-full border border-border bg-card px-2 shadow-2xs">
-              <span className="shrink-0 whitespace-nowrap text-[9px] font-bold text-muted-foreground">Tháng:</span>
-              <div className="relative min-w-0 flex-1">
+            <div className="flex w-[108px] min-w-0 flex-col items-stretch">
+              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+                THÁNG
+              </span>
+              <div className="relative mt-0.5 flex h-7 min-w-0 items-center rounded-full border border-border bg-card px-2 shadow-2xs">
                 <select
                   value={selectedMonthFilter}
                   onChange={(e) => {
@@ -1989,7 +1991,7 @@ export function PivotSheet() {
                       // ignore
                     }
                   }}
-                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0.5 pr-3 text-[9px] font-semibold text-foreground focus:outline-none"
+                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0.5 pl-1 pr-4 text-center text-[10px] font-bold text-foreground focus:outline-none"
                   aria-label="Chọn tháng Pivot Master"
                 >
                   <option value="ALL">Tất cả</option>
@@ -1999,7 +2001,7 @@ export function PivotSheet() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
 
