@@ -314,44 +314,73 @@ const normalizeFilterText = (value: unknown) =>
     .replace(/\s+/g, "");
 
 let hasFetchedSupabase = false;
+const pendingSupabaseTableFetches = new Map<string, Promise<any[]>>();
 
 async function fetchAllFromSupabaseTable(tableName: string) {
-  const allRows: any[] = [];
-  let from = 0;
-  const pageSize = 1000;
-  let hasMore = true;
+  const pending = pendingSupabaseTableFetches.get(tableName);
+  if (pending) return pending;
 
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select("*")
-      .range(from, from + pageSize - 1);
+  const request = (async () => {
+    const pageSize = 1000;
+    const maxRows = 200000;
+    const fetchPage = async (from: number, includeCount = false) => {
+      const query = includeCount
+        ? supabase.from(tableName).select("*", { count: "exact" })
+        : supabase.from(tableName).select("*");
+      const { data, error, count } = await query.range(
+        from,
+        from + pageSize - 1,
+      );
 
-    if (error) {
-      if (
-        (error as any).status === 416 ||
-        error.code === "PGRST103" ||
-        (error.message && error.message.includes("Range Not Satisfiable"))
-      ) {
-        hasMore = false;
-        break;
+      if (error) {
+        if (
+          (error as any).status === 416 ||
+          error.code === "PGRST103" ||
+          error.message?.includes("Range Not Satisfiable")
+        ) {
+          return { rows: [] as any[], count: count ?? null };
+        }
+        throw error;
       }
-      throw error;
+      return { rows: data || [], count: count ?? null };
+    };
+
+    const firstPage = await fetchPage(0, true);
+    const allRows = [...firstPage.rows];
+    if (firstPage.rows.length < pageSize) return allRows;
+
+    const cappedTotal = Math.min(firstPage.count ?? maxRows, maxRows);
+    if (firstPage.count !== null) {
+      const offsets: number[] = [];
+      for (let from = pageSize; from < cappedTotal; from += pageSize) {
+        offsets.push(from);
+      }
+      // A small amount of parallelism removes one network round-trip per page
+      // without flooding Supabase when the roster is exceptionally large.
+      for (let index = 0; index < offsets.length; index += 6) {
+        const pages = await Promise.all(
+          offsets.slice(index, index + 6).map((from) => fetchPage(from)),
+        );
+        pages.forEach((page) => allRows.push(...page.rows));
+      }
+      return allRows;
     }
 
-    if (data && data.length > 0) {
-      allRows.push(...data);
-      from += pageSize;
-      if (data.length < pageSize) {
-        hasMore = false;
-      }
-    } else {
-      hasMore = false;
+    // Fallback for projects where exact row counts are disabled.
+    for (let from = pageSize; from < maxRows; from += pageSize) {
+      const page = await fetchPage(from);
+      allRows.push(...page.rows);
+      if (page.rows.length < pageSize) break;
     }
+    return allRows;
+  })();
 
-    if (allRows.length > 200000) break;
+  pendingSupabaseTableFetches.set(tableName, request);
+  try {
+    return await request;
+  } finally {
+    pendingSupabaseTableFetches.delete(tableName);
   }
-  return allRows;
 }
 
 export function TimesheetHub() {
