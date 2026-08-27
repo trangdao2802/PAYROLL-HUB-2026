@@ -38,10 +38,12 @@ import {
   carryEligibleHoldsToNextMonth,
   collapseMergedHoldSourceRows,
   getEligibleHoldRowsForReport,
+  getHoldScopedIdentity,
   getNextPayrollMonth,
   getMergedHoldOriginalIndexes,
   mergeDuplicateHoldRows,
   parsePayrollMonth,
+  removeSelectedHoldSourceRows,
 } from "../../../lib/utils/hold-carryover";
 
 const HOLD_HIDDEN_COLS = [
@@ -148,25 +150,20 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           "ID Number": formatIdNumber(row["ID Number"]),
         };
 
-        // Enforce default total payment sign when Reporting Month equals Arising Month
-        const rowReportingMonth = String(normalizedRow["Tháng báo cáo"] || "").trim();
-        const rowArisingMonth = String(normalizedRow["Tháng phát sinh"] || "").trim();
-        if (rowReportingMonth && rowArisingMonth && rowReportingMonth === rowArisingMonth) {
-          const nghiepVu = String(normalizedRow["Nghiệp vụ"] || "").toUpperCase().trim();
-          const currentTotalPayment = parseMoneyToNumber(normalizedRow["TOTAL PAYMENT"] || 0);
-          
-          if (nghiepVu.includes("HOLD") || nghiepVu === "H") {
-            normalizedRow["TOTAL PAYMENT"] =
-              Number(normalizedRow._holdMergedDuplicateCount || 0) > 1
-                ? Math.abs(currentTotalPayment)
-                : -Math.abs(currentTotalPayment);
-          } else if (nghiepVu.includes("CANCEL") || nghiepVu === "C") {
-            normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
-          } else if (nghiepVu.includes("ADD") || nghiepVu === "A" || nghiepVu === "") {
-            normalizedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
-          } else if (nghiepVu === "B" || nghiepVu.includes("BONUS") || nghiepVu === "⏩" || nghiepVu === "⏯") {
-            normalizedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
-          }
+        // The operation controls the sign in every report month. A carried
+        // HOLD/CANCEL stays negative; switching it to ADD makes the same row
+        // positive without creating a second transaction.
+        const nghiepVu = String(normalizedRow["Nghiệp vụ"] || "").toUpperCase().trim();
+        const currentTotalPayment = parseMoneyToNumber(normalizedRow["TOTAL PAYMENT"] || 0);
+
+        if (nghiepVu.includes("HOLD") || nghiepVu === "H") {
+          normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
+        } else if (nghiepVu.includes("CANCEL") || nghiepVu === "C") {
+          normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
+        } else if (nghiepVu.includes("ADD") || nghiepVu === "A" || nghiepVu === "") {
+          normalizedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
+        } else if (nghiepVu === "B" || nghiepVu.includes("BONUS") || nghiepVu === "⏩" || nghiepVu === "⏯") {
+          normalizedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
         }
         return normalizedRow;
       });
@@ -215,6 +212,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           const data = [...targetTab.data];
           const mergedOriginalIndexes = getMergedHoldOriginalIndexes(row);
           const preferredOriginalIndex = Number(row._originalIndex);
+          const rowScopedIdentity = getHoldScopedIdentity(row);
           const rowIndex =
             Number.isInteger(preferredOriginalIndex) &&
             preferredOriginalIndex >= 0 &&
@@ -223,17 +221,12 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               : data.findIndex(
                   (r, idx) =>
                     r && row &&
-                    (mergedOriginalIndexes.includes(idx) ||
+                      (mergedOriginalIndexes.includes(idx) ||
+                      (r._recordId && row._recordId && r._recordId === row._recordId) ||
                       (r.id && row.id && r.id === row.id) ||
                       r === row ||
-                      (r["ID Number"] === row["ID Number"] &&
-                        r["TOTAL PAYMENT"] === row["TOTAL PAYMENT"] &&
-                        ((r["No."] !== undefined &&
-                          r["No."] === row["No."]) ||
-                          (r["No"] !== undefined &&
-                            r["No"] === row["No"]) ||
-                          (r["STT"] !== undefined &&
-                            r["STT"] === row["STT"])))),
+                      (rowScopedIdentity &&
+                        getHoldScopedIdentity(r) === rowScopedIdentity)),
                 );
 
           if (rowIndex === -1) return prev;
@@ -274,6 +267,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               delete updatedRow._holdCarryOriginId;
               delete updatedRow._holdCarryFromReportMonth;
               delete updatedRow._holdCarryCreatedAt;
+              delete updatedRow._holdCarrySaved;
               delete updatedRow._holdMergedDuplicateCount;
               delete updatedRow._holdMergedOriginalIndexes;
               delete updatedRow._holdStatusBeforeSave;
@@ -303,24 +297,11 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           const targetTab = prev.Hold_AE;
           if (!targetTab || !targetTab.data) return prev;
 
-          const data = [...targetTab.data];
-          const rowIndex = data.findIndex(
-            (r, idx) =>
-              r && rowToDelete &&
-              ((rowToDelete._originalIndex !== undefined &&
-                idx === rowToDelete._originalIndex) ||
-                (r.id && rowToDelete.id && r.id === rowToDelete.id) ||
-                r === rowToDelete ||
-                (r["ID Number"] === rowToDelete["ID Number"] &&
-                  r["TOTAL PAYMENT"] === rowToDelete["TOTAL PAYMENT"])),
-          );
-
-          if (rowIndex === -1) return prev;
-
-          data.splice(rowIndex, 1);
+          const deletion = removeSelectedHoldSourceRows(targetTab.data, [rowToDelete]);
+          if (deletion.removedCount === 0) return prev;
           return {
             ...prev,
-            Hold_AE: { ...targetTab, data },
+            Hold_AE: { ...targetTab, data: deletion.rows },
           };
         });
         toast.success("Đã xóa dòng");
@@ -351,22 +332,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           const targetTab = prev.Hold_AE;
           if (!targetTab || !targetTab.data) return prev;
 
-          const data = [...targetTab.data].filter((r) => {
-            return r && !rowsToDelete.some(
-              (rowToDelete) =>
-                rowToDelete &&
-                ((rowToDelete._originalIndex !== undefined &&
-                  targetTab.data.indexOf(r) === rowToDelete._originalIndex) ||
-                (r.id && rowToDelete.id && r.id === rowToDelete.id) ||
-                r === rowToDelete ||
-                (r["ID Number"] === rowToDelete["ID Number"] &&
-                  r["TOTAL PAYMENT"] === rowToDelete["TOTAL PAYMENT"])),
-            );
-          });
+          const deletion = removeSelectedHoldSourceRows(
+            targetTab.data,
+            rowsToDelete,
+          );
+          if (deletion.removedCount === 0) return prev;
 
           return {
             ...prev,
-            Hold_AE: { ...targetTab, data },
+            Hold_AE: { ...targetTab, data: deletion.rows },
           };
         });
         
@@ -678,7 +652,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
       updateAppData((prev: any) => {
         const holdCarryover = carryEligibleHoldsToNextMonth({
-          sourceRows: appData.Hold_AE?.data || [],
+          sourceRows: filteredData.data,
           existingRows: prev.Hold_AE?.data || [],
           reportMonth: currentReportMonth,
         });
@@ -930,22 +904,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                     const targetTab = prev.Hold_AE;
                     if (!targetTab || !targetTab.data) return prev;
 
-                    const data = [...targetTab.data].filter((r) => {
-                      return r && !selectedRows.some(
-                        (rowToDelete) =>
-                          rowToDelete &&
-                          ((rowToDelete._originalIndex !== undefined &&
-                            targetTab.data.indexOf(r) === rowToDelete._originalIndex) ||
-                          (r.id && rowToDelete.id && r.id === rowToDelete.id) ||
-                          r === rowToDelete ||
-                          (r["ID Number"] === rowToDelete["ID Number"] &&
-                            r["TOTAL PAYMENT"] === rowToDelete["TOTAL PAYMENT"])),
-                      );
-                    });
+                    const deletion = removeSelectedHoldSourceRows(
+                      targetTab.data,
+                      selectedRows,
+                    );
+                    if (deletion.removedCount === 0) return prev;
 
                     return {
                       ...prev,
-                      Hold_AE: { ...targetTab, data },
+                      Hold_AE: { ...targetTab, data: deletion.rows },
                     };
                   });
                   const currentRef = ref as any;

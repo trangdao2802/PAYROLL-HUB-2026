@@ -49,6 +49,7 @@ import {
   isSheetOneMasterSheetName,
   normalizeMasterSheetName,
 } from "../../lib/utils/master-sheet-utils";
+import { getHoldScopedIdentity } from "../../lib/utils/hold-carryover";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
@@ -2114,12 +2115,17 @@ export function AEDataConfig({
 
         const holdKeyFn = (r: any) => {
           if (!r) return "";
-          const id = String(r["ID Number"] || "").trim().toUpperCase();
-          const month = normalizeMonth(r["Tháng báo cáo"] || r["_fileMonth"] || currentMonth);
-          const tp = Math.round(parseMoneyToNumber(r["TOTAL PAYMENT"] || 0));
-          const note = String(r["Note"] || "").trim().toUpperCase();
-          const nv = String(r["Nghiệp vụ"] || "").trim().toUpperCase() || "HOLD";
-          return `${id}|${month}|${tp}|${note}|${nv}`;
+          const exactScopedKey = getHoldScopedIdentity(r, currentMonth);
+          if (exactScopedKey) return exactScopedKey;
+
+          // Keep malformed legacy rows isolated instead of collapsing them by
+          // the old broad ID + amount comparison.
+          const reportMonth = normalizeMonth(
+            r["Tháng báo cáo"] || r["_fileMonth"] || currentMonth,
+          );
+          return `LEGACY|${reportMonth}|${String(
+            r._recordId || r.id || generateUUID(),
+          )}`;
         };
 
         // Group and map existing data by ID/Key and Timestamp

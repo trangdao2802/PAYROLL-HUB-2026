@@ -260,6 +260,38 @@ export function UiSettingsModal({
     newFontStyle, newTextDecoration, newTextAlign, newLineHeight,
   ]);
 
+  const syncEditorBaseline = useCallback(() => {
+    editorBaselineRef.current = {
+      radius: newRadius,
+      bg: newBg,
+      color: newColor,
+      border: newBorder,
+      padTop,
+      padRight,
+      padBottom,
+      padLeft,
+      marTop,
+      marRight,
+      marBottom,
+      marLeft,
+      width: newWidth,
+      height: newHeight,
+      fontSize: newFontSize,
+      fontFamily: newFontFamily,
+      fontWeight: newFontWeight,
+      fontStyle: newFontStyle,
+      textDecoration: newTextDecoration,
+      textAlign: newTextAlign,
+      lineHeight: newLineHeight,
+    };
+  }, [
+    newRadius, newBg, newColor, newBorder,
+    padTop, padRight, padBottom, padLeft,
+    marTop, marRight, marBottom, marLeft,
+    newWidth, newHeight, newFontSize, newFontFamily, newFontWeight,
+    newFontStyle, newTextDecoration, newTextAlign, newLineHeight,
+  ]);
+
   const updatePaddingStates = useCallback((padVal: string) => {
     const parsed = parseShorthand(padVal);
     setPadTop(cleanUnit(parsed.top));
@@ -407,21 +439,21 @@ export function UiSettingsModal({
     } else if (existingRule) {
       const existingPadding = parseShorthand(existingRule.padding || "");
       const existingMargin = parseShorthand(existingRule.margin || "");
-      setNewRadius(existingRule.radius || computedInfo?.radius || "");
-      setNewBg(existingRule.bg || computedInfo?.background || "");
-      setNewColor(existingRule.color || computedInfo?.color || "");
-      setNewBorder(existingRule.border || computedInfo?.border || "");
-      updatePaddingStates(existingRule.padding || computedInfo?.padding || "");
-      updateMarginStates(existingRule.margin || computedInfo?.margin || "");
-      setNewWidth(existingRule.width || computedInfo?.width || "");
-      setNewHeight(existingRule.height || computedInfo?.height || "");
-      setNewFontSize(existingRule.fontSize || computedInfo?.fontSize || "");
-      setNewFontFamily(existingRule.fontFamily || computedInfo?.fontFamily || "");
-      setNewFontWeight(existingRule.fontWeight || computedInfo?.fontWeight || "");
-      setNewFontStyle(existingRule.fontStyle || computedInfo?.fontStyle || "");
-      setNewTextDecoration(existingRule.textDecoration || computedInfo?.textDecoration || "");
-      setNewTextAlign(existingRule.textAlign || computedInfo?.textAlign || "");
-      setNewLineHeight(existingRule.lineHeight || computedInfo?.lineHeight || "");
+      setNewRadius(existingRule.radius || "");
+      setNewBg(existingRule.bg || "");
+      setNewColor(existingRule.color || "");
+      setNewBorder(existingRule.border || "");
+      updatePaddingStates(existingRule.padding || "");
+      updateMarginStates(existingRule.margin || "");
+      setNewWidth(existingRule.width || "");
+      setNewHeight(existingRule.height || "");
+      setNewFontSize(existingRule.fontSize || "");
+      setNewFontFamily(existingRule.fontFamily || "");
+      setNewFontWeight(existingRule.fontWeight || "");
+      setNewFontStyle(existingRule.fontStyle || "");
+      setNewTextDecoration(existingRule.textDecoration || "");
+      setNewTextAlign(existingRule.textAlign || "");
+      setNewLineHeight(existingRule.lineHeight || "");
       editorBaselineRef.current = {
         radius: existingRule.radius || "",
         bg: existingRule.bg || "",
@@ -693,6 +725,11 @@ export function UiSettingsModal({
       toast.error("CSS selector không hợp lệ. Vui lòng chọn lại phần tử.");
       return null;
     }
+    const matchedElements = document.querySelectorAll(cleanSelector).length;
+    if (matchedElements === 0) {
+      toast.error("Selector không tìm thấy phần tử nào trên trang hiện tại.");
+      return null;
+    }
 
     const normalizedRadius = normalizeCssLength(newRadius);
     const normalizedWidth = normalizeCssLength(newWidth);
@@ -788,7 +825,9 @@ export function UiSettingsModal({
       setSelectedDivInfo(null);
     }
     if (notifySuccess) {
-      toast.success(index >= 0 ? "Đã cập nhật style cho selector!" : "Đã thêm style custom cho selector!");
+      toast.success(
+        `${index >= 0 ? "Đã cập nhật" : "Đã thêm"} style cho ${matchedElements} phần tử.`,
+      );
     }
     return updatedSettings;
   };
@@ -807,6 +846,10 @@ export function UiSettingsModal({
     if (!updatedSettings) return false;
     try {
       await persistSettings(updatedSettings);
+      syncEditorBaseline();
+      toast.success(
+        `Đã áp dụng style cho ${document.querySelectorAll(newSelector.trim()).length} phần tử.`,
+      );
       return true;
     } catch (error) {
       console.error("Failed to persist selected DIV style", error);
@@ -912,8 +955,20 @@ export function UiSettingsModal({
   }, [settings, isOpen, newSelector, newRadius, newBg, newColor, newBorder, getCombinedPadding, getCombinedMargin, padTop, padRight, padBottom, padLeft, marTop, marRight, marBottom, marLeft, newWidth, newHeight, newFontSize, newFontFamily, newFontWeight, newFontStyle, newTextDecoration, newTextAlign, newLineHeight]);
 
   const saveSettings = async () => {
+    let settingsToPersist = settings;
+    if (
+      activeModalTab === "div_selector" &&
+      newSelector.trim() &&
+      editorHasChanges()
+    ) {
+      const updatedSettings = addCustomRule(true, false);
+      if (!updatedSettings) return;
+      settingsToPersist = updatedSettings;
+    }
+
     try {
-      await persistSettings(settings);
+      await persistSettings(settingsToPersist);
+      syncEditorBaseline();
       toast.dismiss();
       toast.success("Đã lưu cài đặt!");
     } catch (e) {
@@ -932,6 +987,8 @@ export function UiSettingsModal({
 
     try {
       await persistSettings(updatedSettings);
+      syncEditorBaseline();
+      toast.success("Đã lưu style của DIV.");
       onClose();
     } catch (error) {
       console.error("Failed to save selected DIV style", error);

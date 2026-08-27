@@ -231,6 +231,48 @@ export function isSafeCustomSelector(selector: unknown): selector is string {
   }
 }
 
+function normalizeBoxShorthand(value?: string): string | undefined {
+  const clean = value?.trim();
+  if (!clean) return undefined;
+  return clean
+    .split(/\s+/)
+    .map((part) => normalizeCssLength(part) || part)
+    .join(" ");
+}
+
+function buildCustomRuleCss(
+  rule: Partial<CustomRule>,
+  includeInspectorOutline = false,
+): string {
+  if (!isSafeCustomSelector(rule.selector)) return "";
+  return `
+    ${rule.selector} {
+      ${rule.radius ? `border-radius: ${normalizeCssLength(rule.radius)} !important;` : ""}
+      ${rule.bg ? `background-color: ${rule.bg} !important;` : ""}
+      ${rule.color ? `color: ${rule.color} !important;` : ""}
+      ${rule.border ? `border: ${rule.border} !important;` : ""}
+      ${rule.borderColor ? `border-color: ${rule.borderColor} !important;` : ""}
+      ${rule.borderWidth ? `border-width: ${normalizeCssLength(rule.borderWidth)} !important;` : ""}
+      ${rule.padding ? `padding: ${normalizeBoxShorthand(rule.padding)} !important;` : ""}
+      ${rule.paddingTop ? `padding-top: ${normalizeCssLength(rule.paddingTop)} !important;` : ""}
+      ${rule.paddingBottom ? `padding-bottom: ${normalizeCssLength(rule.paddingBottom)} !important;` : ""}
+      ${rule.paddingLeft ? `padding-left: ${normalizeCssLength(rule.paddingLeft)} !important;` : ""}
+      ${rule.paddingRight ? `padding-right: ${normalizeCssLength(rule.paddingRight)} !important;` : ""}
+      ${rule.margin ? `margin: ${normalizeBoxShorthand(rule.margin)} !important;` : ""}
+      ${rule.width ? `width: ${normalizeCssLength(rule.width)} !important;` : ""}
+      ${rule.height ? `height: ${normalizeCssLength(rule.height)} !important;` : ""}
+      ${rule.fontSize ? `font-size: ${normalizeCssLength(rule.fontSize)} !important;` : ""}
+      ${rule.fontFamily ? `font-family: ${rule.fontFamily} !important;` : ""}
+      ${rule.fontWeight ? `font-weight: ${rule.fontWeight} !important;` : ""}
+      ${rule.fontStyle ? `font-style: ${rule.fontStyle} !important;` : ""}
+      ${rule.textDecoration ? `text-decoration-line: ${rule.textDecoration} !important;` : ""}
+      ${rule.textAlign ? `text-align: ${rule.textAlign} !important;` : ""}
+      ${rule.lineHeight ? `line-height: ${normalizeCssLength(rule.lineHeight)} !important;` : ""}
+      ${includeInspectorOutline ? "outline: 3px solid var(--primary, #3b82f6) !important; outline-offset: -3px !important;" : ""}
+    }
+  `;
+}
+
 type RgbColor = { r: number; g: number; b: number };
 
 function parseCssColor(color: string): RgbColor | null {
@@ -813,75 +855,23 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
 
   if (settings.customRules && Array.isArray(settings.customRules)) {
     settings.customRules.forEach((rule) => {
-      if (!isSafeCustomSelector(rule.selector)) return;
-      css += `
-        ${rule.selector} {
-          ${rule.radius ? `border-radius: ${normalizeCssLength(rule.radius)} !important;` : ""}
-          ${rule.bg ? `background-color: ${rule.bg} !important;` : ""}
-          ${rule.color ? `color: ${rule.color} !important;` : ""}
-          ${rule.border ? `border: ${rule.border} !important;` : ""}
-          ${rule.borderColor ? `border-color: ${rule.borderColor} !important;` : ""}
-          ${rule.borderWidth ? `border-width: ${normalizeCssLength(rule.borderWidth)} !important;` : ""}
-          ${rule.padding ? `padding: ${rule.padding} !important;` : ""}
-          ${rule.paddingTop ? `padding-top: ${rule.paddingTop} !important;` : ""}
-          ${rule.paddingBottom ? `padding-bottom: ${rule.paddingBottom} !important;` : ""}
-          ${rule.paddingLeft ? `padding-left: ${rule.paddingLeft} !important;` : ""}
-          ${rule.paddingRight ? `padding-right: ${rule.paddingRight} !important;` : ""}
-          ${rule.margin ? `margin: ${rule.margin} !important;` : ""}
-          ${rule.width ? `width: ${normalizeCssLength(rule.width)} !important;` : ""}
-          ${rule.height ? `height: ${normalizeCssLength(rule.height)} !important;` : ""}
-          ${rule.fontSize ? `font-size: ${normalizeCssLength(rule.fontSize)} !important;` : ""}
-          ${rule.fontFamily ? `font-family: ${rule.fontFamily} !important;` : ""}
-          ${rule.fontWeight ? `font-weight: ${rule.fontWeight} !important;` : ""}
-          ${rule.fontStyle ? `font-style: ${rule.fontStyle} !important;` : ""}
-          ${rule.textDecoration ? `text-decoration-line: ${rule.textDecoration} !important;` : ""}
-          ${rule.textAlign ? `text-align: ${rule.textAlign} !important;` : ""}
-          ${rule.lineHeight ? `line-height: ${normalizeCssLength(rule.lineHeight)} !important;` : ""}
-        }
-      `;
+      css += buildCustomRuleCss(rule);
     });
   }
 
-  // Inject preview rule if provided (for live feedback)
-  if (previewRule && isSafeCustomSelector(previewRule.selector)) {
-    const toPx = (val: string) => {
-      if (!val) return "";
-      if (/^\d+(\.\d+)?$/.test(val.trim())) return `${val.trim()}px`;
-      return val.trim();
-    };
-
-    css += `
-      ${previewRule.selector} {
-        ${previewRule.radius ? `border-radius: ${toPx(previewRule.radius)} !important;` : ""}
-        ${previewRule.bg ? `background-color: ${previewRule.bg} !important;` : ""}
-        ${previewRule.color ? `color: ${previewRule.color} !important;` : ""}
-        ${previewRule.border ? `border: ${previewRule.border} !important;` : ""}
-        ${previewRule.borderColor ? `border-color: ${previewRule.borderColor} !important;` : ""}
-        ${previewRule.borderWidth ? `border-width: ${toPx(previewRule.borderWidth)} !important;` : ""}
-        ${previewRule.padding ? `padding: ${toPx(previewRule.padding)} !important;` : ""}
-        ${previewRule.paddingTop ? `padding-top: ${toPx(previewRule.paddingTop)} !important;` : ""}
-        ${previewRule.paddingBottom ? `padding-bottom: ${toPx(previewRule.paddingBottom)} !important;` : ""}
-        ${previewRule.paddingLeft ? `padding-left: ${toPx(previewRule.paddingLeft)} !important;` : ""}
-        ${previewRule.paddingRight ? `padding-right: ${toPx(previewRule.paddingRight)} !important;` : ""}
-        ${previewRule.margin ? `margin: ${toPx(previewRule.margin)} !important;` : ""}
-        ${previewRule.width ? `width: ${toPx(previewRule.width)} !important;` : ""}
-        ${previewRule.height ? `height: ${toPx(previewRule.height)} !important;` : ""}
-        ${previewRule.fontSize ? `font-size: ${toPx(previewRule.fontSize)} !important;` : ""}
-        ${previewRule.fontFamily ? `font-family: ${previewRule.fontFamily} !important;` : ""}
-        ${previewRule.fontWeight ? `font-weight: ${previewRule.fontWeight} !important;` : ""}
-        ${previewRule.fontStyle ? `font-style: ${previewRule.fontStyle} !important;` : ""}
-        ${previewRule.textDecoration ? `text-decoration-line: ${previewRule.textDecoration} !important;` : ""}
-        ${previewRule.textAlign ? `text-align: ${previewRule.textAlign} !important;` : ""}
-        ${previewRule.lineHeight ? `line-height: ${toPx(previewRule.lineHeight)} !important;` : ""}
-        
-        /* Preview uses paint-only properties so it cannot move other DIVs. */
-        outline: 3px solid var(--primary, #3b82f6) !important;
-        outline-offset: -3px !important;
-      }
-    `;
-  }
-
   styleEl.innerHTML = css;
+
+  // Keep live preview separate so an in-progress rule never becomes part of
+  // the persisted stylesheet before the user applies it.
+  let previewStyleEl = document.getElementById("custom-ui-preview");
+  if (!previewStyleEl) {
+    previewStyleEl = document.createElement("style");
+    previewStyleEl.id = "custom-ui-preview";
+    document.head.appendChild(previewStyleEl);
+  }
+  previewStyleEl.innerHTML = previewRule
+    ? buildCustomRuleCss(previewRule, true)
+    : "";
 }
 
 export async function loadUiSettings(): Promise<UiSettings> {
@@ -921,7 +911,7 @@ export async function loadUiSettings(): Promise<UiSettings> {
           typeof currentValue === "string" &&
           currentValue.toUpperCase() === previousValue.toUpperCase()
         ) {
-          result[key] = defaultSettings[key];
+          result[key] = defaultSettings[key] || "";
         }
       };
 

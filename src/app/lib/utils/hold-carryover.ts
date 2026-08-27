@@ -99,6 +99,16 @@ function normalizedPart(value: unknown): string {
   return cleanText(value).replace(/\s+/g, " ").toUpperCase();
 }
 
+function firstPresent(row: HoldCarryRow, keys: string[]): unknown {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && cleanText(value) !== "") {
+      return value;
+    }
+  }
+  return "";
+}
+
 export function getMergedHoldOriginalIndexes(
   row: HoldCarryRow,
 ): number[] {
@@ -174,21 +184,28 @@ function sourceIdentity(row: HoldCarryRow, arisingMonth: PayrollMonth): string {
     .join("|");
 }
 
-function semanticKey(
-  row: HoldCarryRow,
-  reportMonth: PayrollMonth,
-  arisingMonth: PayrollMonth,
-): string {
+/**
+ * Business identity of a HOLD. Reporting month is deliberately excluded:
+ * a saved carry and the same row imported in the following month's workbook
+ * represent one transaction.
+ */
+export function getHoldSemanticIdentity(row: HoldCarryRow): string {
+  const arisingMonth = getArisingMonth(row);
+  if (!arisingMonth) return "";
+
   return [
-    reportMonth.dot,
     arisingMonth.dot,
-    row["ID Number"],
-    row["Full name"],
-    row.L07,
-    row.BU || row.Business,
-    row["Bank Account Number"],
-    Math.abs(parseMoneyToNumber(row["TOTAL PAYMENT"])),
-    row["Sheet Source"],
+    firstPresent(row, ["ID Number", "ID NUMBER", "ID", "Mã AE"]),
+    firstPresent(row, ["Full name", "FULL NAME", "Full Name", "Beneficiary Name"]),
+    firstPresent(row, ["L07", "Mã ae", "Mã AE"]),
+    firstPresent(row, ["BU", "Business"]),
+    firstPresent(row, ["Bank Account Number", "BANK ACCOUNT NUMBER", "STK AE"]),
+    Math.abs(
+      parseMoneyToNumber(
+        firstPresent(row, ["TOTAL PAYMENT", "Total Payment", "Payment Amount"]),
+      ),
+    ),
+    firstPresent(row, ["Sheet Source", "SHEET SOURCE"]),
     "HOLD",
   ]
     .map(normalizedPart)
@@ -196,13 +213,29 @@ function semanticKey(
 }
 
 /**
+ * Storage identity keeps monthly snapshots separate while reusing the exact
+ * report-independent HOLD identity above.
+ */
+export function getHoldScopedIdentity(
+  row: HoldCarryRow,
+  fallbackReportMonth?: unknown,
+): string {
+  const reportMonth = getReportMonth(row) || parsePayrollMonth(fallbackReportMonth);
+  const semanticIdentity = getHoldSemanticIdentity(row);
+  if (!reportMonth || !semanticIdentity) return "";
+  return `${reportMonth.dot}|${semanticIdentity}`;
+}
+
+/**
  * Merge a carried HOLD with the same HOLD imported from the report month's
- * source sheet. A duplicate requires an exact semantic match on report/arising
- * month, employee identity, L07, BU, bank account, sheet source and absolute
- * TOTAL PAYMENT. The source-file row wins over the generated carry row.
+ * source sheet. A duplicate requires an exact semantic match on arising month,
+ * employee identity, L07, BU, bank account, sheet source and absolute TOTAL
+ * PAYMENT. Reporting month is not part of the business identity. The optional
+ * scope is used only when processing the all-month storage collection.
  */
 export function mergeDuplicateHoldRows(
   rows: HoldCarryRow[],
+  options: { scopeByReportMonth?: boolean } = {},
 ): HoldCarryRow[] {
   const result: HoldCarryRow[] = [];
   const holdIndexes = new Map<string, number>();
@@ -213,14 +246,16 @@ export function mergeDuplicateHoldRows(
       return;
     }
 
-    const reportMonth = getReportMonth(row);
-    const arisingMonth = getArisingMonth(row);
-    if (!reportMonth || !arisingMonth) {
+    const semanticIdentity = getHoldSemanticIdentity(row);
+    if (!semanticIdentity) {
       result.push(row);
       return;
     }
 
-    const key = semanticKey(row, reportMonth, arisingMonth);
+    const reportMonth = options.scopeByReportMonth ? getReportMonth(row) : null;
+    const key = options.scopeByReportMonth
+      ? `${reportMonth?.dot || "UNKNOWN"}|${semanticIdentity}`
+      : semanticIdentity;
     const existingIndex = holdIndexes.get(key);
     if (existingIndex === undefined) {
       holdIndexes.set(key, result.length);
@@ -244,7 +279,9 @@ export function mergeDuplicateHoldRows(
 
     result[existingIndex] = {
       ...preferred,
-      "TOTAL PAYMENT": Math.abs(parseMoneyToNumber(row["TOTAL PAYMENT"])),
+      "TOTAL PAYMENT": -Math.abs(
+        parseMoneyToNumber(preferred["TOTAL PAYMENT"]),
+      ),
       _holdMergedDuplicateCount: duplicateCount,
       ...(mergedOriginalIndexes.length > 1
         ? { _holdMergedOriginalIndexes: mergedOriginalIndexes }
@@ -254,6 +291,50 @@ export function mergeDuplicateHoldRows(
   });
 
   return result;
+}
+
+/**
+ * Deletes the exact raw source rows represented by displayed rows. A merged
+ * HOLD can represent two or more raw rows, so all of its original indexes are
+ * removed together. The semantic fallback is report-scoped to avoid deleting
+ * the same employee/amount from another month.
+ */
+export function removeSelectedHoldSourceRows(
+  sourceRows: HoldCarryRow[],
+  displayedRows: HoldCarryRow[],
+): { rows: HoldCarryRow[]; removedCount: number } {
+  const indexesToDelete = new Set<number>();
+  const idsToDelete = new Set<string>();
+  const fallbackKeys = new Set<string>();
+
+  displayedRows.filter(Boolean).forEach((row) => {
+    const indexes = getMergedHoldOriginalIndexes(row).filter(
+      (index) => index < sourceRows.length,
+    );
+    indexes.forEach((index) => indexesToDelete.add(index));
+
+    const rowIds = [row._recordId, row.id, row._holdCarryKey]
+      .map(cleanText)
+      .filter(Boolean);
+    rowIds.forEach((id) => idsToDelete.add(id));
+
+    if (indexes.length === 0 && rowIds.length === 0) {
+      const scopedIdentity = getHoldScopedIdentity(row);
+      if (scopedIdentity) fallbackKeys.add(scopedIdentity);
+    }
+  });
+
+  const rows = sourceRows.filter((row, index) => {
+    if (indexesToDelete.has(index)) return false;
+    const rowIds = [row?._recordId, row?.id, row?._holdCarryKey]
+      .map(cleanText)
+      .filter(Boolean);
+    if (rowIds.some((id) => idsToDelete.has(id))) return false;
+    const scopedIdentity = getHoldScopedIdentity(row);
+    return !scopedIdentity || !fallbackKeys.has(scopedIdentity);
+  });
+
+  return { rows, removedCount: sourceRows.length - rows.length };
 }
 
 export function removeHoldCarryoverFromReport(
@@ -290,7 +371,7 @@ export function getEligibleHoldRowsForReport(
       return;
     }
 
-    const mergeKey = semanticKey(row, current, arisingMonth);
+    const mergeKey = getHoldSemanticIdentity(row);
     if (!uniqueRows.has(mergeKey)) {
       uniqueRows.set(mergeKey, row);
     }
@@ -338,7 +419,7 @@ export function carryEligibleHoldsToNextMonth({
       arisingMonth &&
       arisingMonth.index <= current.index
     ) {
-      existingSemanticKeys.add(semanticKey(row, next, arisingMonth));
+      existingSemanticKeys.add(getHoldSemanticIdentity(row));
     }
   });
 
@@ -350,7 +431,7 @@ export function carryEligibleHoldsToNextMonth({
 
     const originId = sourceIdentity(row, arisingMonth);
     const carryKey = `${originId}::HOLD-CARRY::${next.dot}`;
-    const rowSemanticKey = semanticKey(row, next, arisingMonth);
+    const rowSemanticKey = getHoldSemanticIdentity(row);
     if (
       existingCarryKeys.has(carryKey) ||
       existingSemanticKeys.has(rowSemanticKey)
@@ -372,6 +453,7 @@ export function carryEligibleHoldsToNextMonth({
       _holdCarryOriginId: originId,
       _holdCarryFromReportMonth: current.dot,
       _holdCarryCreatedAt: createdAt,
+      _holdCarrySaved: true,
       _holdStatusBeforeSave: "Hold",
       "Tháng": next.dot,
       _fileMonth: next.dot,
@@ -379,6 +461,7 @@ export function carryEligibleHoldsToNextMonth({
       "Tháng phát sinh": arisingMonth.dot,
       "Trạng thái": arisingMonth.dot,
       "Nghiệp vụ": "Hold",
+      "TOTAL PAYMENT": -Math.abs(parseMoneyToNumber(source["TOTAL PAYMENT"])),
       "Tình trạng thanh toán": `Pending từ tháng ${arisingMonth.dot}`,
       "No.": retainedRows.length + carriedRows.length + 1,
       No: retainedRows.length + carriedRows.length + 1,
@@ -392,6 +475,7 @@ export function carryEligibleHoldsToNextMonth({
       carriedRows.length > 0
         ? [...retainedRows, ...carriedRows]
         : retainedRows,
+      { scopeByReportMonth: true },
     ),
     carriedCount: carriedRows.length,
   };
