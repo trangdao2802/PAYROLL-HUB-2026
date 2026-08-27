@@ -1492,6 +1492,13 @@ header.table-header,
   padding: 0 !important;
 }
 
+/* Master Config uses the same frame contract as Audit: its first child is the
+   scrollable grid, not a title bar. Keep the table flush with the shared frame
+   instead of inheriting the generic 16px header padding on both sides. */
+.page-master-config .master-config-data-table > .master-config-table-region {
+  padding: 0 !important;
+}
+
 /* Table footer pagination & controls padding */
 .data-table-wrapper > footer,
 .data-table-wrapper > div:last-child {
