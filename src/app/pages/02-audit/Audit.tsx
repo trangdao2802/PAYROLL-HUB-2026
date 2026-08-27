@@ -130,7 +130,6 @@ interface AuditSourceCardProps {
   emptyHint: string;
   inputId?: string;
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  titleStyle?: React.CSSProperties;
 }
 
 function AuditSourceCard({
@@ -145,39 +144,43 @@ function AuditSourceCard({
   emptyHint,
   inputId,
   onFileChange,
-  titleStyle,
 }: AuditSourceCardProps) {
   const content = isReady ? (
     <div className="audit-source-card__content">
       <span className="audit-source-card__ready-icon" aria-hidden="true">
         <CheckCircle2 className="h-4 w-4" />
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="audit-source-card__details">
         <span
-          className="block truncate text-[0.64rem] font-extrabold uppercase tracking-[0.04em] text-slate-700"
+          className="audit-source-card__primary"
           title={primaryText}
         >
           {primaryText}
         </span>
         <span
-          className="mt-0.5 block truncate text-[0.68rem] font-black leading-tight text-primary"
+          className="audit-source-card__secondary"
           title={secondaryText}
         >
-          {secondaryText}
+          <Calendar className="h-3 w-3" aria-hidden="true" />
+          <span>{secondaryText}</span>
         </span>
       </span>
-      {inputId && <RefreshCw className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />}
+      {inputId && (
+        <span className="audit-source-card__refresh" title="Chọn lại file">
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+      )}
     </div>
   ) : (
     <div className="audit-source-card__content">
       <span className="audit-source-card__empty-icon" aria-hidden="true">
         {inputId ? <PlusCircle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[0.64rem] font-extrabold uppercase tracking-[0.08em] text-slate-600">
+      <span className="audit-source-card__details">
+        <span className="audit-source-card__primary">
           {emptyTitle}
         </span>
-        <span className="mt-0.5 block truncate text-[0.55rem] font-semibold text-slate-400" title={emptyHint}>
+        <span className="audit-source-card__hint" title={emptyHint}>
           {emptyHint}
         </span>
       </span>
@@ -188,8 +191,10 @@ function AuditSourceCard({
     <section className={`audit-source-card ${isReady ? "is-ready" : "is-empty"}`}>
       <div className="audit-source-card__header">
         <span className="audit-source-card__code">{sourceCode}</span>
-        <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate" title={title} style={titleStyle}>{title}</span>
+        <span className="audit-source-card__title" title={title}>
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>{title}</span>
+        </span>
         <span className={`audit-source-card__state ${isReady ? "is-ready" : ""}`}>
           {isReady ? readyLabel : "Chờ dữ liệu"}
         </span>
@@ -1163,6 +1168,7 @@ export function Audit() {
       key: "teacherHours",
       label: "Giờ dạy (h)",
       group: "THÔNG TIN CHUNG",
+      type: "number",
       sortable: true,
       filterable: true,
       width: 90,
@@ -1266,6 +1272,7 @@ export function Audit() {
       key: "taHours",
       label: "Giờ làm (h)", // Renamed to reflect merged sum
       group: "CHI TIẾT GIỜ LÀM TA",
+      type: "number",
       sortable: true,
       filterable: true,
       width: 90,
@@ -1435,7 +1442,6 @@ export function Audit() {
               <AuditSourceCard
                 sourceCode="A"
                 title="MR.03 · Teacher Timesheet"
-                titleStyle={{ lineHeight: "12.54px" }}
                 icon={FileText}
                 isReady={Boolean(fileNameA)}
                 primaryText={fileNameA || ""}
@@ -1450,7 +1456,6 @@ export function Audit() {
               <AuditSourceCard
                 sourceCode="C"
                 title="MR.07 · Class hour"
-                titleStyle={{ lineHeight: "12.54px" }}
                 icon={BadgeCheck}
                 isReady={Boolean(fileNameConfig)}
                 primaryText={fileNameConfig || ""}
@@ -1465,7 +1470,6 @@ export function Audit() {
               <AuditSourceCard
                 sourceCode="B"
                 title="Dữ liệu lớp học"
-                titleStyle={{ lineHeight: "15.54px" }}
                 icon={Users}
                 isReady={rosterData.length > 0}
                 primaryText={`${rosterData.length.toLocaleString("vi-VN")} dòng dữ liệu`}
@@ -1474,26 +1478,28 @@ export function Audit() {
                 emptyTitle="Chưa có Roster"
                 emptyHint="Tải dữ liệu tại Timesheet Hub"
               />
-            </div>
 
-            {/* Common Date Range Display */}
-            {(teacherDateRange || taDateRange || configDateRange) && (
-              <section className="audit-source-card audit-source-card--range relative z-10">
-                <div className="audit-source-card__header">
-                  <span className="audit-source-card__code"><Calendar className="h-3 w-3" /></span>
-                  <span className="min-w-0 flex-1 truncate">Thời gian chung</span>
-                  <span className="audit-source-card__state">A · B · MR.07</span>
-                </div>
-                <div className="audit-source-card__body">
-                  <p
-                    className="w-full truncate text-[0.75rem] font-black text-primary"
-                    title={commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
-                  >
-                    {commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
-                  </p>
-                </div>
-              </section>
-            )}
+              {/* Common Date Range Display */}
+              {(teacherDateRange || taDateRange || configDateRange) && (
+                <section className="audit-range-card relative z-10">
+                  <span className="audit-range-card__icon" aria-hidden="true">
+                    <Calendar className="h-4 w-4" />
+                  </span>
+                  <span className="audit-range-card__content">
+                    <span className="audit-range-card__eyebrow">
+                      <span>Thời gian chung</span>
+                      <span className="audit-range-card__sources">A · B · MR.07</span>
+                    </span>
+                    <span
+                      className="audit-range-card__value"
+                      title={commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
+                    >
+                      {commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
+                    </span>
+                  </span>
+                </section>
+              )}
+            </div>
           </motion.div>
         )}
 

@@ -1773,13 +1773,13 @@ div.audit-data-table-wrapper {
   font-weight: 800 !important;
 }
 
-/* Compact Audit source rail: each source keeps one frame, a small state line,
-   and one scannable content row. All surfaces inherit the selected theme. */
+/* Compact Audit source rail: source identity, state, file and date metadata
+   stay scannable without introducing a second table-like visual hierarchy. */
 .audit-source-panel {
-  border-color: color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1)) !important;
-  border-radius: 0 !important;
-  background: color-mix(in srgb, var(--primary, #781d1d) 2%, var(--card, #ffffff)) !important;
-  box-shadow: 0 12px 32px -26px color-mix(in srgb, var(--primary, #781d1d) 45%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 12%, var(--border, #cbd5e1)) !important;
+  border-radius: 14px !important;
+  background: color-mix(in srgb, var(--primary, #781d1d) 1.5%, var(--card, #ffffff)) !important;
+  box-shadow: 0 14px 36px -28px color-mix(in srgb, var(--primary, #781d1d) 42%, transparent) !important;
 }
 
 .audit-source-panel > .bg-pattern-green {
@@ -1787,67 +1787,102 @@ div.audit-data-table-wrapper {
 }
 
 .audit-source-card {
+  position: relative;
   display: flex;
   width: 100%;
   flex-shrink: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1)) !important;
-  border-radius: 0 !important;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 10%, var(--border, #cbd5e1)) !important;
+  border-radius: 11px !important;
   background: var(--card, #ffffff) !important;
-  box-shadow: 0 6px 18px -16px color-mix(in srgb, var(--primary, #781d1d) 48%, transparent) !important;
+  box-shadow: 0 7px 22px -18px color-mix(in srgb, var(--primary, #781d1d) 44%, transparent) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.audit-source-card::before {
+  position: absolute;
+  inset: 9px auto 9px 0;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--primary, #781d1d) 24%, transparent);
+  content: "";
 }
 
 .audit-source-card.is-ready {
-  box-shadow:
-    inset 3px 0 0 #10b981,
-    0 6px 18px -16px color-mix(in srgb, var(--primary, #781d1d) 48%, transparent) !important;
+  border-color: color-mix(in srgb, #10b981 22%, var(--border, #cbd5e1)) !important;
+}
+
+.audit-source-card.is-ready::before {
+  background: #10b981;
 }
 
 .audit-source-card__header {
   display: flex;
-  min-height: 32px;
+  min-height: 37px;
   align-items: center;
-  gap: 6px;
-  border-bottom: 1px solid color-mix(in srgb, var(--primary, #781d1d) 13%, var(--border, #cbd5e1));
-  background: color-mix(in srgb, var(--primary, #781d1d) 7%, var(--card, #ffffff)) !important;
-  padding: 5px 8px;
+  gap: 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary, #781d1d) 8%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #781d1d) 3%, var(--card, #ffffff)) !important;
+  padding: 6px 9px 6px 10px;
   color: color-mix(in srgb, var(--primary, #781d1d) 80%, var(--foreground, #0f172a));
-  font-size: 0.58rem;
-  font-weight: 900;
-  letter-spacing: 0.09em;
   line-height: 1;
-  text-transform: uppercase;
 }
 
 .audit-source-card__code {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 23px;
+  height: 23px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 18%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--primary, #781d1d) 10%, var(--card, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 7%, var(--card, #ffffff));
   color: var(--primary, #781d1d);
-  font-size: 0.55rem;
+  font-size: 0.56rem;
   font-weight: 900;
 }
 
+.audit-source-card__title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--primary, #781d1d) 75%, var(--foreground, #0f172a));
+  font-size: 0.57rem;
+  font-weight: 900;
+  letter-spacing: 0.065em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.audit-source-card__title > svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.audit-source-card__title > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .audit-source-card__state {
-  max-width: 82px;
+  max-width: 78px;
   flex-shrink: 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 14%, var(--border, #cbd5e1));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--primary, #781d1d) 4%, var(--card, #ffffff));
-  padding: 3px 6px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 3%, var(--card, #ffffff));
+  padding: 3px 7px;
   color: color-mix(in srgb, var(--primary, #781d1d) 52%, var(--foreground, #0f172a));
-  font-size: 0.46rem;
+  font-size: 0.45rem;
   font-weight: 900;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -1859,15 +1894,25 @@ div.audit-data-table-wrapper {
 
 .audit-source-card__body {
   display: flex;
-  min-height: 58px;
+  min-height: 62px;
   align-items: center;
-  background: color-mix(in srgb, var(--primary, #781d1d) 1.8%, var(--card, #ffffff)) !important;
-  padding: 8px;
-  transition: background-color 160ms ease;
+  background: var(--card, #ffffff) !important;
+  padding: 9px 9px 9px 11px;
+  transition: background-color 160ms ease, transform 160ms ease;
 }
 
 label.audit-source-card__body:hover {
-  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff)) !important;
+  background: color-mix(in srgb, var(--primary, #781d1d) 2.7%, var(--card, #ffffff)) !important;
+}
+
+.audit-source-card:has(label.audit-source-card__body:hover) {
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 23%, var(--border, #cbd5e1)) !important;
+  box-shadow: 0 12px 28px -20px color-mix(in srgb, var(--primary, #781d1d) 48%, transparent) !important;
+  transform: translateY(-1px);
+}
+
+label.audit-source-card__body:active {
+  transform: translateY(1px);
 }
 
 .audit-source-card__content {
@@ -1875,24 +1920,24 @@ label.audit-source-card__body:hover {
   width: 100%;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .audit-source-card__ready-icon,
 .audit-source-card__empty-icon {
   display: inline-flex;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .audit-source-card__ready-icon {
-  border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
-  background: color-mix(in srgb, #10b981 12%, var(--card, #ffffff));
-  color: #059669;
+  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+  background: color-mix(in srgb, #10b981 9%, var(--card, #ffffff));
+  color: #047857;
 }
 
 .audit-source-card__empty-icon {
@@ -1901,9 +1946,148 @@ label.audit-source-card__body:hover {
   color: color-mix(in srgb, var(--primary, #781d1d) 55%, var(--foreground, #0f172a));
 }
 
-.audit-source-card--range .audit-source-card__body {
-  min-height: 44px;
-  padding: 8px 10px;
+.audit-source-card__details {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.audit-source-card__primary {
+  display: block;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--foreground, #0f172a) 87%, var(--primary, #781d1d));
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.audit-source-card__secondary,
+.audit-source-card__hint {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  color: var(--primary, #781d1d);
+  font-size: 0.61rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.audit-source-card__secondary > svg {
+  flex-shrink: 0;
+  opacity: 0.68;
+}
+
+.audit-source-card__secondary > span,
+.audit-source-card__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-source-card__hint {
+  color: color-mix(in srgb, var(--foreground, #0f172a) 42%, transparent);
+  font-size: 0.54rem;
+  font-weight: 650;
+}
+
+.audit-source-card__refresh {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--primary, #781d1d) 48%, var(--foreground, #0f172a));
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+label.audit-source-card__body:hover .audit-source-card__refresh {
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 12%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff));
+  color: var(--primary, #781d1d);
+}
+
+.audit-range-card {
+  display: flex;
+  width: 100%;
+  min-height: 68px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 4%, var(--card, #ffffff));
+  padding: 10px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
+}
+
+.audit-range-card__icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, transparent);
+  border-radius: 10px;
+  background: var(--card, #ffffff);
+  color: var(--primary, #781d1d);
+  box-shadow: 0 5px 14px -12px color-mix(in srgb, var(--primary, #781d1d) 55%, transparent);
+}
+
+.audit-range-card__content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audit-range-card__eyebrow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  color: color-mix(in srgb, var(--primary, #781d1d) 70%, var(--foreground, #0f172a));
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.audit-range-card__sources {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 12%, var(--border, #cbd5e1));
+  border-radius: 999px;
+  background: var(--card, #ffffff);
+  padding: 3px 6px;
+  color: color-mix(in srgb, var(--foreground, #0f172a) 56%, var(--primary, #781d1d));
+  font-size: 0.43rem;
+  letter-spacing: 0.04em;
+}
+
+.audit-range-card__value {
+  overflow: hidden;
+  color: var(--primary, #781d1d);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.015em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Audit columns are grouped by meaning with distinct harmonious header colors and clean backgrounds */

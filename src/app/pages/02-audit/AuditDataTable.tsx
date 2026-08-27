@@ -1263,11 +1263,21 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           return;
         }
 
+        const countedGroupIds = new Set<unknown>();
         totals[col.key] = filteredAndSortedData.reduce((sum, row) => {
           if (row._dimmed) return sum;
           const status = String(row["Trạng thái"] || "").toUpperCase();
           const operation = String(row["Nghiệp vụ"] || "").toUpperCase();
           if (status.includes("CANCEL") || operation.includes("CANCEL")) return sum;
+
+          // Auto-row-spanned numeric cells are displayed once per audit group.
+          // Count them once here as well so repeated detail rows do not inflate
+          // totals such as Teacher Hours when a session has multiple TAs.
+          if (col.autoRowSpan && row.groupId !== undefined && row.groupId !== null) {
+            if (countedGroupIds.has(row.groupId)) return sum;
+            countedGroupIds.add(row.groupId);
+          }
+
           return sum + (parseMoneyToNumber(row[col.key]) || 0);
         }, 0);
       });
