@@ -25,6 +25,10 @@ import {
   getCenterInfoByL07,
 } from "../../../lib/utils/center-utils";
 import {
+  carryEligibleHoldsToNextMonth,
+  removeHoldCarryoverFromReport,
+} from "../../../lib/utils/hold-carryover";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -384,6 +388,10 @@ export function HoldAddDashboard() {
       const nextSavedRowsMeta = prev.SavedRows_HoldAdd_Meta
         ? JSON.parse(JSON.stringify(prev.SavedRows_HoldAdd_Meta))
         : {};
+      const nextHoldRows = removeHoldCarryoverFromReport(
+        prev.Hold_AE?.data || [],
+        currentPeriod,
+      );
 
       const currentMonthVal = appData.globalMonth || "03.2026";
       const currentMonthNum = parseInt(currentMonthVal.split(".")[0], 10) || 3;
@@ -423,6 +431,10 @@ export function HoldAddDashboard() {
 
       return {
         ...prev,
+        Hold_AE: {
+          ...(prev.Hold_AE || { headers: [], data: [] }),
+          data: nextHoldRows,
+        },
         SavedBal_PayrollTrial: nextSavedAll,
         SavedPeriods_HoldAdd: nextSavedPeriods,
         SavedRows_HoldAdd: nextSavedRows,
@@ -1729,6 +1741,13 @@ export function HoldAddDashboard() {
   const handleSaveBalances = () => {
     updateAppData((prev: any) => {
       const nextMonthStr = getNextMonthStr(currentPeriod);
+      const holdCarryover = carryEligibleHoldsToNextMonth({
+        // appData.Hold_AE is the normalized view, so both reporting and
+        // arising months are explicit before applying the carry condition.
+        sourceRows: appData.Hold_AE?.data || [],
+        existingRows: prev.Hold_AE?.data || [],
+        reportMonth: currentPeriodVal,
+      });
       // Giữ lại state cũ
       const nextSavedAll = prev.SavedBal_PayrollTrial
         ? JSON.parse(JSON.stringify(prev.SavedBal_PayrollTrial))
@@ -1877,13 +1896,19 @@ export function HoldAddDashboard() {
 
       return {
         ...prev,
+        Hold_AE: {
+          ...(prev.Hold_AE || { headers: [], data: [] }),
+          data: holdCarryover.rows,
+        },
         SavedBal_PayrollTrial: nextSavedAll,
         SavedPeriods_HoldAdd: nextSavedPeriods,
         SavedRows_HoldAdd: nextSavedRows,
         SavedRows_HoldAdd_Meta: nextSavedRowsMeta,
       };
     });
-    toast.success("Đã lưu dữ liệu: Chuyển Lương sang SDĐK kỳ sau!");
+    toast.success(
+      "Đã lưu dữ liệu: chuyển số dư và các khoản Hold hợp lệ sang kỳ sau!",
+    );
   };
 
   // Group by Report Month - Show ALL rows grouped by their reportMonth
