@@ -73,9 +73,37 @@ function getReportMonth(row: HoldCarryRow): PayrollMonth | null {
 }
 
 function getArisingMonth(row: HoldCarryRow): PayrollMonth | null {
-  return parsePayrollMonth(
+  const parsed = parsePayrollMonth(
     row["Tháng phát sinh"] || row["Trạng thái"] || row["Sheet Source"],
   );
+  if (parsed) return parsed;
+
+  // Source sheets commonly use a short label such as "Hold T2" without a
+  // year. Resolve it relative to the report month so the raw imported row and
+  // its carried copy receive the same arising-month identity.
+  const shortMonthSource = [
+    row["Tháng phát sinh"],
+    row["Trạng thái"],
+    row["Sheet Source"],
+  ]
+    .map(cleanText)
+    .filter(Boolean)
+    .join(" ");
+  const shortMonthMatch = shortMonthSource.match(
+    /\bT(?:H[AÁ]NG)?\s*(0?[1-9]|1[0-2])\b/i,
+  );
+  const reportMonth = getReportMonth(row);
+  if (!shortMonthMatch || !reportMonth) return null;
+
+  const month = Number(shortMonthMatch[1]);
+  const year = month > reportMonth.month ? reportMonth.year - 1 : reportMonth.year;
+  return {
+    month,
+    year,
+    index: year * 12 + month,
+    dot: `${String(month).padStart(2, "0")}.${year}`,
+    label: `Tháng ${month}/${year}`,
+  };
 }
 
 function isHoldRow(row: HoldCarryRow): boolean {
@@ -93,6 +121,23 @@ function isHoldRow(row: HoldCarryRow): boolean {
     !legacyType.includes("ADD") &&
     !legacyType.includes("CANCEL")
   );
+}
+
+function isHoldMergeCandidate(row: HoldCarryRow): boolean {
+  if (isHoldRow(row)) return true;
+
+  const operation = cleanText(row["Nghiệp vụ"]).toUpperCase();
+  if (operation.includes("CANCEL") || operation.includes("BONUS")) return false;
+
+  const beforeSave = `${cleanText(row["Trạng thái trước lưu"])} ${cleanText(
+    row._holdStatusBeforeSave,
+  )}`.toUpperCase();
+  if (beforeSave.includes("HOLD")) return true;
+
+  // Legacy source-file rows can be incorrectly inferred as ADD solely because
+  // their amount is positive. The sheet label remains the reliable origin.
+  const sheetSource = cleanText(row["Sheet Source"]).toUpperCase();
+  return /^HOLD(?:\b|[\s._-])/.test(sheetSource);
 }
 
 function normalizedPart(value: unknown): string {
@@ -241,7 +286,7 @@ export function mergeDuplicateHoldRows(
   const holdIndexes = new Map<string, number>();
 
   rows.forEach((row) => {
-    if (!row || !isHoldRow(row)) {
+    if (!row || !isHoldMergeCandidate(row)) {
       result.push(row);
       return;
     }
@@ -282,6 +327,7 @@ export function mergeDuplicateHoldRows(
       "TOTAL PAYMENT": -Math.abs(
         parseMoneyToNumber(preferred["TOTAL PAYMENT"]),
       ),
+      "Nghiệp vụ": "Hold",
       _holdMergedDuplicateCount: duplicateCount,
       ...(mergedOriginalIndexes.length > 1
         ? { _holdMergedOriginalIndexes: mergedOriginalIndexes }
