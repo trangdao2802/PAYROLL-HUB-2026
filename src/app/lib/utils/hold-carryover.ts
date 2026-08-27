@@ -279,7 +279,7 @@ export function mergeDuplicateHoldRows(
 
     result[existingIndex] = {
       ...preferred,
-      "TOTAL PAYMENT": -Math.abs(
+      "TOTAL PAYMENT": Math.abs(
         parseMoneyToNumber(preferred["TOTAL PAYMENT"]),
       ),
       _holdMergedDuplicateCount: duplicateCount,
@@ -461,7 +461,7 @@ export function carryEligibleHoldsToNextMonth({
       "Tháng phát sinh": arisingMonth.dot,
       "Trạng thái": arisingMonth.dot,
       "Nghiệp vụ": "Hold",
-      "TOTAL PAYMENT": -Math.abs(parseMoneyToNumber(source["TOTAL PAYMENT"])),
+      "TOTAL PAYMENT": Math.abs(parseMoneyToNumber(source["TOTAL PAYMENT"])),
       "Tình trạng thanh toán": `Pending từ tháng ${arisingMonth.dot}`,
       "No.": retainedRows.length + carriedRows.length + 1,
       No: retainedRows.length + carriedRows.length + 1,

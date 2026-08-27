@@ -150,14 +150,14 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           "ID Number": formatIdNumber(row["ID Number"]),
         };
 
-        // The operation controls the sign in every report month. A carried
-        // HOLD/CANCEL stays negative; switching it to ADD makes the same row
-        // positive without creating a second transaction.
+        // The operation controls the sign in every report month. HOLD and ADD
+        // use the absolute value, while CANCEL stays negative. Changing the
+        // operation updates the same row without creating another transaction.
         const nghiepVu = String(normalizedRow["Nghiệp vụ"] || "").toUpperCase().trim();
         const currentTotalPayment = parseMoneyToNumber(normalizedRow["TOTAL PAYMENT"] || 0);
 
         if (nghiepVu.includes("HOLD") || nghiepVu === "H") {
-          normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
+          normalizedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
         } else if (nghiepVu.includes("CANCEL") || nghiepVu === "C") {
           normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
         } else if (nghiepVu.includes("ADD") || nghiepVu === "A" || nghiepVu === "") {
@@ -252,7 +252,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               updatedRow["TOTAL PAYMENT"] || 0,
             );
             if (valUpper.includes("HOLD") || valUpper === "H") {
-              updatedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
+              updatedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
               updatedRow["Nghiệp vụ"] = "Hold";
             } else if (valUpper.includes("CANCEL") || valUpper === "C") {
               updatedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
