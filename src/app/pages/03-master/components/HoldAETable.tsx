@@ -38,6 +38,7 @@ import {
   carryEligibleHoldsToNextMonth,
   getEligibleHoldRowsForReport,
   getNextPayrollMonth,
+  mergeDuplicateHoldRows,
   parsePayrollMonth,
 } from "../../../lib/utils/hold-carryover";
 
@@ -131,7 +132,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       const currentPeriodVal = appData.globalMonth || "03.2026";
       const currentLimit = parseToMonthIndex(currentPeriodVal);
 
-      const filteredRows = raw.data.filter((r: any) => {
+      const normalizedRows = raw.data.filter((r: any) => {
         const nghiepVu = String(r["Nghiệp vụ"] || "").toUpperCase().trim();
         if (nghiepVu === "BONUS" || nghiepVu === "B" || nghiepVu.includes("BONUS") || nghiepVu === "⏩" || nghiepVu === "⏯") {
           return false; // Bonus moved to Gross Pay (Extra Summer Instructors)
@@ -153,7 +154,10 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           const currentTotalPayment = parseMoneyToNumber(normalizedRow["TOTAL PAYMENT"] || 0);
           
           if (nghiepVu.includes("HOLD") || nghiepVu === "H") {
-            normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
+            normalizedRow["TOTAL PAYMENT"] =
+              Number(normalizedRow._holdMergedDuplicateCount || 0) > 1
+                ? Math.abs(currentTotalPayment)
+                : -Math.abs(currentTotalPayment);
           } else if (nghiepVu.includes("CANCEL") || nghiepVu === "C") {
             normalizedRow["TOTAL PAYMENT"] = -Math.abs(currentTotalPayment);
           } else if (nghiepVu.includes("ADD") || nghiepVu === "A" || nghiepVu === "") {
@@ -165,7 +169,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         return normalizedRow;
       });
 
-      return { ...raw, data: filteredRows };
+      return { ...raw, data: mergeDuplicateHoldRows(normalizedRows) };
     }, [appData.Hold_AE, appData.globalMonth, parseToMonthIndex]);
 
     const [tableSummaryState, setTableSummaryState] = React.useState<{
@@ -863,7 +867,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-600 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span className="text-xs font-bold">Xóa tất cả dữ liệu</span>
+                  <span className="text-xs font-bold">Xóa dữ liệu bảng Deductions</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -954,7 +958,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   Deductions and Benefits
                 </p>
                 <AlertDialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
-                  Xóa toàn bộ dữ liệu?
+                  Xóa dữ liệu bảng Deductions?
                 </AlertDialogTitle>
               </div>
             </AlertDialogHeader>

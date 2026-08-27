@@ -26,6 +26,9 @@ import { toast } from "sonner";
 import localforage from "localforage";
 import { useAppData } from "../lib/contexts/AppDataContext";
 import { ConfirmDialog } from "./shared/ConfirmDialog";
+import { createClearedWebData } from "../lib/utils/data-clear-scopes";
+import { isSupabaseConfigured } from "../lib/supabase";
+import { clearSupabaseRosterData } from "../lib/supabase-sync-utils";
 import {
   type UiSettings,
   defaultSettings,
@@ -951,39 +954,21 @@ export function UiSettingsModal({
     onClose();
   };
 
-  const handleClearAll = () => {
-    updateAppData((prev: any) => ({
-      ...prev,
-      Final_AE: { ...prev.Final_AE, data: [] },
-      Bank_North_AE: { ...prev.Bank_North_AE, data: [] },
-      Sheet1_AE: { ...prev.Sheet1_AE, data: [] },
-      // KHÔNG XOÁ Hold_AE và SoSanh_AE
-      AuditReport: { ...prev.AuditReport, data: [] },
-      Timesheet_InputList: prev.Timesheet_InputList?.map((row: any) => ({
-        ...row,
-        url: "",
-        fileObj: undefined,
-        fileName: "",
-        sheetName: undefined,
-        count: undefined,
-        date: undefined,
-        columnMapping: undefined,
-        status: "pending",
-        hasError: false,
-        errorRaw: "",
-        errorMessage: "",
-      })),
-      BankExport: { ...prev.BankExport, data: [] },
-      CustomReport: { ...prev.CustomReport, data: [] },
-      Q_Staff: [],
-      Q_Salary_Scale: [],
-      Timesheet_Roster: [],
-      Master_Roster: [],
-      Q_Cache: [],
-      Timesheets: [],
-    }));
+  const handleClearAll = async () => {
+    updateAppData((prev) => createClearedWebData(prev), false);
+    localStorage.removeItem("pivot_master_processed_data");
+    localStorage.removeItem("pivot_mkt_type_cache");
+
+    if (isSupabaseConfigured()) {
+      try {
+        await clearSupabaseRosterData();
+      } catch (error) {
+        console.error("Failed to clear Supabase Timesheet roster", error);
+        toast.error("Đã xóa dữ liệu trên web nhưng chưa xóa được Roster trên Supabase.");
+      }
+    }
     setShowClearConfirm(false);
-    toast.success("Đã xóa toàn bộ dữ liệu ứng dụng.");
+    toast.success("Đã xóa toàn bộ dữ liệu Timesheet, Audit, Balance và Master.");
     onClose();
   };
 
@@ -2011,7 +1996,7 @@ export function UiSettingsModal({
                         onClick={() => setShowClearConfirm(true)}
                         className="flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-xl font-bold border-2 border-red-200 transition-colors cursor-pointer text-sm uppercase tracking-wide"
                       >
-                        <Trash2 className="w-5 h-5" /> Xoá Toàn Bộ Dữ Liệu
+                        <Trash2 className="w-5 h-5" /> Xóa toàn bộ dữ liệu web
                       </button>
                     </div>
                   </div>
@@ -2040,8 +2025,8 @@ export function UiSettingsModal({
         onClose={() => setShowClearConfirm(false)}
         onConfirm={handleClearAll}
         title="Xác nhận xóa toàn bộ dữ liệu"
-        description="Hành động này sẽ xóa sạch toàn bộ dữ liệu đã tải lên và các kết quả tính toán. Bạn có chắc chắn muốn tiếp tục?"
-        confirmText="Xoá sạch"
+        description="Thao tác này xóa toàn bộ dữ liệu Timesheet, Audit, Balance và Master, bao gồm file tải lên, kết quả, Deductions và các kỳ Balance đã lưu. Cài đặt giao diện vẫn được giữ nguyên."
+        confirmText="XÓA TOÀN BỘ WEB"
         variant="destructive"
       />
     </div>

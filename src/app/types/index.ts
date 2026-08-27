@@ -79,6 +79,8 @@ export interface AppData {
     studentCondition: string;
     result: number;
   }>;
+  /** Persisted display reset for independently cleared Audit result tables. */
+  AuditClearedTables?: Partial<Record<"main" | "detail" | "rules", boolean>>;
   updatedAt?: any;
   lastSupabaseSyncAt?: string;
   /** Prevent automatic Supabase restore after the user explicitly clears Timesheet. */

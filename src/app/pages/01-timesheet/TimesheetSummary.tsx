@@ -524,7 +524,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
   };
   const handleClearAll = async () => {
     const confirmed = window.confirm(
-      "Xóa toàn bộ dữ liệu Timesheet hiện tại? Dữ liệu Roster đã lưu trên Supabase cũng sẽ được xóa để không tự tải ngược trở lại.",
+      "Xóa dữ liệu trang Timesheet? Dữ liệu Roster đã lưu trên Supabase cũng sẽ được xóa để không tự tải ngược trở lại. Audit, Balance và Master được giữ nguyên.",
     );
     if (!confirmed) return;
 
@@ -545,6 +545,12 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       Q_Salary_Scale: [],
       Q_Staff: [],
       Q_Cache: [],
+      Timesheets: [],
+      TA_Employee_Summary: { headers: [], data: [] },
+      TA_Center_Summary: { headers: [], data: [] },
+      Timesheet_Dates: { from: "", to: "" },
+      Timesheet_RosterFileName: "",
+      Timesheet_RosterEditHistory: [],
       Timesheet_SkipSupabaseRestore: true,
       Timesheet_LocalClearedAt: new Date().toISOString(),
     }), false);
@@ -1313,7 +1319,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-rose-50 text-rose-600 transition-colors font-medium text-xs"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Xóa toàn bộ</span>
+                    <span>Xóa dữ liệu trang Timesheet</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/60 mx-1" />
                   <DropdownMenuItem

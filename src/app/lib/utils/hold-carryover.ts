@@ -133,12 +133,63 @@ function semanticKey(
     row.L07,
     row.BU || row.Business,
     row["Bank Account Number"],
-    parseMoneyToNumber(row["TOTAL PAYMENT"]),
+    Math.abs(parseMoneyToNumber(row["TOTAL PAYMENT"])),
     row["Sheet Source"],
     "HOLD",
   ]
     .map(normalizedPart)
     .join("|");
+}
+
+/**
+ * Merge a carried HOLD with the same HOLD imported from the report month's
+ * source sheet. A duplicate requires an exact semantic match on report/arising
+ * month, employee identity, L07, BU, bank account, sheet source and absolute
+ * TOTAL PAYMENT. The source-file row wins over the generated carry row.
+ */
+export function mergeDuplicateHoldRows(
+  rows: HoldCarryRow[],
+): HoldCarryRow[] {
+  const result: HoldCarryRow[] = [];
+  const holdIndexes = new Map<string, number>();
+
+  rows.forEach((row) => {
+    if (!row || !isHoldRow(row)) {
+      result.push(row);
+      return;
+    }
+
+    const reportMonth = getReportMonth(row);
+    const arisingMonth = getArisingMonth(row);
+    if (!reportMonth || !arisingMonth) {
+      result.push(row);
+      return;
+    }
+
+    const key = semanticKey(row, reportMonth, arisingMonth);
+    const existingIndex = holdIndexes.get(key);
+    if (existingIndex === undefined) {
+      holdIndexes.set(key, result.length);
+      result.push(row);
+      return;
+    }
+
+    const existing = result[existingIndex];
+    const existingIsCarry = Boolean(existing?._holdCarryKey);
+    const incomingIsCarry = Boolean(row?._holdCarryKey);
+    const preferred = existingIsCarry && !incomingIsCarry ? row : existing;
+    const duplicateCount =
+      Number(existing?._holdMergedDuplicateCount || 1) + 1;
+
+    result[existingIndex] = {
+      ...preferred,
+      "TOTAL PAYMENT": Math.abs(parseMoneyToNumber(row["TOTAL PAYMENT"])),
+      _holdMergedDuplicateCount: duplicateCount,
+      _holdStatusBeforeSave: "Hold",
+    };
+  });
+
+  return result;
 }
 
 export function removeHoldCarryoverFromReport(
@@ -273,10 +324,11 @@ export function carryEligibleHoldsToNextMonth({
   });
 
   return {
-    rows:
+    rows: mergeDuplicateHoldRows(
       carriedRows.length > 0
         ? [...retainedRows, ...carriedRows]
         : retainedRows,
+    ),
     carriedCount: carriedRows.length,
   };
 }

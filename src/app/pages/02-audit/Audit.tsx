@@ -65,6 +65,10 @@ import {
   evaluateAllowedTAs,
   sanitizeAllowedTaRules,
 } from "../../lib/utils/allowed-ta-rules";
+import {
+  clearAuditPageData,
+  clearAuditTableData,
+} from "../../lib/utils/data-clear-scopes";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -228,6 +232,7 @@ export function Audit() {
     return savedTab === "detail" || savedTab === "rules" ? savedTab : "main";
   });
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [clearScope, setClearScope] = useState<"table" | "page">("table");
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [detailManualFilter, setDetailManualFilter] = useState("");
@@ -274,7 +279,7 @@ export function Audit() {
 
   const handleRefreshData = () => {
     setIsRefreshing(true);
-    updateAppData((prev) => ({ ...prev }));
+    updateAppData((prev) => ({ ...prev, AuditClearedTables: {} }));
     setTimeout(() => {
       setIsRefreshing(false);
       toast.success("Đã làm mới dữ liệu", {
@@ -619,13 +624,26 @@ export function Audit() {
   };
 
   const handleClearAudit = () => {
-    clearData();
+    if (clearScope === "page") {
+      updateAppData(clearAuditPageData);
+      clearAllFilters();
+      toast.success("Đã xóa dữ liệu trang Audit; Timesheet, Balance và Master được giữ nguyên");
+    } else {
+      updateAppData((prev) => clearAuditTableData(prev, activeTab));
+      toast.success(
+        activeTab === "rules"
+          ? "Đã xóa dữ liệu bảng Allowed TAs Rules"
+          : activeTab === "detail"
+            ? "Đã xóa dữ liệu bảng Audit Discrepancy Details"
+            : "Đã xóa dữ liệu bảng Audit Overview",
+      );
+    }
     setShowClearDialog(false);
-    toast.success("Đã xoá dữ liệu đối soát");
   };
 
   // ----- MAIN DATA -----
   const mainData = useMemo(() => {
+    if (appData.AuditClearedTables?.main) return [];
     return (
       auditResults.results?.map((r: any) => {
         let cName = (r.className || "").toString().trim();
@@ -638,7 +656,7 @@ export function Audit() {
         };
       }) || []
     );
-  }, [auditResults.results]);
+  }, [appData.AuditClearedTables?.main, auditResults.results]);
 
   const mainColumns: Column[] = useMemo(() => [
     {
@@ -1049,6 +1067,7 @@ export function Audit() {
   // ----- FILTERED DETAIL DATA -----
 
   const filteredDetailData = useMemo(() => {
+    if (appData.AuditClearedTables?.detail) return [];
     // The detail dataset already contains review-only discrepancy rows.
     const result = detailData;
 
@@ -1075,7 +1094,7 @@ export function Audit() {
 
     // Filter using the set
     return result.filter(row => groupMatches.has(row.groupId));
-  }, [detailData, deferredDetailFilter]);
+  }, [appData.AuditClearedTables?.detail, detailData, deferredDetailFilter]);
 
   const detailColumns: Column[] = useMemo(() => [
     {
@@ -1679,13 +1698,31 @@ export function Audit() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => setShowClearDialog(true)}
+                    onClick={() => {
+                      setClearScope("table");
+                      setShowClearDialog(true);
+                    }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-rose-500 focus:text-rose-600 focus:bg-rose-50"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span className="text-xs font-bold">
-                      Xóa dữ liệu đối soát
+                      {activeTab === "rules"
+                        ? "Xóa bảng Allowed TAs Rules"
+                        : activeTab === "detail"
+                          ? "Xóa bảng Audit Details"
+                          : "Xóa bảng Audit Overview"}
                     </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setClearScope("page");
+                      setShowClearDialog(true);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-rose-700 focus:text-rose-800 focus:bg-rose-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="text-xs font-bold">Xóa dữ liệu trang Audit</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1762,6 +1799,20 @@ export function Audit() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showClearDialog}
+        onClose={() => setShowClearDialog(false)}
+        onConfirm={handleClearAudit}
+        title={clearScope === "page" ? "Xóa dữ liệu trang Audit?" : "Xóa dữ liệu bảng hiện tại?"}
+        description={
+          clearScope === "page"
+            ? "Toàn bộ file nguồn, kết quả và bảng quy tắc thuộc Audit sẽ bị xóa. Dữ liệu Timesheet, Balance và Master được giữ nguyên."
+            : "Chỉ dữ liệu của bảng Audit đang mở bị xóa; các bảng khác và các trang khác được giữ nguyên."
+        }
+        confirmText={clearScope === "page" ? "XÓA TRANG AUDIT" : "XÓA BẢNG NÀY"}
+        variant="destructive"
+      />
     </motion.div>
   );
 }

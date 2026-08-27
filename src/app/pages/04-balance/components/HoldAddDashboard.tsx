@@ -18,7 +18,9 @@ import { Button } from "../../../components/ui/button";
 import { toast } from "sonner";
 import { useUiSettings } from "../../../lib/ui-settings";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
+import { ConfirmDialog } from "../../../components/shared/ConfirmDialog";
 import { parseMoneyToNumber, removeVietnameseTones } from "../../../lib/utils/data-utils";
+import { clearBalancePageData } from "../../../lib/utils/data-clear-scopes";
 import {
   resolveL07BuFromAeCode,
   getCenterInfoByAECode,
@@ -323,6 +325,7 @@ export function HoldAddDashboard() {
   const navigate = useNavigate();
   const [yearFilter, setYearFilter] = useState("all");
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">("all");
+  const [showClearBalancePageDialog, setShowClearBalancePageDialog] = useState(false);
   const currentPeriodVal = appData.globalMonth || "03.2026";
   const currentPeriodParts = currentPeriodVal.split(".");
   const currentPeriodMonthNum = parseInt(currentPeriodParts[0], 10) || 3;
@@ -431,6 +434,12 @@ export function HoldAddDashboard() {
     });
     toast.success(`Đã xóa dữ liệu đã lưu ${currentPeriod}!`);
   }, [updateAppData, currentPeriod, appData.globalMonth]);
+
+  const handleClearBalancePage = useCallback(() => {
+    updateAppData(clearBalancePageData);
+    setShowClearBalancePageDialog(false);
+    toast.success("Đã xóa dữ liệu trang Balance; Timesheet, Audit và Master được giữ nguyên");
+  }, [updateAppData]);
 
   // Extracted month conversion utility that preserves the year
   const extractMonth = useCallback(
@@ -2410,16 +2419,24 @@ export function HoldAddDashboard() {
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   {isPeriodSaved(currentPeriod) ? "Đã Lưu Dữ Liệu" : "Lưu Dữ Liệu"}
                 </Button>
-                {isPeriodSaved(currentPeriod) && (
-                  <Button
-                    size="sm"
-                    onClick={handleDeleteSavedPeriod}
-                    className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Xóa Dữ Liệu
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  onClick={handleDeleteSavedPeriod}
+                  disabled={!isPeriodSaved(currentPeriod)}
+                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa dữ liệu kỳ hiện tại
+                </Button>
+
+                <Button
+                  size="sm"
+                  onClick={() => setShowClearBalancePageDialog(true)}
+                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa dữ liệu trang Balance
+                </Button>
 
                 <Select value={yearFilter} onValueChange={setYearFilter}>
                   <SelectTrigger className="h-8 text-[12px] w-full bg-background border-[#e7dbdc] text-foreground rounded-md">
@@ -3033,6 +3050,15 @@ export function HoldAddDashboard() {
             Tổng số: {monthKeys.length} kỳ ({currentPeriodRows.length} dòng dữ liệu)
           </div>
       </div>
+      <ConfirmDialog
+        isOpen={showClearBalancePageDialog}
+        onClose={() => setShowClearBalancePageDialog(false)}
+        onConfirm={handleClearBalancePage}
+        title="Xóa dữ liệu trang Balance?"
+        description="Toàn bộ kỳ đã lưu, số dư chuyển kỳ và trạng thái xác nhận của Balance sẽ bị xóa. Dữ liệu Timesheet, Audit và Master được giữ nguyên."
+        confirmText="XÓA TRANG BALANCE"
+        variant="destructive"
+      />
     </div>
   );
 }

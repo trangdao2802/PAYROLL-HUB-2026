@@ -3,6 +3,7 @@ import { useAppData } from "../lib/contexts/AppDataContext";
 import { toast } from "sonner";
 import { getCenterInfoByAECode, resolveMktAndCenterL07 } from "../lib/utils/center-utils";
 import { formatIdNumber, parseMoneyToNumber, removeVietnameseTones } from "../lib/utils/data-utils";
+import { clearMasterTableData } from "../lib/utils/data-clear-scopes";
 
 function cleanFullName(val: unknown): string {
   if (val === undefined || val === null) return "";
@@ -212,15 +213,15 @@ export function useMasterAELogic() {
     [updateAppData],
   );
 
-  const clearAllData = useCallback(() => {
-    updateAppData((prev) => ({
-      ...prev,
-      Sheet1_AE: { ...prev.Sheet1_AE, data: [] },
-      Bank_North_AE: { ...prev.Bank_North_AE, data: [] },
-      Master_Roster: [],
-    }));
-    toast.success("Đã xóa tất cả dữ liệu Sheet1, Bank và Dữ liệu Pivot, giữ nguyên Hold");
-  }, [updateAppData]);
+  const clearCurrentTableData = useCallback(() => {
+    if (activeTab !== "Sheet1_AE" && activeTab !== "Bank_North_AE") return;
+    updateAppData((prev) => clearMasterTableData(prev, activeTab));
+    toast.success(
+      activeTab === "Sheet1_AE"
+        ? "Đã xóa dữ liệu riêng bảng Gross Pay"
+        : "Đã xóa dữ liệu riêng bảng Bank North",
+    );
+  }, [activeTab, updateAppData]);
 
   return {
     activeTab,
@@ -234,6 +235,6 @@ export function useMasterAELogic() {
     handleCellChange,
     handleDeleteRow,
     handleDeleteRows,
-    clearAllData,
+    clearCurrentTableData,
   };
 }

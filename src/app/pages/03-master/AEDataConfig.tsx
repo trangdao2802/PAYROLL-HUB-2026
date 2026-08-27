@@ -51,6 +51,7 @@ import {
 } from "../../lib/utils/master-sheet-utils";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
+import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
 
 function cleanIDNumber(val: any): string {
   return formatIdNumber(val);
@@ -328,29 +329,11 @@ export function AEDataConfig({
   }, [totalPages]);
 
   const clearPageData = () => {
-    updateAppData((prev) => ({
-      ...prev,
-      Ae_Global_Inputs: [],
-      Sheet1_AE: { headers: [], data: [] },
-      Hold_AE: { headers: [], data: [] },
-      Bank_North_AE: { headers: [], data: [] },
-      BankExport: { headers: [], data: [] },
-      BankExportTN: { headers: [], data: [] },
-      BankExportTH: { headers: [], data: [] },
-      BankExportPT: { headers: [], data: [] },
-      SoSanh_AE: { headers: [], data: [] },
-      ConfirmedIds_HoldAdd: [],
-      SavedRows_HoldAdd: {},
-      SavedBal_PayrollTrial: {},
-      // Keep SavedPeriods_HoldAdd or clear it? 
-      // Based on "xóa toàn bộ dữ liệu", clearing everything is safer.
-      SavedPeriods_HoldAdd: {},
-      Master_Roster: [],
-    }));
+    updateAppData(clearMasterPageData);
     localStorage.removeItem("pivot_master_processed_data");
     localStorage.removeItem(PIVOT_MKT_TYPE_CACHE_KEY);
     setShowClearDialog(false);
-    toast.success("Đã xóa toàn bộ dữ liệu và trạng thái.");
+    toast.success("Đã xóa dữ liệu trang Master; Timesheet, Audit và Balance được giữ nguyên.");
   };
 
   const addRow = () => {
@@ -2567,7 +2550,7 @@ export function AEDataConfig({
                     className="cursor-pointer font-bold uppercase text-[0.6875rem] gap-3 hover:bg-rose-50 text-rose-500 p-3 rounded-xl transition-all"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>Xóa toàn bộ dữ liệu</span>
+                    <span>Xóa dữ liệu trang Master</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -3129,11 +3112,11 @@ export function AEDataConfig({
         <DialogContent className="sm:max-w-md border border-primary/10 shadow-2xl bg-card text-card-foreground rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="font-bold uppercase tracking-widest text-primary text-sm">
-              Xác nhận xoá file và trạng thái
+              Xóa dữ liệu trang Master
             </DialogTitle>
             <DialogDescription className="font-bold text-foreground/40 text-[0.625rem] uppercase tracking-widest mt-2">
-              Bạn có chắc chắn muốn xóa toàn bộ file đã tải lên và đặt lại trạng
-              thái? Các cấu hình Tên File, Bank và Tháng sẽ được giữ nguyên.
+              Thao tác này xóa toàn bộ file tải lên, dữ liệu và kết quả thuộc
+              trang Master. Dữ liệu Timesheet, Audit và Balance không bị ảnh hưởng.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-3 mt-6">
@@ -3149,7 +3132,7 @@ export function AEDataConfig({
               onClick={clearPageData}
               className="bg-rose-500 text-primary-foreground font-bold uppercase text-[0.625rem] tracking-widest px-6 py-2.5 rounded-xl hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all"
             >
-              Xác nhận xoá
+              Xóa trang Master
             </Button>
           </DialogFooter>
         </DialogContent>

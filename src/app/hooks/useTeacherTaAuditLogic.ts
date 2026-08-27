@@ -58,6 +58,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
         Q_TeacherHoursFileName: fileName,
         Q_BonusData: bonusDataRaw || undefined,
         Q_BonusSheetName: bonusSheetName || "Bonus",
+        AuditClearedTables: {},
       }));
     } catch (error) {
       console.error("Lỗi upload file A:", error);
@@ -155,7 +156,8 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
       updateAppData((prev) => ({
         ...prev,
         Timesheet_Roster: mappedRosters,
-        Timesheet_RosterFileName: fileName
+        Timesheet_RosterFileName: fileName,
+        AuditClearedTables: {},
       } as any));
     } catch (error) {
       console.error("Lỗi upload file B:", error);
@@ -206,7 +208,8 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
       updateAppData((prev) => ({
         ...prev,
         Q_CheckTAs: configRaw,
-        Q_CheckTAsFileName: fileName
+        Q_CheckTAsFileName: fileName,
+        AuditClearedTables: {},
       } as any));
     } catch (error) {
       console.error("Lỗi upload file Config:", error);
@@ -336,10 +339,11 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
       ...prev,
       Q_TeacherHours: [],
       Q_TeacherHoursFileName: "",
-      Timesheet_Roster: [],
-      Timesheet_RosterFileName: "",
       Q_CheckTAs: [],
       Q_CheckTAsFileName: "",
+      Q_BonusData: [],
+      Q_BonusSheetName: "",
+      AuditClearedTables: { main: true, detail: true },
     }));
   };
 

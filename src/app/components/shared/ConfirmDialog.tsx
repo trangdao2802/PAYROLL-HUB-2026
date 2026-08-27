@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -31,21 +32,33 @@ export function ConfirmDialog({
   variant = "default",
 }: ConfirmDialogProps) {
   const displayDescription = description || "Vui lòng xác nhận hành động của bạn.";
+  const isDestructive = variant === "destructive";
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="rounded-none border-2 border-black bg-white/90 backdrop-blur-md shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-xl font-black text-black uppercase tracking-tight">
-            {title}
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-black/80 font-bold">
-            {displayDescription}
-          </AlertDialogDescription>
+      <AlertDialogContent className="max-w-[460px] gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 font-[family-name:var(--font-table,var(--font-main))] text-card-foreground shadow-2xl">
+        <AlertDialogHeader
+          className="flex-row items-center gap-3 border-b border-border px-5 py-4 text-left"
+          style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+        >
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${isDestructive ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-primary/20 bg-primary/10 text-primary"}`}>
+            {isDestructive ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+          </span>
+          <span className="min-w-0">
+            <span className="mb-0.5 block text-[9px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
+              Xác nhận thao tác dữ liệu
+            </span>
+            <AlertDialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+              {title}
+            </AlertDialogTitle>
+          </span>
         </AlertDialogHeader>
-        <AlertDialogFooter className="gap-2">
+        <AlertDialogDescription className="px-5 py-5 text-xs font-medium leading-5 text-muted-foreground">
+          {displayDescription}
+        </AlertDialogDescription>
+        <AlertDialogFooter className="flex-row justify-end gap-2 border-t border-border bg-muted/20 px-5 py-4">
           <AlertDialogCancel
             onClick={onClose}
-            className="rounded-none border-2 border-black bg-white/90 backdrop-blur-md text-black hover:bg-black/5 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+            className="mt-0 h-9 rounded-full border-border bg-card px-5 text-[10px] font-extrabold uppercase tracking-wider text-foreground shadow-sm hover:bg-muted"
           >
             {cancelText}
           </AlertDialogCancel>
@@ -55,10 +68,10 @@ export function ConfirmDialog({
               onConfirm();
               onClose();
             }}
-            className={`rounded-none border-2 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none ${
-              variant === "destructive"
-                ? "bg-red-500 text-white hover:bg-red-600"
-                : "bg-black text-white hover:bg-black/90"
+            className={`h-9 rounded-full border-0 px-5 text-[10px] font-extrabold uppercase tracking-wider shadow-sm ${
+              isDestructive
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
             }`}
           >
             {confirmText}

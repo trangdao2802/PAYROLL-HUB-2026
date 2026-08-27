@@ -117,7 +117,7 @@ export function MasterAE() {
     reMapAECodes,
     handleCellChange,
     handleDeleteRow,
-    clearAllData,
+    clearCurrentTableData,
   } = useMasterAELogic();
 
   const [cameFromBulkPayment, setCameFromBulkPayment] = useState(false);
@@ -1087,7 +1087,11 @@ export function MasterAE() {
                                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-600 transition-colors"
                                   >
                                     <Trash2 className="w-4 h-4" />
-                                    <span className="text-xs font-bold">Xóa tất cả dữ liệu</span>
+                                    <span className="text-xs font-bold">
+                                      {activeTab === "Sheet1_AE"
+                                        ? "Xóa dữ liệu bảng Gross Pay"
+                                        : "Xóa dữ liệu bảng Bank North"}
+                                    </span>
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -1132,12 +1136,12 @@ export function MasterAE() {
               isOpen={showClearDialog}
               onClose={() => setShowClearDialog(false)}
               onConfirm={() => {
-                clearAllData();
+                clearCurrentTableData();
                 setShowClearDialog(false);
               }}
-              title="Xóa toàn bộ dữ liệu?"
-              description="Hành động này sẽ xóa sạch dữ liệu trong tất cả các bảng của Master AE. Bạn có chắc chắn muốn tiếp tục?"
-              confirmText="XÓA TẤT CẢ"
+              title={`Xóa dữ liệu bảng ${activeTab === "Sheet1_AE" ? "Gross Pay" : "Bank North"}?`}
+              description="Thao tác này chỉ xóa dữ liệu trong bảng hiện tại. Các bảng Master, Timesheet, Audit và Balance khác được giữ nguyên."
+              confirmText="XÓA BẢNG NÀY"
               variant="destructive"
             />
             <ConfirmDialog
