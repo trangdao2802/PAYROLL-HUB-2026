@@ -99,6 +99,60 @@ function normalizedPart(value: unknown): string {
   return cleanText(value).replace(/\s+/g, " ").toUpperCase();
 }
 
+export function getMergedHoldOriginalIndexes(
+  row: HoldCarryRow,
+): number[] {
+  const indexes = Array.isArray(row?._holdMergedOriginalIndexes)
+    ? row._holdMergedOriginalIndexes
+    : [];
+  const originalIndex = Number(row?._originalIndex);
+
+  return Array.from(
+    new Set([
+      ...indexes
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0),
+      ...(Number.isInteger(originalIndex) && originalIndex >= 0
+        ? [originalIndex]
+        : []),
+    ]),
+  );
+}
+
+/**
+ * Replaces every source row represented by a merged HOLD with one canonical
+ * row. This makes later operation changes persistent instead of revealing the
+ * hidden HOLD copy that previously remained in storage.
+ */
+export function collapseMergedHoldSourceRows({
+  rows,
+  mergedRow,
+  canonicalIndex,
+  updatedRow,
+}: {
+  rows: HoldCarryRow[];
+  mergedRow: HoldCarryRow;
+  canonicalIndex: number;
+  updatedRow: HoldCarryRow;
+}): HoldCarryRow[] {
+  const mergedIndexes = getMergedHoldOriginalIndexes(mergedRow).filter(
+    (index) => index < rows.length,
+  );
+  if (mergedIndexes.length <= 1) {
+    const nextRows = [...rows];
+    nextRows[canonicalIndex] = updatedRow;
+    return nextRows;
+  }
+
+  const indexesToRemove = new Set(
+    mergedIndexes.filter((index) => index !== canonicalIndex),
+  );
+
+  return rows
+    .map((row, index) => (index === canonicalIndex ? updatedRow : row))
+    .filter((_row, index) => !indexesToRemove.has(index));
+}
+
 function sourceIdentity(row: HoldCarryRow, arisingMonth: PayrollMonth): string {
   const persistedIdentity = cleanText(
     row._holdCarryOriginId || row._recordId || row.id,
@@ -179,12 +233,22 @@ export function mergeDuplicateHoldRows(
     const incomingIsCarry = Boolean(row?._holdCarryKey);
     const preferred = existingIsCarry && !incomingIsCarry ? row : existing;
     const duplicateCount =
-      Number(existing?._holdMergedDuplicateCount || 1) + 1;
+      Number(existing?._holdMergedDuplicateCount || 1) +
+      Number(row?._holdMergedDuplicateCount || 1);
+    const mergedOriginalIndexes = Array.from(
+      new Set([
+        ...getMergedHoldOriginalIndexes(existing),
+        ...getMergedHoldOriginalIndexes(row),
+      ]),
+    );
 
     result[existingIndex] = {
       ...preferred,
       "TOTAL PAYMENT": Math.abs(parseMoneyToNumber(row["TOTAL PAYMENT"])),
       _holdMergedDuplicateCount: duplicateCount,
+      ...(mergedOriginalIndexes.length > 1
+        ? { _holdMergedOriginalIndexes: mergedOriginalIndexes }
+        : {}),
       _holdStatusBeforeSave: "Hold",
     };
   });

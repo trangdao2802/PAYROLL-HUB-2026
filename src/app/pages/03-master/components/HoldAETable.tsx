@@ -36,8 +36,10 @@ import {
 } from "../../../components/ui/alert-dialog";
 import {
   carryEligibleHoldsToNextMonth,
+  collapseMergedHoldSourceRows,
   getEligibleHoldRowsForReport,
   getNextPayrollMonth,
+  getMergedHoldOriginalIndexes,
   mergeDuplicateHoldRows,
   parsePayrollMonth,
 } from "../../../lib/utils/hold-carryover";
@@ -211,19 +213,28 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           if (!targetTab || !targetTab.data) return prev;
 
           const data = [...targetTab.data];
-          const rowIndex = data.findIndex(
-            (r, idx) =>
-              r && row &&
-              ((row._originalIndex !== undefined &&
-                idx === row._originalIndex) ||
-                (r.id && row.id && r.id === row.id) ||
-                r === row ||
-                (r["ID Number"] === row["ID Number"] &&
-                  r["TOTAL PAYMENT"] === row["TOTAL PAYMENT"] &&
-                  ((r["No."] !== undefined && r["No."] === row["No."]) ||
-                    (r["No"] !== undefined && r["No"] === row["No"]) ||
-                    (r["STT"] !== undefined && r["STT"] === row["STT"])))),
-          );
+          const mergedOriginalIndexes = getMergedHoldOriginalIndexes(row);
+          const preferredOriginalIndex = Number(row._originalIndex);
+          const rowIndex =
+            Number.isInteger(preferredOriginalIndex) &&
+            preferredOriginalIndex >= 0 &&
+            preferredOriginalIndex < data.length
+              ? preferredOriginalIndex
+              : data.findIndex(
+                  (r, idx) =>
+                    r && row &&
+                    (mergedOriginalIndexes.includes(idx) ||
+                      (r.id && row.id && r.id === row.id) ||
+                      r === row ||
+                      (r["ID Number"] === row["ID Number"] &&
+                        r["TOTAL PAYMENT"] === row["TOTAL PAYMENT"] &&
+                        ((r["No."] !== undefined &&
+                          r["No."] === row["No."]) ||
+                          (r["No"] !== undefined &&
+                            r["No"] === row["No"]) ||
+                          (r["STT"] !== undefined &&
+                            r["STT"] === row["STT"])))),
+                );
 
           if (rowIndex === -1) return prev;
 
@@ -257,13 +268,28 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               updatedRow["TOTAL PAYMENT"] = Math.abs(currentTotalPayment);
               updatedRow["Nghiệp vụ"] = "Add";
             }
+
+            if (!valUpper.includes("HOLD") && valUpper !== "H") {
+              delete updatedRow._holdCarryKey;
+              delete updatedRow._holdCarryOriginId;
+              delete updatedRow._holdCarryFromReportMonth;
+              delete updatedRow._holdCarryCreatedAt;
+              delete updatedRow._holdMergedDuplicateCount;
+              delete updatedRow._holdMergedOriginalIndexes;
+              delete updatedRow._holdStatusBeforeSave;
+            }
           }
 
-          data[rowIndex] = updatedRow;
+          const collapsedData = collapseMergedHoldSourceRows({
+            rows: data,
+            mergedRow: row,
+            canonicalIndex: rowIndex,
+            updatedRow,
+          });
 
           return {
             ...prev,
-            Hold_AE: { ...targetTab, data },
+            Hold_AE: { ...targetTab, data: collapsedData },
           };
         });
       },
