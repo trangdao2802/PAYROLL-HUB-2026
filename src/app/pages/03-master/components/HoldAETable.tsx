@@ -5,7 +5,7 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, CheckCircle2 } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, CheckCircle2, AlertTriangle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,16 @@ import {
 } from "../../../lib/utils/data-utils";
 import { formatVNRobust } from "../../../lib/utils/format-utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../../components/ui/alert-dialog";
 import {
   carryEligibleHoldsToNextMonth,
   getEligibleHoldRowsForReport,
@@ -59,6 +69,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
   ({ searchTerm, onSearchTermChange, onAddRow, cameFromBulkPayment, onBackToBulkPayment }, ref) => {
     const { appData, updateAppData } = useAppData();
     const [showSearch, setShowSearch] = React.useState(false);
+    const [showClearConfirm, setShowClearConfirm] = React.useState(false);
     const hasActiveSearch = searchTerm.trim().length > 0;
     const isSearchVisible = showSearch || hasActiveSearch;
 
@@ -589,13 +600,16 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
     };
 
     const handleClearAll = () => {
-      if (window.confirm("Bạn có chắc chắn muốn xóa tất cả dữ liệu Hold AE?")) {
-        updateAppData((prev: any) => ({
-          ...prev,
-          Hold_AE: { ...prev.Hold_AE, data: [] }
-        }));
-        toast.success("Đã xóa tất cả dữ liệu Hold AE");
-      }
+      setShowClearConfirm(true);
+    };
+
+    const handleConfirmClearAll = () => {
+      updateAppData((prev: any) => ({
+        ...prev,
+        Hold_AE: { ...prev.Hold_AE, data: [] },
+      }));
+      setShowClearConfirm(false);
+      toast.success("Đã xóa tất cả dữ liệu Deductions");
     };
 
     const currentReportMonth = appData.globalMonth || "03.2026";
@@ -925,6 +939,56 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           }}
           headerClassName="bg-slate-100 text-accent border-[#E2E8F0] font-bold"
         />
+
+        <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+          <AlertDialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl">
+            <AlertDialogHeader
+              className="flex-row items-center gap-3 border-b border-border px-5 py-4 text-left"
+              style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[9px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
+                  Deductions and Benefits
+                </p>
+                <AlertDialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+                  Xóa toàn bộ dữ liệu?
+                </AlertDialogTitle>
+              </div>
+            </AlertDialogHeader>
+
+            <div className="space-y-4 px-5 py-5">
+              <AlertDialogDescription className="text-xs font-medium leading-5 text-muted-foreground">
+                Thao tác này sẽ xóa toàn bộ dữ liệu Hold, Add và Cancel đang có
+                trong bảng Deductions. Dữ liệu đã xóa chỉ có thể khôi phục bằng
+                lịch sử hoàn tác hoặc tải lại file nguồn.
+              </AlertDialogDescription>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/35 px-4 py-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Số dòng sẽ xóa
+                </span>
+                <span className="rounded-lg bg-card px-3 py-1 text-sm font-black tabular-nums text-foreground shadow-sm ring-1 ring-border">
+                  {appData.Hold_AE?.data?.length || 0}
+                </span>
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex-row justify-end gap-2 border-t border-border bg-muted/20 px-5 py-4">
+              <AlertDialogCancel className="mt-0 h-9 rounded-full border-border bg-card px-5 text-[10px] font-extrabold uppercase tracking-wider text-foreground hover:bg-muted">
+                Hủy
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmClearAll}
+                className="h-9 rounded-full bg-destructive px-5 text-[10px] font-extrabold uppercase tracking-wider text-destructive-foreground shadow-sm hover:bg-destructive/90"
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Xóa dữ liệu
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   },
