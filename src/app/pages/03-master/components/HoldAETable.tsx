@@ -5,7 +5,7 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,12 @@ import {
 } from "../../../lib/utils/data-utils";
 import { formatVNRobust } from "../../../lib/utils/format-utils";
 import { toast } from "sonner";
+import {
+  carryEligibleHoldsToNextMonth,
+  getEligibleHoldRowsForReport,
+  getNextPayrollMonth,
+  parsePayrollMonth,
+} from "../../../lib/utils/hold-carryover";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -592,6 +598,64 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       }
     };
 
+    const currentReportMonth = appData.globalMonth || "03.2026";
+    const { eligibleHoldCount, savedHoldCount } = useMemo(() => {
+      const rows = appData.Hold_AE?.data || [];
+      const currentReportMonthIndex =
+        parsePayrollMonth(currentReportMonth)?.index;
+      let savedCount = 0;
+
+      rows.forEach((row: any) => {
+        const carriedFrom = parsePayrollMonth(row?._holdCarryFromReportMonth);
+        if (
+          currentReportMonthIndex !== undefined &&
+          carriedFrom?.index === currentReportMonthIndex
+        ) {
+          savedCount += 1;
+        }
+      });
+
+      return {
+        eligibleHoldCount: getEligibleHoldRowsForReport(
+          rows,
+          currentReportMonth,
+        ).length,
+        savedHoldCount: savedCount,
+      };
+    }, [appData.Hold_AE?.data, currentReportMonth]);
+
+    const handleSaveHolds = () => {
+      if (eligibleHoldCount === 0) {
+        toast.warning(
+          "Không có khoản Hold nào có tháng phát sinh nhỏ hơn hoặc bằng tháng báo cáo.",
+        );
+        return;
+      }
+
+      updateAppData((prev: any) => {
+        const holdCarryover = carryEligibleHoldsToNextMonth({
+          sourceRows: appData.Hold_AE?.data || [],
+          existingRows: prev.Hold_AE?.data || [],
+          reportMonth: currentReportMonth,
+        });
+
+        return {
+          ...prev,
+          Hold_AE: {
+            ...(prev.Hold_AE || { headers: [], data: [] }),
+            data: holdCarryover.rows,
+          },
+        };
+      });
+
+      const nextMonth = getNextPayrollMonth(currentReportMonth)?.dot;
+      toast.success(
+        `Đã lưu ${eligibleHoldCount} khoản Hold${
+          nextMonth ? ` và chuyển sang tháng ${nextMonth}` : ""
+        }!`,
+      );
+    };
+
     return (
       <div 
         className="unified-table-frame flex-1 flex flex-col min-h-0 w-full h-full px-0 py-0 m-0 relative overflow-hidden gap-0 bg-card border border-border shadow-xs z-10"
@@ -632,6 +696,30 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 <span>Về Reconciliation</span>
               </button>
             )}
+
+            <button
+              onClick={handleSaveHolds}
+              className={`group flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[10px] font-extrabold uppercase tracking-wider shadow-sm transition-all active:scale-95 ${
+                savedHoldCount > 0
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "border-primary bg-primary text-primary-foreground hover:brightness-95"
+              }`}
+              title={
+                savedHoldCount > 0
+                  ? `Đã chuyển ${savedHoldCount} khoản Hold. Bấm để lưu lại dữ liệu hiện tại.`
+                  : `Lưu ${eligibleHoldCount} khoản Hold hợp lệ sang tháng tiếp theo.`
+              }
+              aria-label="Lưu các khoản Hold sang tháng báo cáo tiếp theo"
+            >
+              {savedHoldCount > 0 ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              <span className="whitespace-nowrap">
+                {savedHoldCount > 0 ? "Đã lưu Hold" : "Lưu Hold"}
+              </span>
+            </button>
             
             {/* Search Input shown dynamically */}
             {isSearchVisible && (

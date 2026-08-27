@@ -153,6 +153,25 @@ export function removeHoldCarryoverFromReport(
   });
 }
 
+export function getEligibleHoldRowsForReport(
+  rows: HoldCarryRow[],
+  reportMonth: unknown,
+): HoldCarryRow[] {
+  const current = parsePayrollMonth(reportMonth);
+  if (!current) return [];
+
+  return rows.filter((row) => {
+    if (!row || !isHoldRow(row)) return false;
+    const rowReportMonth = getReportMonth(row);
+    const arisingMonth = getArisingMonth(row);
+    return (
+      rowReportMonth?.index === current.index &&
+      !!arisingMonth &&
+      arisingMonth.index <= current.index
+    );
+  });
+}
+
 /**
  * Copies eligible HOLD entries into the next reporting month for Deductions.
  * The original arising month is retained and repeated saves are idempotent.
@@ -198,18 +217,9 @@ export function carryEligibleHoldsToNextMonth({
 
   const carriedRows: HoldCarryRow[] = [];
 
-  sourceRows.forEach((row) => {
-    if (!row || !isHoldRow(row)) return;
-
-    const rowReportMonth = getReportMonth(row);
+  getEligibleHoldRowsForReport(sourceRows, current.dot).forEach((row) => {
     const arisingMonth = getArisingMonth(row);
-    if (
-      rowReportMonth?.index !== current.index ||
-      !arisingMonth ||
-      arisingMonth.index > current.index
-    ) {
-      return;
-    }
+    if (!arisingMonth) return;
 
     const originId = sourceIdentity(row, arisingMonth);
     const carryKey = `${originId}::HOLD-CARRY::${next.dot}`;
