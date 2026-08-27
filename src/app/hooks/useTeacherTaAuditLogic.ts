@@ -181,10 +181,15 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
         workbook = XLSX.read(buffer, { type: "array", raw: true });
       }
       
-      // Look for a sheet with relevant names
-      const targetSheetName = workbook.SheetNames.find(s => 
-        s.toLowerCase().includes("check tas") || 
-        s.toLowerCase().includes("danh sách lớp") || 
+      // MR.07's canonical sheet must win over generic schedule/config tabs.
+      // Its Session Date column is the source of truth for the card range.
+      const targetSheetName = workbook.SheetNames.find(s =>
+        s.trim().toLowerCase() === "class hour session reports"
+      ) || workbook.SheetNames.find(s =>
+        s.toLowerCase().includes("class hour session report")
+      ) || workbook.SheetNames.find(s =>
+        s.toLowerCase().includes("check tas") ||
+        s.toLowerCase().includes("danh sách lớp") ||
         s.toLowerCase().includes("schedule") ||
         s.toLowerCase().includes("so sánh")
       ) || workbook.SheetNames[0];

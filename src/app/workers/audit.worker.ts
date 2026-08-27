@@ -11,6 +11,7 @@ import {
   parseAnyDate,
   parseTimeStrToHours,
 } from "../lib/utils/data-utils";
+import { parseMr07SessionDate } from "../lib/utils/mr07-date-utils";
 import { getBusinessFromL07 } from "../lib/utils/center-utils";
 import { evaluateAllowedTAs } from "../lib/utils/allowed-ta-rules";
 
@@ -138,39 +139,6 @@ export function isMr03NormalClassType(value: unknown): boolean {
     .toLowerCase()
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ") === "normal class";
-}
-
-/**
- * MR.07 exports Session Date as MM/DD/YYYY. The shared date parser treats
- * slash dates as DD/MM/YYYY, so ambiguous dates were swapped and values such
- * as 07/31/2026 were rejected completely.
- */
-export function parseMr07SessionDate(
-  value: unknown,
-  preferredYear?: number,
-): Date | null {
-  if (value instanceof Date || typeof value === "number") {
-    return parseAnyDate(value, preferredYear);
-  }
-
-  const raw = String(value ?? "").trim();
-  const usDate = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
-  if (usDate) {
-    const month = Number(usDate[1]);
-    const day = Number(usDate[2]);
-    let year = Number(usDate[3]);
-    if (year < 100) year += 2000;
-    const parsed = new Date(year, month - 1, day);
-    if (
-      parsed.getFullYear() === year &&
-      parsed.getMonth() === month - 1 &&
-      parsed.getDate() === day
-    ) {
-      return parsed;
-    }
-  }
-
-  return parseAnyDate(value, preferredYear);
 }
 
 function toAuditDateKey(date: Date): string {

@@ -40,6 +40,7 @@ import {
   prepareDataForExport,
   normalizeDateFilterValue,
 } from "../../lib/utils/data-utils";
+import { parseMr07SessionDate } from "../../lib/utils/mr07-date-utils";
 import {
   Tooltip,
   TooltipTrigger,
@@ -495,7 +496,7 @@ export function Audit() {
         if (sc2 >= 2) { 
           cfgHdr = i; 
           const pdr: any[] = Array.isArray(configData[i]) ? configData[i] : Object.values(configData[i]); 
-          const ds = pdr.filter((c) => parseAnyDate(c)).length; 
+          const ds = pdr.filter((c) => parseMr07SessionDate(c)).length;
           if (ds >= 1) { 
             cfgMatrix = true; 
             cfgDt = i; 
@@ -520,14 +521,14 @@ export function Audit() {
         if (cfgMatrix) {
           for (let idx = 0; idx < dR2.length; idx++) { 
             if ([cm.class, cm.center].includes(idx)) continue; 
-            const dt = parseAnyDate(dR2[idx]); 
+            const dt = parseMr07SessionDate(dR2[idx]);
             updateMinMaxC(dt);
           }
         } else {
           for (let i = cfgHdr+1; i < configData.length; i++) {
             const rr: any[] = Array.isArray(configData[i]) ? configData[i] : Object.values(configData[i]);
             if (cm.sessionDate !== -1 && rr[cm.sessionDate]) {
-              const sDt = parseAnyDate(rr[cm.sessionDate]);
+              const sDt = parseMr07SessionDate(rr[cm.sessionDate]);
               updateMinMaxC(sDt);
             }
           }
@@ -547,7 +548,7 @@ export function Audit() {
         if (dateColIdx !== -1) {
           for (let i = 1; i < configData.length; i++) {
             const rr: any[] = Array.isArray(configData[i]) ? configData[i] : Object.values(configData[i]);
-            const sDt = parseAnyDate(rr[dateColIdx]);
+            const sDt = parseMr07SessionDate(rr[dateColIdx]);
             updateMinMaxC(sDt);
           }
         }

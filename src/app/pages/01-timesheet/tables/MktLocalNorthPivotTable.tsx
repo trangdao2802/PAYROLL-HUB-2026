@@ -199,14 +199,14 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
       <div className="pivot-table-container flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]">
         <div className="table-body-region relative min-h-0 flex-1 overflow-auto custom-scrollbar">
           <table
-            className="pivot-timesheet-table border-separate border-spacing-0 bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs"
-            style={{ width: totalTableWidth, minWidth: totalTableWidth }}
+            className="pivot-timesheet-table w-full border-separate border-spacing-0 bg-[var(--table-data-bg,var(--card,#fff))] text-left text-xs"
+            style={{ width: "100%", minWidth: totalTableWidth }}
           >
           <colgroup>
             <col style={{ width: noColumnWidth }} />
             <col style={{ width: 140 }} />
             <col style={{ width: 180 }} />
-            {types.map((type) => <col key={`col-${type}`} style={{ width: 120 }} />)}
+            {types.map((type) => <col key={`col-${type}`} />)}
             <col style={{ width: 150 }} />
           </colgroup>
           <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]">

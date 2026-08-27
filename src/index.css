@@ -1786,6 +1786,18 @@ div.audit-data-table-wrapper {
   border-radius: inherit;
 }
 
+.audit-source-list {
+  justify-content: space-between;
+  gap: 10px !important;
+}
+
+.audit-source-list > .audit-source-card,
+.audit-source-list > .audit-range-card {
+  min-height: 92px;
+  max-height: 138px;
+  flex: 1 1 0;
+}
+
 .audit-source-card {
   position: relative;
   display: flex;
@@ -1810,11 +1822,11 @@ div.audit-data-table-wrapper {
 }
 
 .audit-source-card.is-ready {
-  border-color: color-mix(in srgb, #10b981 22%, var(--border, #cbd5e1)) !important;
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 24%, var(--border, #cbd5e1)) !important;
 }
 
 .audit-source-card.is-ready::before {
-  background: #10b981;
+  background: var(--primary, #781d1d);
 }
 
 .audit-source-card__header {
@@ -1887,14 +1899,15 @@ div.audit-data-table-wrapper {
 }
 
 .audit-source-card__state.is-ready {
-  border-color: color-mix(in srgb, #10b981 34%, var(--border, #cbd5e1));
-  background: color-mix(in srgb, #10b981 10%, var(--card, #ffffff));
-  color: #047857;
+  border-color: color-mix(in srgb, var(--primary, #781d1d) 24%, var(--border, #cbd5e1));
+  background: color-mix(in srgb, var(--primary, #781d1d) 7%, var(--card, #ffffff));
+  color: var(--primary, #781d1d);
 }
 
 .audit-source-card__body {
   display: flex;
   min-height: 62px;
+  flex: 1;
   align-items: center;
   background: var(--card, #ffffff) !important;
   padding: 9px 9px 9px 11px;
@@ -1935,9 +1948,9 @@ label.audit-source-card__body:active {
 }
 
 .audit-source-card__ready-icon {
-  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
-  background: color-mix(in srgb, #10b981 9%, var(--card, #ffffff));
-  color: #047857;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 22%, transparent);
+  background: color-mix(in srgb, var(--primary, #781d1d) 7%, var(--card, #ffffff));
+  color: var(--primary, #781d1d);
 }
 
 .audit-source-card__empty-icon {
@@ -2020,7 +2033,7 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
 .audit-range-card {
   display: flex;
   width: 100%;
-  min-height: 68px;
+  min-height: 92px;
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
