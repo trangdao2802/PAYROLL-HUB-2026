@@ -1,3 +1,5 @@
+import { parseMoneyToNumber } from "./data-utils";
+
 export type HoldCarryRow = Record<string, unknown>;
 
 export interface PayrollMonth {
@@ -83,9 +85,9 @@ function isHoldRow(row: HoldCarryRow): boolean {
   // Legacy imported rows may not have Nghiệp vụ yet. Do not let ADD/CANCEL
   // rows pass merely because another free-text column mentions HOLD.
   if (operation) return false;
-  const legacyType = `${cleanText(row["Trạng thái"])} ${cleanText(
-    row["Sheet Source"],
-  )}`.toUpperCase();
+  const legacyType = `${cleanText(row["Trạng thái trước lưu"])} ${cleanText(
+    row._holdStatusBeforeSave,
+  )} ${cleanText(row["Trạng thái"])} ${cleanText(row["Sheet Source"])}`.toUpperCase();
   return (
     legacyType.includes("HOLD") &&
     !legacyType.includes("ADD") &&
@@ -128,11 +130,10 @@ function semanticKey(
     arisingMonth.dot,
     row["ID Number"],
     row["Full name"],
-    row["Bank Account Number"],
     row.L07,
     row.BU || row.Business,
-    row["TOTAL PAYMENT"],
-    row.Note,
+    row["Bank Account Number"],
+    parseMoneyToNumber(row["TOTAL PAYMENT"]),
     row["Sheet Source"],
     "HOLD",
   ]
@@ -160,16 +161,27 @@ export function getEligibleHoldRowsForReport(
   const current = parsePayrollMonth(reportMonth);
   if (!current) return [];
 
-  return rows.filter((row) => {
-    if (!row || !isHoldRow(row)) return false;
+  const uniqueRows = new Map<string, HoldCarryRow>();
+
+  rows.forEach((row) => {
+    if (!row || !isHoldRow(row)) return;
     const rowReportMonth = getReportMonth(row);
     const arisingMonth = getArisingMonth(row);
-    return (
-      rowReportMonth?.index === current.index &&
-      !!arisingMonth &&
-      arisingMonth.index <= current.index
-    );
+    if (
+      rowReportMonth?.index !== current.index ||
+      !arisingMonth ||
+      arisingMonth.index > current.index
+    ) {
+      return;
+    }
+
+    const mergeKey = semanticKey(row, current, arisingMonth);
+    if (!uniqueRows.has(mergeKey)) {
+      uniqueRows.set(mergeKey, row);
+    }
   });
+
+  return Array.from(uniqueRows.values());
 }
 
 /**
@@ -245,6 +257,7 @@ export function carryEligibleHoldsToNextMonth({
       _holdCarryOriginId: originId,
       _holdCarryFromReportMonth: current.dot,
       _holdCarryCreatedAt: createdAt,
+      _holdStatusBeforeSave: "Hold",
       "Tháng": next.dot,
       _fileMonth: next.dot,
       "Tháng báo cáo": next.dot,
