@@ -133,6 +133,34 @@ const itemVariants = {
   },
 } as const;
 
+function PayrollBowIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10.8 9.6C8.7 5.9 5.5 4.5 3.7 6.1c-1.8 1.6-.5 4.8 2.1 5.2 1.7.3 3.6-.3 5.2-1.1"
+        fill="currentColor"
+        opacity=".88"
+      />
+      <path
+        d="M13.2 9.6c2.1-3.7 5.3-5.1 7.1-3.5 1.8 1.6.5 4.8-2.1 5.2-1.7.3-3.6-.3-5.2-1.1"
+        fill="currentColor"
+        opacity=".88"
+      />
+      <path
+        d="m9.6 11.1-2.4 7.1 4.8-2.4 4.8 2.4-2.4-7.1"
+        fill="currentColor"
+        opacity=".68"
+      />
+      <rect x="9.2" y="8.3" width="5.6" height="4.8" rx="2.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 const ALL_ANALYS_BUSINESS_UNITS = "__ALL_BUSINESS_UNITS__";
 
 const isIdColumnKey = (k: string): boolean => {
@@ -2257,6 +2285,10 @@ export function BulkPayment({
                           .filter((i) => i.type === "ADD")
                           .reduce((sum, i) => sum + i.amount, 0);
 
+                        const bonusOnly = holdAddItems
+                          .filter((i) => i.type === "BONUS")
+                          .reduce((sum, i) => sum + i.amount, 0);
+
                         const cancelOnly = holdAddItems
                           .filter((i) => i.type === "CANCEL")
                           .reduce((sum, i) => sum + i.amount, 0);
@@ -2275,20 +2307,35 @@ export function BulkPayment({
                           : (dynamicReportStats.finalTotals[biz] || (sheet1Val + deductionsSum));
 
                         return (
-                          <div className="bu-amount-card rounded-xl p-3.5 border flex flex-col gap-2.5 shadow-xs transition-all">
-                            <div className="flex justify-between items-center">
-                              <span className="bu-summary-label">
-                                GROSS PAY
-                              </span>
-                              <span className="bu-summary-value text-foreground">
-                                {formatMoneyVND(sheet1Val).replace(" ₫", "")}
+                          <div className="bu-amount-card bu-payroll-ribbon-card relative overflow-hidden rounded-2xl border p-3.5 shadow-sm transition-all">
+                            <div className="bu-payroll-ribbon-orb" aria-hidden="true" />
+
+                            <div className="bu-payroll-ribbon-heading">
+                              <div className="bu-payroll-ribbon-title">
+                                <span className="bu-payroll-bow-medallion">
+                                  <PayrollBowIcon className="h-4 w-4" />
+                                </span>
+                                <span>TÓM TẮT THANH TOÁN</span>
+                              </div>
+                              <span className="bu-payroll-ribbon-chip">
+                                {isAll ? "ALL BU" : biz.toUpperCase()}
                               </span>
                             </div>
 
-                            {/* DEDUCTIONS & BENEFITS */}
-                            <div className="flex flex-col gap-1 mt-0.5">
-                              <div className="flex justify-between items-center gap-4">
-                                <span className="bu-summary-label">
+                            <div className="bu-payroll-primary-group">
+                              <div className="bu-payroll-summary-row">
+                                <span className="bu-payroll-row-label">
+                                  <PayrollBowIcon className="bu-payroll-row-bow" />
+                                  GROSS PAY
+                                </span>
+                                <span className="bu-summary-value text-foreground">
+                                  {formatMoneyVND(sheet1Val).replace(" ₫", "")}
+                                </span>
+                              </div>
+
+                              <div className="bu-payroll-summary-row">
+                                <span className="bu-payroll-row-label">
+                                  <PayrollBowIcon className="bu-payroll-row-bow" />
                                   DEDUCTIONS
                                 </span>
                                 <span className={`bu-summary-value ${deductionsSum >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
@@ -2296,51 +2343,64 @@ export function BulkPayment({
                                   {formatMoneyVND(deductionsSum).replace(" ₫", "")}
                                 </span>
                               </div>
-
-                              <div className="bu-summary-breakdown flex flex-col gap-2 pl-4 border-l-2 my-0.5">
-                                <div className="flex justify-between items-center gap-4">
-                                  <span className="bu-summary-detail-label">
-                                    HOLD
-                                  </span>
-                                  <span className={`bu-summary-detail-value ${holdOnly !== 0 ? "text-amber-700" : "text-muted-foreground"}`}>
-                                    {holdOnly !== 0
-                                      ? `-${formatMoneyVND(Math.abs(holdOnly)).replace(" ₫", "")}`
-                                      : "0"}
-                                  </span>
-                                </div>
-
-                                <div className="flex justify-between items-center gap-4">
-                                  <span className="bu-summary-detail-label">
-                                    ADD
-                                  </span>
-                                  <span className={`bu-summary-detail-value ${addOnly !== 0 ? "text-emerald-700" : "text-muted-foreground"}`}>
-                                    {addOnly !== 0
-                                      ? `+${formatMoneyVND(Math.abs(addOnly)).replace(" ₫", "")}`
-                                      : "0"}
-                                  </span>
-                                </div>
-
-                                {cancelOnly !== 0 && (
-                                  <div className="flex justify-between items-center gap-4">
-                                    <span className="bu-summary-detail-label">
-                                      CANCEL
-                                    </span>
-                                    <span className="bu-summary-detail-value text-amber-700">
-                                      -
-                                      {formatMoneyVND(
-                                        Math.abs(cancelOnly),
-                                      ).replace(" ₫", "")}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
                             </div>
 
-                            <div className="pt-2.5 border-t mt-1 flex justify-between items-center gap-4">
-                              <span className="bu-summary-label text-foreground">
+                            <div className="bu-payroll-detail-panel">
+                              <div className="bu-payroll-detail-row">
+                                <span className="bu-summary-detail-label">
+                                  <span className="bu-payroll-detail-dot bu-payroll-detail-dot--hold" />
+                                  HOLD
+                                </span>
+                                <span className={`bu-summary-detail-value ${holdOnly !== 0 ? "text-rose-700" : "text-muted-foreground"}`}>
+                                  {holdOnly !== 0
+                                    ? `-${formatMoneyVND(Math.abs(holdOnly)).replace(" ₫", "")}`
+                                    : "0"}
+                                </span>
+                              </div>
+
+                              <div className="bu-payroll-detail-row">
+                                <span className="bu-summary-detail-label">
+                                  <span className="bu-payroll-detail-dot bu-payroll-detail-dot--add" />
+                                  ADD
+                                </span>
+                                <span className={`bu-summary-detail-value ${addOnly !== 0 ? "text-emerald-700" : "text-muted-foreground"}`}>
+                                  {addOnly !== 0
+                                    ? `+${formatMoneyVND(Math.abs(addOnly)).replace(" ₫", "")}`
+                                    : "0"}
+                                </span>
+                              </div>
+
+                              <div className="bu-payroll-detail-row">
+                                <span className="bu-summary-detail-label">
+                                  <span className="bu-payroll-detail-dot bu-payroll-detail-dot--bonus" />
+                                  BONUS
+                                </span>
+                                <span className={`bu-summary-detail-value ${bonusOnly !== 0 ? "text-primary" : "text-muted-foreground"}`}>
+                                  {bonusOnly !== 0
+                                    ? `+${formatMoneyVND(Math.abs(bonusOnly)).replace(" ₫", "")}`
+                                    : "0"}
+                                </span>
+                              </div>
+
+                              {cancelOnly !== 0 && (
+                                <div className="bu-payroll-detail-row">
+                                  <span className="bu-summary-detail-label">
+                                    <span className="bu-payroll-detail-dot bu-payroll-detail-dot--cancel" />
+                                    CANCEL
+                                  </span>
+                                  <span className="bu-summary-detail-value text-amber-700">
+                                    -{formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="bu-payroll-net-row">
+                              <span className="bu-payroll-net-label">
+                                <PayrollBowIcon className="h-4 w-4" />
                                 NET PAY
                               </span>
-                              <span className="text-sm font-black text-foreground tabular-nums tracking-tight">
+                              <span className="bu-payroll-net-value">
                                 {formatMoneyVND(finalTotal).replace(" ₫", "")}
                               </span>
                             </div>
