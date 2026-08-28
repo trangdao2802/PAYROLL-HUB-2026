@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { 
   Database, 
-  CreditCard, 
   ShieldCheck, 
   Scale, 
   ArrowRight, 
@@ -41,12 +40,6 @@ export function Dashboard() {
       path: "/master-ae",
       desc: "Manage AE data sheets & configuration",
       icon: <Database className="w-5 h-5 text-amber-700" />
-    },
-    {
-      title: "Bulk Payment",
-      path: "/payment",
-      desc: "Process bank exports & transaction reconciliations",
-      icon: <CreditCard className="w-5 h-5 text-amber-700" />
     },
     {
       title: "Audit Center",
