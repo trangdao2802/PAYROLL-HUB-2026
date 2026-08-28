@@ -17,6 +17,7 @@ import { parseMoneyToNumber, removeVietnameseTones, formatIdNumber } from "../ut
 import { resolveL07BuFromAeCode } from "../utils/center-utils";
 import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
+import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
 
 // Configure localforage
 localforage.config({
@@ -401,17 +402,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                   );
 
                   if (existingIdx !== -1) {
-                    sheet1Rows[existingIdx]["Extra Summer Instructors"] = bonusAmt;
-                    sheet1Rows[existingIdx]["CHARGE TO EXTRA SUMMER INSTRUCTORS"] = bonusAmt;
-                    let rowTot = 0;
-                    [
-                      "CHARGE TO LXO", "CHARGE TO EC", "CHARGE TO PT-DEMO", "Charge MKT Local",
-                      "CHARGE TO OTHER", "Charge Renewal Projects", "Charge Discovery Camp",
-                      "Charge Summer Outing", "Charge Summer Instructors", "Extra Summer Instructors"
-                    ].forEach((c) => {
-                      rowTot += parseMoneyToNumber(sheet1Rows[existingIdx][c] || 0);
-                    });
-                    sheet1Rows[existingIdx]["TOTAL PAYMENT"] = rowTot;
+                    sheet1Rows[existingIdx] = applyExtraSummerInstructorBonus(
+                      sheet1Rows[existingIdx],
+                      bonusAmt,
+                    );
                   } else {
                     sheet1Rows.push({
                       "No.": sheet1Rows.length + 1,

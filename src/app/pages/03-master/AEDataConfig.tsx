@@ -53,6 +53,7 @@ import { getHoldScopedIdentity } from "../../lib/utils/hold-carryover";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
+import { resolveGrossPayTotal } from "../../lib/utils/gross-pay";
 
 function cleanIDNumber(val: any): string {
   return formatIdNumber(val);
@@ -1875,19 +1876,6 @@ export function AEDataConfig({
 
       const finalSheet1Data: any[] = [];
       const seenSheet1Keys = new Set();
-      const chargeCols = [
-        "CHARGE TO LXO",
-        "CHARGE TO EC",
-        "CHARGE TO PT-DEMO",
-        "Charge MKT Local",
-        "CHARGE TO OTHER",
-        "Charge Renewal Projects",
-        "Charge Discovery Camp",
-        "Charge Summer Outing",
-        "Charge Summer Instructors",
-        "Extra Summer Instructors",
-      ];
-
       sheet1Data.forEach((row) => {
         // TẠI CỘT L07 SẼ CHUYỂN HẾT SỐ LIỆU TỪ CỘT OTHER VỀ CỘT CHARGE MKT LOCAL
         const l07Upper = String(row["L07"] || "").trim().toUpperCase();
@@ -1903,10 +1891,10 @@ export function AEDataConfig({
           }
         }
 
-        let calcPayment = 0;
-        chargeCols.forEach(col => {
-          calcPayment += parseMoneyToNumber(row[col] || 0);
-        });
+        // Sheet 1 TOTAL PAYMENT is authoritative. Only derive it from the
+        // visible charge columns when the source file does not provide a
+        // usable total; otherwise new/custom charge columns would be lost.
+        const calcPayment = resolveGrossPayTotal(row);
         row["TOTAL PAYMENT"] = calcPayment;
 
         const idNum = String(row["ID Number"] || "").trim();
