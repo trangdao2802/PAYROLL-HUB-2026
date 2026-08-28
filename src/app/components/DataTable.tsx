@@ -75,6 +75,20 @@ import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { SaveStatusCard } from "./shared/SaveStatusCard";
 
+const AUTO_FIT_SAMPLE_LIMIT = 320;
+
+function getAutoFitSample<T>(rows: T[]): T[] {
+  if (rows.length <= AUTO_FIT_SAMPLE_LIMIT) return rows;
+
+  const sampled: T[] = [];
+  const lastIndex = rows.length - 1;
+  for (let index = 0; index < AUTO_FIT_SAMPLE_LIMIT; index += 1) {
+    const sourceIndex = Math.round((index * lastIndex) / (AUTO_FIT_SAMPLE_LIMIT - 1));
+    sampled.push(rows[sourceIndex]);
+  }
+  return sampled;
+}
+
 export interface Column {
   key: string;
   label: string;
@@ -714,7 +728,7 @@ const DataRow = React.memo(
               style={{
                 padding: "var(--table-padding, 0.4rem 0.6rem)",
                 fontFamily: "var(--font-table, var(--font-main))",
-                fontSize: "13px",
+                fontSize: "var(--font-size, 13px)",
                 width: widthStyle,
                 minWidth: widthStyle,
                 boxShadow:
@@ -975,6 +989,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       startWidth: number;
       currentX: number;
     } | null>(null);
+    const resizeFrameRef = useRef<number | null>(null);
+    const latestResizeXRef = useRef(0);
 
     const [resizingLineLeft, setResizingLineLeft] = useState<number | null>(
       null,
@@ -1930,50 +1946,59 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     }, [activeCell, currentPage, itemsPerPage, filteredAndSortedData.length, rowHeight, showFooter]);
 
     useEffect(() => {
+      if (!resizingCol) return;
+
+      const { key, startX, startWidth } = resizingCol;
       const handleMouseMove = (e: MouseEvent) => {
-        if (!resizingCol) return;
+        latestResizeXRef.current = e.clientX;
+        if (resizeFrameRef.current !== null) return;
 
-        const { key, startX, startWidth } = resizingCol;
-        const delta = e.clientX - startX;
-        const newWidth = Math.max(50, startWidth + delta);
-
-        setResizingCol((prev) =>
-          prev ? { ...prev, currentX: e.clientX } : null,
-        );
-        setColumnWidths((prev) => ({
-          ...prev,
-          [key]: newWidth,
-        }));
+        resizeFrameRef.current = requestAnimationFrame(() => {
+          resizeFrameRef.current = null;
+          const currentX = latestResizeXRef.current;
+          setResizingCol((previous) =>
+            previous ? { ...previous, currentX } : null,
+          );
+        });
       };
 
-      const handleMouseUp = () => {
-        if (resizingCol) {
-          const { key } = resizingCol;
-          setColumnWidths((prev) => {
-            saveColumnWidths(prev);
-            return prev;
-          });
-          setResizingCol(null);
-          document.body.style.cursor = "";
-          document.body.style.userSelect = "";
+      const handleMouseUp = (event: MouseEvent) => {
+        if (resizeFrameRef.current !== null) {
+          cancelAnimationFrame(resizeFrameRef.current);
+          resizeFrameRef.current = null;
         }
+
+        const finalX = latestResizeXRef.current || event.clientX;
+        const finalWidth = Math.max(50, startWidth + finalX - startX);
+        setColumnWidths((previous) => {
+          const next = { ...previous, [key]: finalWidth };
+          saveColumnWidths(next);
+          return next;
+        });
+        setResizingCol(null);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
       };
 
-      if (resizingCol) {
-        window.addEventListener("mousemove", handleMouseMove);
-        window.addEventListener("mouseup", handleMouseUp);
-      }
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
       return () => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
+        if (resizeFrameRef.current !== null) {
+          cancelAnimationFrame(resizeFrameRef.current);
+          resizeFrameRef.current = null;
+        }
       };
-    }, [resizingCol]);
+    }, [resizingCol?.key, resizingCol?.startX, resizingCol?.startWidth]);
 
     const handleResizeStart = (e: React.MouseEvent, colKey: string) => {
       e.preventDefault();
       e.stopPropagation();
       const th = (e.target as HTMLElement).closest("th");
       if (!th) return;
+
+      latestResizeXRef.current = e.clientX;
 
       setResizingCol({
         key: colKey,
@@ -1992,13 +2017,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       if (!context) return;
 
       const nextWidths = { ...columnWidths };
+      const sampledRows = getAutoFitSample(filteredAndSortedData);
 
       visibleColumns.forEach((col) => {
         context.font = "700 0.8125rem Inter, sans-serif"; // Matches table cell font
         let maxWidth = context.measureText(col.label || "").width + 80;
 
         context.font = "500 0.8125rem Inter, sans-serif";
-        filteredAndSortedData.forEach((row) => {
+        sampledRows.forEach((row) => {
           const val = row[col.key];
           const formatted = val !== undefined && val !== null ? formatValue(val, col.type, col.key) : "";
           const stringVal = (typeof formatted === "string" || typeof formatted === "number") ? String(formatted) : String(val ?? "");
@@ -2035,10 +2061,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         return;
       }
 
-      const values = filteredAndSortedData.map((row) =>
-        String(formatValue(row[colKey], "text", colKey)),
-      );
-
       // Measure text tool
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
@@ -2050,7 +2072,15 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       let maxWidth = context.measureText(col?.label || "").width + 80; // Padding + Filter icon
 
       context.font = "500 0.8125rem Inter, sans-serif"; // Matches row cell font
-      values.forEach((v) => {
+      const sampledRows = getAutoFitSample(filteredAndSortedData);
+      sampledRows.forEach((row) => {
+        const value = row[colKey];
+        const formatted = value !== undefined && value !== null
+          ? formatValue(value, col?.type, colKey)
+          : "";
+        const v = typeof formatted === "string" || typeof formatted === "number"
+          ? String(formatted)
+          : String(value ?? "");
         const w = context.measureText(v).width + 60; // Cell padding
         if (w > maxWidth) maxWidth = w;
       });
@@ -2888,17 +2918,17 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       compact: {
         padding: "1.5px 4px",
         fontSize: "0.65rem",
-        headerFontSize: "10px",
+        headerFontSize: "0.65rem",
       },
       normal: {
         padding: "3.5px 7px",
         fontSize: "0.7rem",
-        headerFontSize: "10px",
+        headerFontSize: "0.7rem",
       },
       relaxed: {
         padding: "6px 12px",
         fontSize: "0.75rem",
-        headerFontSize: "10px",
+        headerFontSize: "0.75rem",
       },
     };
 
@@ -3623,7 +3653,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                               paddingTop: "3px",
                               paddingBottom: "3px",
                               fontFamily: "var(--font-table, var(--font-main))",
-                              fontSize: "13px",
+                              fontSize: "var(--font-size, 13px)",
                               width: widthStyle,
                               minWidth: widthStyle,
                               maxWidth: widthStyle,

@@ -410,6 +410,9 @@ export function TimesheetHub() {
   const [debouncedFromDate, setDebouncedFromDate] = useState(appData.Timesheet_Dates?.from || "");
   const [debouncedToDate, setDebouncedToDate] = useState(appData.Timesheet_Dates?.to || "");
   const [showSidebar, setShowSidebar] = useState(true);
+  const handleToggleSidebar = useCallback(() => {
+    setShowSidebar((isVisible) => !isVisible);
+  }, []);
   const [showRosterCard, setShowRosterCard] = useState(true);
   const [isMonthOpen, setIsMonthOpen] = useState(false);
   const [showControlBar, setShowControlBar] = useState(true);
@@ -2021,7 +2024,7 @@ export function TimesheetHub() {
                           grandTotals={mktPivotGrandTotals}
                           onCellChange={handleMktPivotCellChange}
                           showSidebar={showSidebar}
-                          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+                          onToggleSidebar={handleToggleSidebar}
                         />
                       ) : activeTab === "roster_raw" ? (
                         <RosterRawTable
@@ -2030,7 +2033,7 @@ export function TimesheetHub() {
                           onCellChange={handleRosterCellChange}
                           onDeleteRows={handleRosterDeleteRows}
                           showSidebar={showSidebar}
-                          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+                          onToggleSidebar={handleToggleSidebar}
                         />
                       ) : activeTab === "employee" ? (
                         <EmployeeTable
@@ -2039,7 +2042,7 @@ export function TimesheetHub() {
                           calculatedRosterData={calculatedRosterData}
                           onDeleteRows={handleEmployeeDeleteRows}
                           showSidebar={showSidebar}
-                          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+                          onToggleSidebar={handleToggleSidebar}
                         />
                       ) : activeTab === "center" ? (
                         <CenterTable
@@ -2048,7 +2051,7 @@ export function TimesheetHub() {
                           mktLocalNorthData={mktLocalNorthData}
                           onDeleteRows={handleCenterDeleteRows}
                           showSidebar={showSidebar}
-                          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+                          onToggleSidebar={handleToggleSidebar}
                         />
                       ) : null}
                     </div>

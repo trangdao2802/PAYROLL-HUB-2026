@@ -35,7 +35,7 @@ export const ROSTER_RAW_COLUMNS = [
     type: "number" as const, 
     width: 90, 
     cellClassName: "font-black text-slate-900",
-    render: (val: any) => {
+    render: (val: unknown) => {
       if (val === undefined || val === null || val === "") return "";
       const num = typeof val === "number" ? val : parseFloat(String(val).replace(/,/g, "."));
       if (isNaN(num)) return String(val);
@@ -155,7 +155,7 @@ export const ROSTER_RAW_COLUMNS = [
   },
   { 
     key: "loai", 
-    label: "Loại", 
+    label: "Category",
     type: "text" as const, 
     width: 80,
     render: (val: string) => {

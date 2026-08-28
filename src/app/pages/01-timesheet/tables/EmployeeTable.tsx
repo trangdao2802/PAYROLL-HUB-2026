@@ -2,7 +2,7 @@
 import { PanelLeft } from "lucide-react";
 import { DataTable } from "../../../components/DataTable";
 import { getDynamicEmployeeColumns } from "../../../constants/timesheet-columns";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 interface EmployeeTableProps {
   data: Record<string, unknown>[];
@@ -15,7 +15,7 @@ interface EmployeeTableProps {
   onDeleteRows?: (rows: any[]) => void;
 }
 
-export function EmployeeTable({ 
+function EmployeeTableComponent({
   data, 
   calculatedRosterData, 
   onFilteredDataChange,
@@ -98,3 +98,5 @@ export function EmployeeTable({
     </div>
   );
 }
+
+export const EmployeeTable = memo(EmployeeTableComponent);

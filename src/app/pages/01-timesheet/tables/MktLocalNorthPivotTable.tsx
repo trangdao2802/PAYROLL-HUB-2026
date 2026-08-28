@@ -32,7 +32,7 @@ interface MktLocalNorthPivotTableProps {
   onCellChange?: (row: MktLocalNorthPivotTableRow, field: string, value: unknown) => void;
 }
 
-export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = ({
+const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> = ({
   rows,
   types,
   grandTotals,
@@ -174,21 +174,21 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
           <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
-              Pivot Timesheet
+              PIVOT TIMESHEET
             </h3>
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
-              Bảng tổng hợp phân bổ chi phí MKT Local North theo loại công việc & bộ phận
-              {onCellChange ? " · Nhấp đúp L07 hoặc số tiền để chỉnh sửa" : ""}
+              MKT Local North cost allocation by task type and department
+              {onCellChange ? " · Double-click an L07 or amount to edit" : ""}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <div className="flex flex-col items-end">
-            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">SỐ DÒNG</span>
+            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">ROWS</span>
             <span className="text-xs font-black text-foreground">{rows.length}</span>
           </div>
           <div className="flex flex-col items-end border-l border-border/60 pl-4">
-            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TỔNG PHÍ</span>
+            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TOTAL FEES</span>
             <div className="bg-card px-2.5 py-0.5 rounded-md border border-border/60 shadow-2xs">
               <span className="text-xs font-black text-primary tracking-tight">{formatMoneyVND(grandTotals.grandTotal)}</span>
             </div>
@@ -225,8 +225,8 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                       autoFitNoColumn();
                     }}
                     className="rounded p-0.5 text-primary/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                    title="Tự động căn độ rộng cột No."
-                    aria-label="Tự động căn độ rộng cột No."
+                    title="Auto-fit the No. column"
+                    aria-label="Auto-fit the No. column"
                   >
                     <Maximize2 className="h-3 w-3" />
                   </button>
@@ -234,7 +234,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                 <div
                   role="separator"
                   aria-orientation="vertical"
-                  aria-label="Kéo để chỉnh độ rộng cột No."
+                  aria-label="Drag to resize the No. column"
                   className="absolute -right-1 top-0 z-20 h-full w-2 cursor-col-resize"
                   onMouseDown={startNoColumnResize}
                 />
@@ -259,7 +259,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
             {paginatedRows.length === 0 ? (
               <tr>
                 <td colSpan={4 + types.length} className="py-8 text-center text-muted-foreground text-xs bg-card">
-                  Chưa có dữ liệu Pivot
+                  No Pivot data available
                 </td>
               </tr>
             ) : (
@@ -285,7 +285,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                   <td
                     className="min-w-[180px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[10.5px] font-medium uppercase text-muted-foreground transition-colors"
                     onDoubleClick={() => startEditing(row, "chargeToCenterMkt", row.chargeToCenterMkt)}
-                    title={onCellChange ? "Nhấp đúp để sửa L07" : undefined}
+                    title={onCellChange ? "Double-click to edit L07" : undefined}
                   >
                     {isEditing(row, "chargeToCenterMkt") ? (
                       <input
@@ -301,7 +301,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                       key={type} 
                       className={`min-w-[120px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-right text-[11px] font-normal tabular-nums transition-colors ${row.values[type] ? "text-foreground" : "text-muted-foreground/40"}`}
                       onDoubleClick={() => startEditing(row, type, row.values[type] || 0)}
-                      title={onCellChange ? `Nhấp đúp để sửa ${type}` : undefined}
+                      title={onCellChange ? `Double-click to edit ${type}` : undefined}
                     >
                       {isEditing(row, type) ? (
                         <input
@@ -326,7 +326,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                       colSpan={3}
                       className="border-r border-b px-3.5 py-2 text-primary whitespace-nowrap"
                     >
-                      TỔNG BU {business}
+                      {business} SUBTOTAL
                     </td>
                     {types.map((type) => (
                       <td
@@ -352,7 +352,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
                 colSpan={3} 
                 className="min-w-[370px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 font-black text-primary"
               >
-                TỔNG CỘNG (SUMMARY TOTAL)
+                GRAND TOTAL
               </td>
               {types.map((type) => (
                 <td key={type} className="min-w-[120px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 text-right text-[11px] font-black tabular-nums text-primary">
@@ -375,7 +375,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
-              Hiển thị:
+              Show:
             </span>
             <Select
               value={itemsPerPage === Infinity ? "all" : String(itemsPerPage)}
@@ -404,7 +404,7 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
               ? `Tổng ${rows.length} dòng`
               : rows.length === 0
                 ? "0 dòng"
-                : `Hiển thị ${startIdx + 1} - ${endIdx} / ${rows.length} dòng`}
+                : `Showing ${startIdx + 1} - ${endIdx} of ${rows.length} rows`}
           </span>
         </div>
 
@@ -455,3 +455,5 @@ export const MktLocalNorthPivotTable: React.FC<MktLocalNorthPivotTableProps> = (
     </div>
   );
 };
+
+export const MktLocalNorthPivotTable = React.memo(MktLocalNorthPivotTableComponent);

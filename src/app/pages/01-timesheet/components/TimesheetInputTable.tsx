@@ -388,7 +388,7 @@ export function TimesheetInputTable({
                 className="sticky top-0 z-[110] bg-muted/80 border-b border-r border-border text-[10px] font-bold uppercase tracking-wider text-foreground px-2.5 py-1.5 text-center whitespace-nowrap group select-none shadow-[0_1px_0_rgba(0,0,0,0.05)]"
                 style={{ width: colWidths.aeCode }}
               >
-                <span>Mã AE</span>
+                <span>AE Code</span>
                 <div 
                   className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-accent/40 bg-transparent transition-all z-50 select-none"
                   onMouseDown={(e) => handleMouseDown(e, "aeCode")}
@@ -418,7 +418,7 @@ export function TimesheetInputTable({
                 className="sticky top-0 z-[110] bg-muted/80 border-b border-r border-border text-[10px] font-bold uppercase tracking-wider text-foreground px-2.5 py-1.5 text-center whitespace-nowrap group select-none shadow-[0_1px_0_rgba(0,0,0,0.05)]"
                 style={{ width: colWidths.date }}
               >
-                <span>Ngày Upload</span>
+                <span>Upload Date</span>
                 <div 
                   className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-accent/40 bg-transparent transition-all z-50 select-none"
                   onMouseDown={(e) => handleMouseDown(e, "date")}
@@ -428,7 +428,7 @@ export function TimesheetInputTable({
                 className="sticky top-0 z-[110] bg-muted/80 border-b border-r border-border text-[10px] font-bold uppercase tracking-wider text-foreground px-2.5 py-1.5 text-center whitespace-nowrap group select-none shadow-[0_1px_0_rgba(0,0,0,0.05)]"
                 style={{ width: colWidths.status }}
               >
-                <span>Trạng Thái</span>
+                <span>Status</span>
                 <div 
                   className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-accent/40 bg-transparent transition-all z-50 select-none"
                   onMouseDown={(e) => handleMouseDown(e, "status")}

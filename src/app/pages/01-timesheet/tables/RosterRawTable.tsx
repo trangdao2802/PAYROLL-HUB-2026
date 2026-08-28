@@ -15,7 +15,7 @@ interface RosterRawTableProps {
   onDeleteRows?: (rows: any[]) => void;
 }
 
-export function RosterRawTable({ 
+function RosterRawTableComponent({
   data, 
   onFilteredDataChange, 
   onCellChange,
@@ -77,17 +77,17 @@ export function RosterRawTable({
                 DATA TABLE FROM ROSTER FILES
               </h3>
               <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
-                Dữ liệu thô trích xuất trực tiếp từ các tập tin bảng chấm công Roster tải lên
+                Raw rows extracted directly from uploaded Roster timesheet files
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
-              <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">SỐ DÒNG</span>
+              <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">ROWS</span>
               <span className="text-xs font-black text-foreground">{sanitizedData.length.toLocaleString()}</span>
             </div>
             <div className="flex flex-col items-end border-l border-border/60 pl-4">
-              <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TỔNG GIỜ LÀM</span>
+              <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TOTAL HOURS</span>
               <div className="bg-card px-2.5 py-0.5 rounded-md border border-border/60 shadow-2xs">
                 <span className="text-xs font-black text-primary tracking-tight">{totalHours.toLocaleString()}h</span>
               </div>
@@ -118,3 +118,5 @@ export function RosterRawTable({
     </div>
   );
 }
+
+export const RosterRawTable = React.memo(RosterRawTableComponent);

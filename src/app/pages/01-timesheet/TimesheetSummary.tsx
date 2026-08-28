@@ -1248,22 +1248,22 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
-                Cài đặt &amp; tải file Timesheet
+                Settings &amp; Upload (Timesheet)
               </h1>
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-muted-foreground mt-0.5">
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">
                   <strong className="font-bold text-foreground">{inputRows.length || 0}</strong>
-                  trung tâm
+                  centers
                 </span>
                 <span aria-hidden="true" className="text-border">•</span>
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">
                   <strong className="font-bold text-foreground">{computedData?.employeeSummary?.length || 0}</strong>
-                  nhân sự
+                  employees
                 </span>
                 <span aria-hidden="true" className="text-border">•</span>
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">
                   <strong className="font-bold text-foreground">{(computedData?.processedRosterData?.length || 0).toLocaleString()}</strong>
-                  bản ghi
+                  records
                 </span>
               </div>
             </div>

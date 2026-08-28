@@ -2,8 +2,9 @@
 import { PanelLeft } from "lucide-react";
 import { DataTable } from "../../../components/DataTable";
 import { CENTER_COLUMNS } from "../../../constants/timesheet-columns";
+import { formatMoneyVND } from "../../../lib/utils/data-utils";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 interface CenterTableProps {
   data: Record<string, unknown>[];
@@ -16,7 +17,7 @@ interface CenterTableProps {
   onDeleteRows?: (rows: any[]) => void;
 }
 
-export function CenterTable({ 
+function CenterTableComponent({
   data, 
   mktLocalNorthData = [],
   onFilteredDataChange,
@@ -88,9 +89,9 @@ export function CenterTable({
     return { centerColumns: columns, centerRows: rows };
   }, [data, mktLocalNorthData]);
 
-  const totalHours = useMemo(() => {
-    return data.reduce((sum, r) => sum + (Number(r.totalHours) || 0), 0);
-  }, [data]);
+  const totalPayment = useMemo(() => {
+    return centerRows.reduce((sum, row) => sum + (Number(row.totalSalary) || 0), 0);
+  }, [centerRows]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
@@ -112,22 +113,22 @@ export function CenterTable({
           <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold uppercase tracking-wider text-primary text-[12px] leading-snug">
-              BẢNG TỔNG HỢP GIỜ LÀM THEO TRUNG TÂM (CENTER)
+              ROSTER CENTER PAYMENT SUMMARY
             </h3>
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
-              Tổng hợp khối lượng giờ công làm việc phân bổ theo từng trung tâm kinh doanh
+              Payroll allocation by business center and task type
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end">
-            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TRUNG TÂM</span>
+            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">CENTERS</span>
             <span className="text-xs font-black text-foreground">{data.length}</span>
           </div>
           <div className="flex flex-col items-end border-l border-border/60 pl-4">
-            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TỔNG GIỜ LÀM</span>
+            <span className="text-[9px] font-bold text-foreground/60 uppercase tracking-tighter whitespace-nowrap">TOTAL PAYMENT</span>
             <div className="bg-card px-2.5 py-0.5 rounded-md border border-border/60 shadow-2xs">
-              <span className="text-xs font-black text-primary tracking-tight">{totalHours.toLocaleString()}h</span>
+              <span className="text-xs font-black text-primary tracking-tight">{formatMoneyVND(totalPayment)}</span>
             </div>
           </div>
         </div>
@@ -157,3 +158,5 @@ export function CenterTable({
     </div>
   );
 }
+
+export const CenterTable = memo(CenterTableComponent);

@@ -65,17 +65,17 @@ export function MktLocalNorthTable({ data, onFilteredDataChange }: MktLocalNorth
       <div className="px-6 py-2 bg-primary/5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between font-sans text-[13px] font-bold text-primary tracking-wider uppercase shrink-0 gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-          <span>Pivot Phí MKT Local North Timesheet</span>
+          <span>MKT Local North Timesheet Pivot</span>
         </div>
         <div className="flex items-center gap-4 text-[13px]">
           <span>
-            SỐ DÒNG: <span className="tabular-nums text-foreground">{mktPivotRows.length}</span>
+            ROWS: <span className="tabular-nums text-foreground">{mktPivotRows.length}</span>
           </span>
           <span>
-            LOẠI CÔNG VIỆC: <span className="tabular-nums text-foreground">{mktPivotUniqueTypes.length}</span>
+            TASK TYPES: <span className="tabular-nums text-foreground">{mktPivotUniqueTypes.length}</span>
           </span>
           <span className="text-accent font-extrabold bg-accent/10 px-2.5 py-1 rounded-md border border-accent/20">
-            TỔNG PHÍ: {formatMoneyVND(mktPivotGrandTotals.grandTotal)}
+            TOTAL FEES: {formatMoneyVND(mktPivotGrandTotals.grandTotal)}
           </span>
         </div>
       </div>
@@ -180,7 +180,7 @@ export function MktLocalNorthTable({ data, onFilteredDataChange }: MktLocalNorth
                 colSpan={1}
                 style={{ fontSize: "11px", lineHeight: "13.5px" }}
               >
-                Tổng cộng / Grand Total
+                Grand Total
               </td>
               {mktPivotUniqueTypes.map((type) => {
                 const totalVal = mktPivotGrandTotals.totals[type] || 0;

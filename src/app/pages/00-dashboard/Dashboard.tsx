@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { 
-  Database, 
-  ShieldCheck, 
-  Scale, 
-  ArrowRight, 
-  EyeOff, 
-  Activity, 
-  Calendar, 
+import {
+  Activity,
+  ArrowRight,
+  Calendar,
+  Clock,
+  Database,
+  EyeOff,
+  Layers3,
   Play,
   RotateCcw,
-  Clock
+  Scale,
+  ShieldCheck,
 } from "lucide-react";
 
 export function Dashboard() {
@@ -25,185 +26,215 @@ export function Dashboard() {
     }
   });
 
-  const toggleCardVisibility = (path: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setHiddenCards((prev) => {
-      const next = prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path];
+  const toggleCardVisibility = (path: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setHiddenCards((previous) => {
+      const next = previous.includes(path)
+        ? previous.filter((item) => item !== path)
+        : [...previous, path];
       localStorage.setItem("dashboard_hidden_cards", JSON.stringify(next));
       return next;
     });
+  };
+
+  const restoreCards = () => {
+    setHiddenCards([]);
+    localStorage.removeItem("dashboard_hidden_cards");
   };
 
   const cards = [
     {
       title: "Master AE",
       path: "/master-ae",
-      desc: "Manage AE data sheets & configuration",
-      icon: <Database className="w-5 h-5 text-amber-700" />
+      desc: "Manage AE source files, mappings and payroll configuration.",
+      icon: <Database className="h-5 w-5" />,
     },
     {
       title: "Audit Center",
       path: "/audit",
-      desc: "Compare payroll data & detect discrepancies",
-      icon: <ShieldCheck className="w-5 h-5 text-amber-700" />
+      desc: "Compare source data and review payroll discrepancies.",
+      icon: <ShieldCheck className="h-5 w-5" />,
     },
     {
       title: "Balance",
       path: "/hold-dashboard",
-      desc: "Track & adjust trial balance and hold records",
-      icon: <Scale className="w-5 h-5 text-amber-700" />
+      desc: "Track trial balance, deductions and carried Hold records.",
+      icon: <Scale className="h-5 w-5" />,
     },
     {
       title: "Timesheet Hub",
       path: "/centers",
-      desc: "Review timecards & MKT Local North pivot fees",
-      icon: <Clock className="w-5 h-5 text-amber-700" />
-    }
+      desc: "Review roster hours, center payments and MKT allocation.",
+      icon: <Clock className="h-5 w-5" />,
+    },
   ];
 
-  const visibleCards = cards.filter((c) => !hiddenCards.includes(c.path));
+  const visibleCards = cards.filter((card) => !hiddenCards.includes(card.path));
 
   return (
-    <div id="dashboard-container" className="w-full h-full min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 lg:p-10 bg-transparent text-slate-800">
-      <div className="max-w-7xl mx-auto flex flex-col gap-8">
-        
-        {/* HEADER SECTION */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200/80 pb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-600"></span>
-              <span className="tabular-nums text-[11px] uppercase tracking-widest text-slate-500 font-semibold">
-                PRIMARY VIEW
-              </span>
+    <div
+      id="dashboard-container"
+      className="h-full min-h-0 w-full overflow-x-hidden overflow-y-auto bg-transparent p-3 text-foreground sm:p-4 lg:p-5"
+    >
+      <div className="mx-auto grid min-h-full w-full max-w-[1500px] grid-rows-[auto_minmax(0,1fr)] gap-4 lg:gap-5">
+        <header className="flex flex-col justify-between gap-4 rounded-2xl border border-border/80 bg-card/75 px-5 py-4 shadow-[0_18px_45px_-38px_color-mix(in_srgb,var(--primary)_55%,transparent)] backdrop-blur-sm sm:flex-row sm:items-center lg:px-7 lg:py-5">
+          <div className="min-w-0">
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-primary" />
+              Primary workspace
             </div>
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-slate-900 mb-2">
+            <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Dashboard Overview
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed">
-              Quản lý lương và kiểm toán chuyên nghiệp. Theo dõi phân phối thời gian thực và phát hiện các sai lệch.
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              One workspace for payroll processing, timesheets, audit controls and monthly balances.
             </p>
           </div>
 
           {hiddenCards.length > 0 && (
             <button
-              onClick={() => {
-                setHiddenCards([]);
-                localStorage.removeItem("dashboard_hidden_cards");
-              }}
-              className="self-start flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-all active:scale-[0.98] cursor-pointer shrink-0"
+              type="button"
+              onClick={restoreCards}
+              className="flex shrink-0 cursor-pointer items-center gap-2 self-start rounded-full border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-colors hover:bg-muted sm:self-center"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-              <span>Khôi phục thẻ ({hiddenCards.length})</span>
+              <RotateCcw className="h-3.5 w-3.5 text-primary" />
+              Restore cards ({hiddenCards.length})
             </button>
           )}
-        </div>
+        </header>
 
-        {/* MAIN GRID CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* MODULE CARDS SECTION (LEFT 8 COLS) */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-              Các Phân Hệ Chính ({visibleCards.length})
-            </h2>
+        <main className="grid min-h-[560px] grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
+          <section className="flex min-h-0 flex-col rounded-2xl border border-border/80 bg-card/45 p-3 sm:p-4 lg:col-span-9">
+            <div className="mb-3 flex items-center justify-between px-1">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Core modules
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {visibleCards.length} of {cards.length} available
+                </p>
+              </div>
+              <Layers3 className="h-4 w-4 text-primary/65" />
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {visibleCards.map((c) => (
-                <div
-                  key={c.path}
-                  className="group relative bg-white border border-slate-200/90 hover:border-amber-500/50 rounded-2xl p-5 sm:p-6 transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between min-h-[160px]"
+            <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4">
+              {visibleCards.map((card, index) => (
+                <article
+                  key={card.path}
+                  className="group relative flex min-h-[190px] cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[0_14px_34px_-30px_color-mix(in_srgb,var(--primary)_65%,transparent)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_22px_46px_-32px_color-mix(in_srgb,var(--primary)_70%,transparent)] sm:p-6"
                 >
                   <Link
-                    to={c.path}
-                    aria-label={`Mở ${c.title}`}
+                    to={card.path}
+                    aria-label={`Open ${card.title}`}
                     className="absolute inset-0 z-0 rounded-2xl"
                   />
 
-                  {/* Card Action Buttons */}
-                  <div className="relative z-[1] pointer-events-none flex items-center justify-between mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center transition-transform group-hover:scale-105">
-                      {c.icon}
+                  <div className="pointer-events-none relative z-[1] flex items-start justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/[0.07] text-primary transition-transform group-hover:scale-105">
+                      {card.icon}
                     </div>
-
-                    <button
-                      onClick={(e) => toggleCardVisibility(c.path, e)}
-                      title="Ẩn thẻ này"
-                      className="relative z-10 pointer-events-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer opacity-80 group-hover:opacity-100"
-                    >
-                      <EyeOff className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold tabular-nums tracking-[0.16em] text-muted-foreground/70">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(event) => toggleCardVisibility(card.path, event)}
+                        title="Hide this card"
+                        aria-label={`Hide ${card.title}`}
+                        className="pointer-events-auto relative z-10 cursor-pointer rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Card Content */}
-                  <div className="relative z-[1] pointer-events-none">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-amber-800 transition-colors">
-                        {c.title}
-                      </h3>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-700 group-hover:translate-x-1 transition-all shrink-0" />
+                  <div className="pointer-events-none relative z-[1] mt-8">
+                    <div className="flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="font-serif text-xl font-bold text-foreground transition-colors group-hover:text-primary sm:text-2xl">
+                          {card.title}
+                        </h2>
+                        <p className="mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
+                          {card.desc}
+                        </p>
+                      </div>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all group-hover:border-primary/25 group-hover:bg-primary group-hover:text-primary-foreground">
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {c.desc}
-                    </p>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
-          </div>
+          </section>
 
-          {/* SIDEBAR METRICS & ACTIONS (RIGHT 4 COLS) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-2xs flex flex-col gap-6">
-              <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100">
-                  Trạng Thái Hệ Thống
-                </h2>
+          <aside className="flex min-h-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[0_18px_45px_-38px_color-mix(in_srgb,var(--primary)_55%,transparent)] lg:col-span-3 lg:p-6">
+            <div className="border-b border-border/70 pb-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                System status
+              </p>
+              <h2 className="mt-1 font-serif text-xl font-bold text-foreground">
+                Ready to process
+              </h2>
+            </div>
 
-                <div className="flex flex-col gap-5">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
-                        System Status
-                      </span>
-                      <span className="text-base font-bold text-slate-800 font-serif italic">
-                        Operational
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 shrink-0">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">
-                        Last Audit
-                      </span>
-                      <span className="text-base font-bold text-slate-800 font-serif italic">
-                        {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                  </div>
+            <div className="grid flex-1 content-center gap-3 py-5">
+              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Platform
+                  </span>
+                  <span className="font-serif text-sm font-bold text-foreground">Operational</span>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => navigate('/audit')}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider px-5 py-3.5 rounded-xl transition-all shadow-sm active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2.5"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Run Audit Process</span>
-                </button>
+              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.07] text-primary">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Working date
+                  </span>
+                  <span className="font-serif text-sm font-bold text-foreground">
+                    {new Date().toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.07] text-primary">
+                  <Layers3 className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Visible modules
+                  </span>
+                  <span className="font-serif text-sm font-bold text-foreground">
+                    {visibleCards.length} / {cards.length}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-        </div>
-
+            <button
+              type="button"
+              onClick={() => navigate("/audit")}
+              className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-primary px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]"
+            >
+              <Play className="h-4 w-4 fill-current" />
+              Run audit process
+            </button>
+          </aside>
+        </main>
       </div>
     </div>
   );

@@ -2958,3 +2958,18 @@ td:has(> div > span:empty), td:empty {
 .timesheet-card-scrollbar::-webkit-scrollbar-corner {
   background: transparent !important;
 }
+
+/* Keep the visual hierarchy consistent in every data grid: column labels and
+   summary rows always use the same user-selected table font size. */
+table thead th,
+table thead th :where(span, div, button, label, p),
+table tfoot td,
+table tfoot th,
+table tfoot :where(span, div, button, label, p),
+table tr.total-row > td,
+table tr.total-row > th,
+table tr.total-row > :where(td, th) :where(span, div, button, label, p),
+.trial-month-total-row > td,
+.trial-month-total-row > td :where(span, div, button, label, p) {
+  font-size: var(--font-size, 13px) !important;
+}
