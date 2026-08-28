@@ -2691,6 +2691,36 @@ export function BulkPayment({
                       return clean ? `${clean}` : "";
                     };
 
+                    const describeAdjustment = (rawKey) => {
+                      const cleanKey = String(rawKey || "")
+                        .replace(/[\[\]]/g, "")
+                        .trim()
+                        .toUpperCase();
+                      const match = cleanKey.match(
+                        /^([A-Z]+)(?:_T?(\d{1,2})[.\/-](\d{2,4}))?$/,
+                      );
+                      const type = match?.[1] || cleanKey;
+                      const month = match?.[2]?.padStart(2, "0");
+                      const rawYear = match?.[3];
+                      const year = rawYear
+                        ? rawYear.length === 2
+                          ? `20${rawYear}`
+                          : rawYear
+                        : "";
+                      const labels = {
+                        HOLD: "Khoản giữ lại",
+                        ADD: "Cộng thêm",
+                        CANCEL: "Điều chỉnh giảm",
+                        BONUS: "Thưởng bổ sung",
+                      };
+
+                      return {
+                        type,
+                        label: labels[type] || cleanKey.replaceAll("_", " "),
+                        period: month && year ? `Tháng ${month}/${year}` : "",
+                      };
+                    };
+
                     const buGroups = {};
                     holdAddItems.forEach((item) => {
                       if (!buGroups[item.biz])
@@ -2747,8 +2777,8 @@ export function BulkPayment({
                     const diff = totalAcc - totalBulkPayment;
 
                     return (
-                      <div className="payroll-theme-card border rounded-2xl p-4 flex flex-col gap-3.5 shadow-xs transition-colors">
-                        <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2.5">
+                      <div className="payroll-theme-card bu-report-card border rounded-2xl p-4 flex flex-col gap-3.5 shadow-xs transition-colors">
+                        <div className="bu-report-header flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-2.5">
                           <span className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider font-sans flex items-center gap-2">
                             <Scale className="w-4 h-4 text-primary shrink-0" />
                             BÁO CÁO CHI TIẾT THEO BU ({appData.globalMonth || "01.2026"})
@@ -2762,12 +2792,13 @@ export function BulkPayment({
                           </button>
                         </div>
 
-                        <div className="text-[11px] text-slate-500 font-sans italic -mt-1">
-                          Số dòng dữ liệu:{" "}
-                          <span className="font-bold tabular-nums text-slate-800 dark:text-slate-200">
+                        <div className="bu-report-records text-[11px] text-slate-500 font-sans -mt-1">
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>Số dòng dữ liệu</span>
+                          <span className="bu-report-records-value font-bold tabular-nums text-slate-800 dark:text-slate-200">
                             {(appData.BankExport?.data || []).length}
-                          </span>{" "}
-                          dòng
+                            <small>dòng</small>
+                          </span>
                         </div>
 
                         {/* Styled Section Dropdown Header */}
@@ -2777,7 +2808,7 @@ export function BulkPayment({
                             onChange={(e) =>
                               setActiveBalanceSection(e.target.value)
                             }
-                            className={`appearance-none outline-none border rounded-xl px-3.5 py-2.5 font-extrabold font-sans text-xs uppercase cursor-pointer w-full tracking-wider transition-all shadow-2xs pr-8 ${
+                            className={`bu-report-select appearance-none outline-none border rounded-xl px-3.5 py-2.5 font-extrabold font-sans text-xs uppercase cursor-pointer w-full tracking-wider transition-all shadow-2xs pr-8 ${
                               activeBalanceSection === "I"
                                 ? "text-indigo-950 bg-indigo-50/80 border-indigo-200 focus:ring-2 focus:ring-indigo-300"
                                 : activeBalanceSection === "II"
@@ -2809,14 +2840,16 @@ export function BulkPayment({
                           {activeBalanceSection === "I" && (
                             <>
                               {buEntries1.length > 0 ? (
-                                <div className="flex flex-col gap-2">
+                                <div className="bu-report-value-list">
                                   {buEntries1.map(([biz, amt]) => (
                                     <div
                                       key={biz}
-                                      className="flex justify-between items-center text-xs py-0.5"
+                                      className="bu-report-value-row bu-report-value-row--gross"
                                     >
-                                      <span className="text-indigo-900/90 font-bold font-sans flex items-center gap-2 text-xs">
-                                        <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0" />
+                                      <span className="bu-report-value-label text-indigo-900/90">
+                                        <span className="bu-report-row-icon bu-report-row-icon--gross">
+                                          <Coins />
+                                        </span>
                                         {biz}:
                                       </span>
                                       <span className="font-bold text-indigo-950 tabular-nums tracking-tight text-sm">
@@ -2847,12 +2880,17 @@ export function BulkPayment({
                                 groupEntries.map(([biz, grp]) => (
                                   <div
                                     key={biz}
-                                    className="flex flex-col gap-2 border-b border-rose-200/50 pb-2.5 last:border-0 last:pb-0"
+                                    className="bu-report-adjustment-group"
                                   >
-                                    <div className="flex justify-between items-center text-xs">
-                                      <span className="font-extrabold text-rose-950 font-sans flex items-center gap-2 tracking-wide text-xs">
-                                        <div className="w-2 h-2 bg-rose-500 rounded-sm rotate-45 shrink-0" />
-                                        {biz}:
+                                    <div className="bu-report-adjustment-summary">
+                                      <span className="bu-report-value-label text-rose-950">
+                                        <span className="bu-report-row-icon bu-report-row-icon--deduction">
+                                          <TrendingDown />
+                                        </span>
+                                        <span>
+                                          <small>Đơn vị</small>
+                                          {biz}
+                                        </span>
                                       </span>
                                       <span
                                         className={`font-bold tabular-nums tracking-tight text-sm ${grp.total >= 0 ? "text-emerald-600" : "text-rose-700"}`}
@@ -2864,28 +2902,53 @@ export function BulkPayment({
                                         )}
                                       </span>
                                     </div>
-                                    <div className="flex flex-col gap-1.5 pl-3.5 border-l-2 border-rose-200/60">
+                                    <div className="bu-report-adjustment-list">
                                       {Object.entries(grp.itemsMap).map(
-                                        ([key, amount]) => (
-                                          <div
-                                            key={key}
-                                            className="flex justify-between items-center text-xs"
-                                          >
-                                            <span className="text-rose-900/80 font-medium font-sans flex items-center gap-1.5 text-[11px]">
-                                              <div className="w-1.5 h-1.5 bg-rose-300 rounded-full shrink-0" />
-                                              [{key}]:
-                                            </span>
-                                            <span
-                                              className={`font-semibold tabular-nums tracking-tight text-xs ${amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                                        ([key, amount]) => {
+                                          const detail =
+                                            describeAdjustment(key);
+                                          const DetailIcon =
+                                            detail.type === "ADD"
+                                              ? Plus
+                                              : detail.type === "BONUS"
+                                                ? Sparkles
+                                                : detail.type === "CANCEL"
+                                                  ? RefreshCw
+                                                  : AlertCircle;
+
+                                          return (
+                                            <div
+                                              key={key}
+                                              className={`bu-report-adjustment-row bu-report-adjustment-row--${detail.type.toLowerCase()}`}
                                             >
-                                              {amount >= 0 ? "+" : ""}
-                                              {formatMoneyVND(amount).replace(
-                                                " ₫",
-                                                "",
-                                              )}
-                                            </span>
-                                          </div>
-                                        ),
+                                              <span className="bu-report-adjustment-copy">
+                                                <span className="bu-report-adjustment-icon">
+                                                  <DetailIcon />
+                                                </span>
+                                                <span className="bu-report-adjustment-text">
+                                                  <strong>
+                                                    {detail.label}
+                                                  </strong>
+                                                  {detail.period && (
+                                                    <small>
+                                                      <Calendar />
+                                                      {detail.period}
+                                                    </small>
+                                                  )}
+                                                </span>
+                                              </span>
+                                              <span
+                                                className={`bu-report-adjustment-amount ${amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                                              >
+                                                {amount >= 0 ? "+" : ""}
+                                                {formatMoneyVND(amount).replace(
+                                                  " ₫",
+                                                  "",
+                                                )}
+                                              </span>
+                                            </div>
+                                          );
+                                        },
                                       )}
                                     </div>
                                   </div>
@@ -2912,14 +2975,16 @@ export function BulkPayment({
                           {activeBalanceSection === "III" && (
                             <>
                               {buEntries3.length > 0 ? (
-                                <div className="flex flex-col gap-2">
+                                <div className="bu-report-value-list">
                                   {buEntries3.map(([biz, amt]) => (
                                     <div
                                       key={biz}
-                                      className="flex justify-between items-center text-xs py-0.5"
+                                      className="bu-report-value-row bu-report-value-row--net"
                                     >
-                                      <span className="text-emerald-900/90 font-bold font-sans flex items-center gap-2 text-xs">
-                                        <div className="w-2 h-2 bg-emerald-500 rounded-sm shrink-0" />
+                                      <span className="bu-report-value-label text-emerald-900/90">
+                                        <span className="bu-report-row-icon bu-report-row-icon--net">
+                                          <CreditCard />
+                                        </span>
                                         {biz}:
                                       </span>
                                       <span className="font-bold text-emerald-950 tabular-nums tracking-tight text-sm">
@@ -2949,7 +3014,9 @@ export function BulkPayment({
                             <div className="flex flex-col gap-2.5 pt-1 text-xs">
                               <div className="flex justify-between items-center border-b border-sky-100/80 pb-2">
                                 <span className="text-sky-950 font-bold font-sans flex items-center gap-2 tracking-wide text-xs">
-                                  <div className="w-2 h-2 bg-sky-500 rounded-full shrink-0" />
+                                  <span className="bu-report-inline-icon bu-report-inline-icon--reconciliation">
+                                    <CreditCard />
+                                  </span>
                                   TỔNG AE:
                                 </span>
                                 <span className="font-bold text-sky-800 tabular-nums tracking-tight text-sm">
@@ -2962,7 +3029,9 @@ export function BulkPayment({
 
                               <div className="flex justify-between items-center">
                                 <span className="text-sky-950 font-bold font-sans flex items-center gap-2 tracking-wide text-xs">
-                                  <div className="w-2 h-2 bg-sky-500 rounded-full shrink-0" />
+                                  <span className="bu-report-inline-icon bu-report-inline-icon--reconciliation">
+                                    <Scale />
+                                  </span>
                                   TỔNG ACC:
                                 </span>
                                 <span className="font-bold text-sky-800 tabular-nums tracking-tight text-sm">
@@ -2973,7 +3042,9 @@ export function BulkPayment({
                               <div className="flex flex-col gap-1.5 pl-3.5 border-l-2 border-sky-200/80 my-1 py-1">
                                 <div className="flex justify-between items-center text-xs">
                                   <span className="text-sky-900/80 font-semibold font-sans flex items-center gap-1.5 text-[11px]">
-                                    <div className="w-1.5 h-1.5 bg-sky-400 rounded-sm shrink-0" />
+                                    <span className="bu-report-inline-icon bu-report-inline-icon--hold">
+                                      <AlertCircle />
+                                    </span>
                                     HOLD:
                                   </span>
                                   <span className="font-semibold text-rose-600 tabular-nums tracking-tight text-xs">
@@ -2986,7 +3057,9 @@ export function BulkPayment({
                                 </div>
                                 <div className="flex justify-between items-center text-xs">
                                   <span className="text-sky-900/80 font-semibold font-sans flex items-center gap-1.5 text-[11px]">
-                                    <div className="w-1.5 h-1.5 bg-sky-400 rounded-sm shrink-0" />
+                                    <span className="bu-report-inline-icon bu-report-inline-icon--add">
+                                      <Plus />
+                                    </span>
                                     ADD:
                                   </span>
                                   <span className="font-semibold text-emerald-600 tabular-nums tracking-tight text-xs">
@@ -3001,7 +3074,9 @@ export function BulkPayment({
 
                               <div className="flex justify-between items-center border-t border-sky-100/80 pt-2">
                                 <span className="text-sky-950 font-bold font-sans flex items-center gap-2 tracking-wide text-xs">
-                                  <div className="w-2 h-2 bg-sky-500 rounded-full shrink-0" />
+                                  <span className="bu-report-inline-icon bu-report-inline-icon--reconciliation">
+                                    <Coins />
+                                  </span>
                                   TỔNG BANK AE:
                                 </span>
                                 <span className="font-bold text-sky-800 tabular-nums tracking-tight text-sm">
