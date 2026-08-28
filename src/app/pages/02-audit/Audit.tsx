@@ -1459,66 +1459,83 @@ export function Audit() {
                 </div>
               )}
 
-              <AuditSourceCard
-                sourceCode="A"
-                title="MR.03 · Teacher Timesheet"
-                icon={FileText}
-                isReady={Boolean(fileNameA)}
-                primaryText={fileNameA || ""}
-                secondaryText={teacherDateRange || "Dữ liệu đã sẵn sàng"}
-                readyLabel="Hoàn tất"
-                emptyTitle="Tải file giáo viên"
-                emptyHint="Hỗ trợ .xlsx, .xls, .csv"
-                inputId="upload-file-a-audit"
-                onFileChange={onFileAChange}
-              />
-
-              <AuditSourceCard
-                sourceCode="C"
-                title="MR.07 · Class hour"
-                icon={BadgeCheck}
-                isReady={Boolean(fileNameConfig)}
-                primaryText={fileNameConfig || ""}
-                secondaryText={configDateRange || "Dữ liệu sĩ số đã tải lên"}
-                readyLabel="Hoàn tất"
-                emptyTitle="Tải file sĩ số"
-                emptyHint="Hỗ trợ .xlsx, .xls, .csv"
-                inputId="upload-file-config-audit"
-                onFileChange={onFileConfigChange}
-              />
-
-              <AuditSourceCard
-                sourceCode="B"
-                title="Dữ liệu lớp học"
-                icon={Users}
-                isReady={rosterData.length > 0}
-                primaryText={`${rosterData.length.toLocaleString("vi-VN")} dòng dữ liệu`}
-                secondaryText={taDateRange || "Đang chờ dữ liệu"}
-                readyLabel="Roster OK"
-                emptyTitle="Chưa có Roster"
-                emptyHint="Tải dữ liệu tại Timesheet Hub"
-              />
-
-              {/* Common Date Range Display */}
-              {(teacherDateRange || taDateRange || configDateRange) && (
-                <section className="audit-range-card relative z-10">
-                  <span className="audit-range-card__icon" aria-hidden="true">
-                    <Calendar className="h-4 w-4" />
+              <section className="audit-source-cluster" aria-label="Nguồn dữ liệu đối soát">
+                <header className="audit-source-cluster__header">
+                  <span className="audit-source-cluster__header-icon" aria-hidden="true">
+                    <UploadCloud className="h-4 w-4" />
                   </span>
-                  <span className="audit-range-card__content">
-                    <span className="audit-range-card__eyebrow">
-                      <span>Thời gian chung</span>
-                      <span className="audit-range-card__sources">A · B · MR.07</span>
-                    </span>
-                    <span
-                      className="audit-range-card__value"
-                      title={commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
-                    >
-                      {commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
-                    </span>
+                  <span className="audit-source-cluster__heading">
+                    <strong>Nguồn đối soát</strong>
+                    <small>Teacher · Class hour · Roster</small>
                   </span>
-                </section>
-              )}
+                  <span className="audit-source-cluster__progress">
+                    {[Boolean(fileNameA), Boolean(fileNameConfig), rosterData.length > 0].filter(Boolean).length}/3 sẵn sàng
+                  </span>
+                </header>
+
+                <div className="audit-source-cluster__cards">
+                  <AuditSourceCard
+                    sourceCode="A"
+                    title="MR.03 · Teacher Timesheet"
+                    icon={FileText}
+                    isReady={Boolean(fileNameA)}
+                    primaryText={fileNameA || ""}
+                    secondaryText={teacherDateRange || "Dữ liệu đã sẵn sàng"}
+                    readyLabel="Hoàn tất"
+                    emptyTitle="Tải file giáo viên"
+                    emptyHint="Hỗ trợ .xlsx, .xls, .csv"
+                    inputId="upload-file-a-audit"
+                    onFileChange={onFileAChange}
+                  />
+
+                  <AuditSourceCard
+                    sourceCode="C"
+                    title="MR.07 · Class hour"
+                    icon={BadgeCheck}
+                    isReady={Boolean(fileNameConfig)}
+                    primaryText={fileNameConfig || ""}
+                    secondaryText={configDateRange || "Dữ liệu sĩ số đã tải lên"}
+                    readyLabel="Hoàn tất"
+                    emptyTitle="Tải file sĩ số"
+                    emptyHint="Hỗ trợ .xlsx, .xls, .csv"
+                    inputId="upload-file-config-audit"
+                    onFileChange={onFileConfigChange}
+                  />
+
+                  <AuditSourceCard
+                    sourceCode="B"
+                    title="Dữ liệu lớp học"
+                    icon={Users}
+                    isReady={rosterData.length > 0}
+                    primaryText={`${rosterData.length.toLocaleString("vi-VN")} dòng dữ liệu`}
+                    secondaryText={taDateRange || "Đang chờ dữ liệu"}
+                    readyLabel="Roster OK"
+                    emptyTitle="Chưa có Roster"
+                    emptyHint="Tải dữ liệu tại Timesheet Hub"
+                  />
+                </div>
+
+                {/* Common Date Range Display */}
+                {(teacherDateRange || taDateRange || configDateRange) && (
+                  <section className="audit-range-card relative z-10">
+                    <span className="audit-range-card__icon" aria-hidden="true">
+                      <Calendar className="h-4 w-4" />
+                    </span>
+                    <span className="audit-range-card__content">
+                      <span className="audit-range-card__eyebrow">
+                        <span>Thời gian chung</span>
+                        <span className="audit-range-card__sources">A · B · MR.07</span>
+                      </span>
+                      <span
+                        className="audit-range-card__value"
+                        title={commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
+                      >
+                        {commonDateRange || (isProcessing ? "Đang tính toán..." : "Chưa đủ dữ liệu")}
+                      </span>
+                    </span>
+                  </section>
+                )}
+              </section>
             </div>
           </motion.div>
         )}

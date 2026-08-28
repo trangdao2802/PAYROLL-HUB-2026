@@ -2318,6 +2318,9 @@ div.audit-data-table-wrapper {
 /* Compact Audit source rail: source identity, state, file and date metadata
    stay scannable without introducing a second table-like visual hierarchy. */
 .audit-source-panel {
+  align-self: flex-start;
+  height: auto;
+  max-height: 100%;
   border-color: color-mix(in srgb, var(--primary, #781d1d) 12%, var(--border, #cbd5e1)) !important;
   border-radius: 14px !important;
   background: color-mix(in srgb, var(--primary, #781d1d) 1.5%, var(--card, #ffffff)) !important;
@@ -2329,15 +2332,103 @@ div.audit-data-table-wrapper {
 }
 
 .audit-source-list {
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px !important;
 }
 
-.audit-source-list > .audit-source-card,
-.audit-source-list > .audit-range-card {
-  min-height: 92px;
-  max-height: 138px;
-  flex: 1 1 0;
+.audit-source-cluster {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 11%, var(--border, #cbd5e1));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 2.2%, var(--card, #ffffff));
+  padding: 8px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 78%, transparent);
+}
+
+.audit-source-cluster__header {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 1px 2px 7px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary, #781d1d) 9%, var(--border, #cbd5e1));
+}
+
+.audit-source-cluster__header-icon {
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 6%, var(--card, #ffffff));
+  color: var(--primary, #781d1d);
+}
+
+.audit-source-cluster__heading {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.audit-source-cluster__heading strong {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--primary, #781d1d) 76%, var(--foreground, #0f172a));
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.audit-source-cluster__heading small {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--foreground, #0f172a) 48%, transparent);
+  font-size: 0.5rem;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-source-cluster__progress {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 15%, var(--border, #cbd5e1));
+  border-radius: 999px;
+  background: var(--card, #ffffff);
+  padding: 4px 7px;
+  color: var(--primary, #781d1d);
+  font-size: 0.45rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.audit-source-cluster__cards {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-source-cluster__cards > .audit-source-card {
+  min-height: 101px;
+  flex: 0 0 auto;
 }
 
 .audit-source-card {
@@ -2575,16 +2666,27 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
 .audit-range-card {
   display: flex;
   width: 100%;
-  min-height: 92px;
+  min-height: 76px;
   flex-shrink: 0;
   align-items: center;
   gap: 10px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1));
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--primary, #781d1d) 4%, var(--card, #ffffff));
-  padding: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff));
+  padding: 9px 10px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
+}
+
+@media (max-width: 767px) {
+  .audit-source-panel {
+    width: 100% !important;
+    max-height: min(58vh, 560px);
+  }
+
+  .audit-source-list {
+    max-height: inherit;
+  }
 }
 
 .audit-range-card__icon {
