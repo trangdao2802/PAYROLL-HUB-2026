@@ -115,7 +115,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
         style={{ scrollbarGutter: "stable" }}
       >
         <table className="min-w-[860px] w-full table-fixed border-separate border-spacing-0 text-xs">
-          <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#C4CBD5)] text-slate-800 shadow-[0_1px_0_var(--table-border-color,#d5d8dc)]">
+          <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#D9C9D0)] text-slate-800 shadow-[0_1px_0_var(--table-border-color,#d5d8dc)]">
             <tr>
               <th className="w-[58px] border-b border-r border-[var(--table-border-color,#d5d8dc)] px-2 py-3 text-center text-[10px] font-black uppercase tracking-wider">
                 No.

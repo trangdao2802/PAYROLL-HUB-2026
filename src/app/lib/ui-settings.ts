@@ -94,18 +94,18 @@ export interface TastePreset {
 export const TASTE_PRESETS: Record<string, TastePreset> = {
   systematic: {
     id: "systematic",
-    name: "Earthy Lilac (Mặc định)",
-    bg: "#F6F7F7",
-    accent: "#413644",
-    text: "#3A3129",
-    border: "#CFCDC2",
-    stripeColor1: "#F6F7F7",
-    stripeColor2: "#DFD9DF",
-    gridLineColor: "#CFCDC2",
-    tableHeaderBg: "#DFD9DF",
-    tableFooterBg: "#DFD9DF",
-    tableColumnHeaderBg: "#C4CBD5",
-    tableDataBg: "#F6F7F7",
+    name: "Lila Rose (Mặc định)",
+    bg: "#F7F3F5",
+    accent: "#8E4A49",
+    text: "#493A3E",
+    border: "#D9C9D0",
+    stripeColor1: "#FBF8FA",
+    stripeColor2: "#F1E7EB",
+    gridLineColor: "rgba(142, 74, 73, 0.10)",
+    tableHeaderBg: "#E9D9DF",
+    tableFooterBg: "#E9D9DF",
+    tableColumnHeaderBg: "#D9C9D0",
+    tableDataBg: "#FBF8FA",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
   },
@@ -163,13 +163,13 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
 };
 
 export const defaultSettings: UiSettings = {
-  bg: "#F6F7F7",
+  bg: "#F7F3F5",
   bgImage: "",
   bgImageStyle: "cover",
   bgImageOpacity: 100,
-  accent: "#413644",
-  text: "#3A3129",
-  border: "#CFCDC2",
+  accent: "#8E4A49",
+  text: "#493A3E",
+  border: "#D9C9D0",
   fontSize: "13px",
   tablePadding: "12px 16px",
   sidebarPos: "left",
@@ -180,13 +180,13 @@ export const defaultSettings: UiSettings = {
   tableFont: "var(--font-main)",
   autoSave: true,
   showHelp: true,
-  stripeColor1: "#F6F7F7",
-  stripeColor2: "#DFD9DF",
-  gridLineColor: "#CFCDC2",
-  tableHeaderBg: "#DFD9DF",
-  tableFooterBg: "#DFD9DF",
-  tableColumnHeaderBg: "#C4CBD5",
-  tableDataBg: "#F6F7F7",
+  stripeColor1: "#FBF8FA",
+  stripeColor2: "#F1E7EB",
+  gridLineColor: "rgba(142, 74, 73, 0.10)",
+  tableHeaderBg: "#E9D9DF",
+  tableFooterBg: "#E9D9DF",
+  tableColumnHeaderBg: "#D9C9D0",
+  tableDataBg: "#FBF8FA",
   showPivotSubtotals: true,
   showGrandTotals: true,
   showMktCols: true,
@@ -533,10 +533,10 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
   root.style.setProperty("--table-grid-color", effectiveGrid);
   root.style.setProperty("--table-border-color", effectiveGrid);
 
-  root.style.setProperty("--table-header-bg", settings.tableHeaderBg || "#DFD9DF");
-  root.style.setProperty("--table-footer-bg", settings.tableFooterBg || settings.tableHeaderBg || "#DFD9DF");
-  root.style.setProperty("--table-column-header-bg", settings.tableColumnHeaderBg || "#C4CBD5");
-  root.style.setProperty("--table-data-bg", settings.tableDataBg || "#F6F7F7");
+  root.style.setProperty("--table-header-bg", settings.tableHeaderBg || "#E9D9DF");
+  root.style.setProperty("--table-footer-bg", settings.tableFooterBg || settings.tableHeaderBg || "#E9D9DF");
+  root.style.setProperty("--table-column-header-bg", settings.tableColumnHeaderBg || "#D9C9D0");
+  root.style.setProperty("--table-data-bg", settings.tableDataBg || "#FBF8FA");
 
   if (settings.titleAlign) {
     const [flexAlign, textAlign] = settings.titleAlign.split("|");
@@ -692,7 +692,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .total-row th,
     tr.total-row td,
     tr.total-row th {
-      background-color: ${settings.tableColumnHeaderBg || "#C4CBD5"} !important;
+      background-color: ${settings.tableColumnHeaderBg || "#D9C9D0"} !important;
       color: ${settings.accent || "#7B4F85"} !important;
       border-left: none !important;
       border-right: none !important;
@@ -715,8 +715,8 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .bulk-payment-data-panel .table-footer-pagination,
     .analysis-table-frame > .unified-table-frame-header,
     .analysis-data-table > .table-footer-pagination {
-      background: ${settings.tableHeaderBg || "#DFD9DF"} !important;
-      background-color: ${settings.tableHeaderBg || "#DFD9DF"} !important;
+      background: ${settings.tableHeaderBg || "#E9D9DF"} !important;
+      background-color: ${settings.tableHeaderBg || "#E9D9DF"} !important;
     }
 
     .table-footer-pagination,
@@ -750,9 +750,9 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     }
 
     body, #root, .bg-background {
-      background: radial-gradient(circle at 18% 14%, ${settings.stripeColor1 || "#F6F7F7"} 0%, transparent 58%),
-                  radial-gradient(circle at 82% 86%, ${settings.stripeColor2 || "#DFD9DF"} 0%, transparent 62%),
-                  linear-gradient(135deg, ${settings.stripeColor1 || "#F6F7F7"} 0%, ${settings.stripeColor2 || "#DFD9DF"} 100%) !important;
+      background: radial-gradient(circle at 18% 14%, ${settings.stripeColor1 || "#FBF8FA"} 0%, transparent 58%),
+                  radial-gradient(circle at 82% 86%, ${settings.stripeColor2 || "#F1E7EB"} 0%, transparent 62%),
+                  linear-gradient(135deg, ${settings.stripeColor1 || "#FBF8FA"} 0%, ${settings.stripeColor2 || "#F1E7EB"} 100%) !important;
       background-attachment: fixed !important;
     }
 
@@ -878,12 +878,12 @@ export async function loadUiSettings(): Promise<UiSettings> {
   const sanitize = (s: unknown): UiSettings => {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
     const result = { ...defaultSettings, ...sObj };
-    // Move the previous Hushed Elegance default to the approved accent while
-    // preserving deliberate custom colors and every other preset.
+    // Move previous default accents to Lila Rose while preserving deliberate
+    // custom colors and every other preset.
     if (
       result.preset === "systematic" &&
       typeof result.accent === "string" &&
-      result.accent.toUpperCase() === "#8E659A"
+      ["#8E659A", "#413644"].includes(result.accent.toUpperCase())
     ) {
       result.accent = defaultSettings.accent;
     }
@@ -916,16 +916,26 @@ export async function loadUiSettings(): Promise<UiSettings> {
       };
 
       migrateDefaultColor("bg", "#EAE7EE");
+      migrateDefaultColor("bg", "#F6F7F7");
       migrateDefaultColor("text", "#4D3653");
+      migrateDefaultColor("text", "#3A3129");
       migrateDefaultColor("border", "#D3CCD8");
+      migrateDefaultColor("border", "#CFCDC2");
       migrateDefaultColor("stripeColor1", "#FFFFFF");
+      migrateDefaultColor("stripeColor1", "#F6F7F7");
       migrateDefaultColor("stripeColor2", "#EFECE8");
+      migrateDefaultColor("stripeColor2", "#DFD9DF");
       migrateDefaultColor("gridLineColor", "rgba(77, 54, 83, 0.06)");
       migrateDefaultColor("gridLineColor", "rgba(58, 49, 41, 0.08)");
+      migrateDefaultColor("gridLineColor", "#CFCDC2");
       migrateDefaultColor("tableHeaderBg", "#CFC4D6");
+      migrateDefaultColor("tableHeaderBg", "#DFD9DF");
       migrateDefaultColor("tableFooterBg", "#CFC4D6");
+      migrateDefaultColor("tableFooterBg", "#DFD9DF");
       migrateDefaultColor("tableColumnHeaderBg", "#E3DBE8");
+      migrateDefaultColor("tableColumnHeaderBg", "#C4CBD5");
       migrateDefaultColor("tableDataBg", "#FCFBFD");
+      migrateDefaultColor("tableDataBg", "#F6F7F7");
     }
     // Force valid hex for specific fields
     if (!isValidColor(result.accent)) result.accent = defaultSettings.accent;

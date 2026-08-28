@@ -25,7 +25,6 @@ import {
   AlertCircle,
   ChevronDown,
   LayoutDashboard,
-  Home,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
@@ -177,14 +176,19 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 outline-none focus:outline-none focus-visible:outline-none shadow-2xs ${
+            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 outline-none focus:outline-none focus-visible:outline-none shadow-2xs overflow-hidden ${
               location.pathname === "/" 
                 ? "bg-accent/10 border-accent/30 text-accent" 
                 : "bg-card border-border text-foreground hover:bg-accent/5 hover:text-accent hover:border-accent/30"
             }`}
             title="Trang chủ"
           >
-            <Home className="w-4 h-4 text-accent" />
+            <img
+              src="/logo.png"
+              alt=""
+              aria-hidden="true"
+              className="h-[25px] w-[25px] object-contain"
+            />
           </Link>
           <div 
             className="text-xs font-bold tracking-wider text-foreground select-none"

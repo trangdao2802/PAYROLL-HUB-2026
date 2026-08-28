@@ -52,7 +52,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(65, 54, 68, 0.22);
+  background-color: rgba(142, 74, 73, 0.22);
   border-radius: 9999px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -60,7 +60,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(65, 54, 68, 0.45);
+  background-color: rgba(142, 74, 73, 0.45);
 }
 
 ::-webkit-scrollbar-corner {
@@ -69,7 +69,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(65, 54, 68, 0.22) transparent;
+  scrollbar-color: rgba(142, 74, 73, 0.22) transparent;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -93,45 +93,45 @@
   --font-weight-bold: 600;
   --tracking-tight: 0.02em;
 
-  /* Earthy Lilac Palette - Accent/Table: #413644 */
-  --bg: #F6F7F7;
-  --surface: #F9F8FA;
-  --ink: #3A3129;
-  --ink-muted: #6B5B70;
-  --accent: #413644;
-  --accent-soft: #DFD9DF;
-  --border: #CFCDC2;
+  /* Lila Rose Palette - inspired by the approved blush/lilac references */
+  --bg: #F7F3F5;
+  --surface: #FBF8FA;
+  --ink: #493A3E;
+  --ink-muted: #75656B;
+  --accent: #8E4A49;
+  --accent-soft: #EADDE2;
+  --border: #D9C9D0;
   --radius-btn: 99px;
   --radius-card: 12px;
 
-  --background: #F6F7F7;
-  --foreground: #3A3129;
-  --card: #F9F8FA;
-  --card-foreground: #3A3129;
-  --primary: #413644;
+  --background: #F7F3F5;
+  --foreground: #493A3E;
+  --card: #FBF8FA;
+  --card-foreground: #493A3E;
+  --primary: #8E4A49;
   --primary-foreground: #FFFFFF; 
-  --secondary: #C4CBD5;
-  --secondary-foreground: #3A3129;
+  --secondary: #D9C9D0;
+  --secondary-foreground: #493A3E;
   --accent-foreground: #FFFFFF;
-  --popover: #F9F8FA;
-  --popover-foreground: #3A3129;
-  --muted: #DFD9DF;
-  --muted-foreground: #6B5B70;
-  --table-grid-color: #CFCDC2;
-  --grid-line-color: #CFCDC2;
-  --table-border-color: #CFCDC2;
-  --table-header-bg: #DFD9DF;
-  --table-footer-bg: #DFD9DF;
-  --table-column-header-bg: #C4CBD5;
-  --table-data-bg: #F6F7F7;
-  --ring: #413644;
-  --sky: #B4C0CB; 
-  --rose: #8E659A;
-  --peach: #DFD9DF;
+  --popover: #FBF8FA;
+  --popover-foreground: #493A3E;
+  --muted: #EADDE2;
+  --muted-foreground: #75656B;
+  --table-grid-color: #D9C9D0;
+  --grid-line-color: rgba(142, 74, 73, 0.10);
+  --table-border-color: #D9C9D0;
+  --table-header-bg: #E9D9DF;
+  --table-footer-bg: #E9D9DF;
+  --table-column-header-bg: #D9C9D0;
+  --table-data-bg: #FBF8FA;
+  --ring: #8E4A49;
+  --sky: #DDE0EB;
+  --rose: #8E4A49;
+  --peach: #E8C8C2;
   --radius: 12px;
 
-  --stripe-color1: #FFFFFF;
-  --stripe-color2: #EFECE8;
+  --stripe-color1: #FBF8FA;
+  --stripe-color2: #F1E7EB;
 
   --pattern-stripes-purple: repeating-linear-gradient(
     45deg,
@@ -672,7 +672,7 @@
   .unified-table-frame th,
   .analysis-data-table th,
   .reconcile-table-region th {
-    background-color: var(--table-column-header-bg, #C4CBD5) !important;
+    background-color: var(--table-column-header-bg, #D9C9D0) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.1em !important;
     font-weight: 700 !important;
@@ -1600,9 +1600,9 @@ div[class*="bg-slate-200/30"] {
 }
 
 body, #root, .bg-background {
-  background: radial-gradient(circle at 18% 14%, var(--stripe-color1, #F6F7F7) 0%, transparent 58%),
-              radial-gradient(circle at 82% 86%, var(--stripe-color2, #DFD9DF) 0%, transparent 62%),
-              linear-gradient(135deg, var(--stripe-color1, #F6F7F7) 0%, var(--stripe-color2, #DFD9DF) 100%) !important;
+  background: radial-gradient(circle at 18% 14%, var(--stripe-color1, #FBF8FA) 0%, transparent 58%),
+              radial-gradient(circle at 82% 86%, var(--stripe-color2, #F1E7EB) 0%, transparent 62%),
+              linear-gradient(135deg, var(--stripe-color1, #FBF8FA) 0%, var(--stripe-color2, #F1E7EB) 100%) !important;
   background-attachment: fixed !important;
 }
 
@@ -2827,16 +2827,16 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
    The selectors intentionally outrank the runtime table-theme cell fill. */
 .pivot-table-container table.pivot-timesheet-table tbody tr:not(.pivot-bu-subtotal-row):hover > td,
 .pivot-master-frame table.pivot-master-table tbody tr.pivot-master-data-row:hover > td {
-  background: color-mix(in srgb, var(--primary, #413644) 5%, var(--card, #ffffff)) !important;
-  background-color: color-mix(in srgb, var(--primary, #413644) 5%, var(--card, #ffffff)) !important;
+  background: color-mix(in srgb, var(--primary, #8E4A49) 5%, var(--card, #ffffff)) !important;
+  background-color: color-mix(in srgb, var(--primary, #8E4A49) 5%, var(--card, #ffffff)) !important;
 }
 
 .pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
 .pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td {
-  background: #ddd3e1 !important;
-  background-color: #ddd3e1 !important;
-  border-color: #b9aabd !important;
-  color: #413644 !important;
+  background: #E9D9DF !important;
+  background-color: #E9D9DF !important;
+  border-color: #C7AEB8 !important;
+  color: #694243 !important;
 }
 
 .dark .pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
@@ -2868,13 +2868,12 @@ td:has(> div > span:empty), td:empty {
   border-left-color: transparent !important;
 }
 
-/* Timesheet control rail: a compact, tactile scrollbar using the Earthy
-   Lilac palette. This is intentionally scoped so table scrollbars stay slim. */
+/* Timesheet control rail: a compact, tactile scrollbar using Lila Rose. */
 .timesheet-card-scrollbar {
   scrollbar-gutter: stable;
   scrollbar-width: thin !important;
-  scrollbar-color: color-mix(in srgb, var(--primary, #413644) 82%, #a5aba3)
-    color-mix(in srgb, var(--border, #cfcdc2) 58%, transparent) !important;
+  scrollbar-color: color-mix(in srgb, var(--primary, #8E4A49) 82%, #D9C9D0)
+    color-mix(in srgb, var(--border, #D9C9D0) 58%, transparent) !important;
 }
 
 .timesheet-card-scrollbar::-webkit-scrollbar {
@@ -2883,18 +2882,18 @@ td:has(> div > span:empty), td:empty {
 }
 
 .timesheet-card-scrollbar::-webkit-scrollbar-track {
-  background: color-mix(in srgb, var(--border, #cfcdc2) 58%, transparent) !important;
-  border: 3px solid var(--card, #f9f8fa);
+  background: color-mix(in srgb, var(--border, #D9C9D0) 58%, transparent) !important;
+  border: 3px solid var(--card, #FBF8FA);
   border-radius: 999px !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #413644) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary, #8E4A49) 10%, transparent);
 }
 
 .timesheet-card-scrollbar::-webkit-scrollbar-thumb {
   min-height: 48px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--primary, #413644) 72%, #a5aba3),
-    var(--primary, #413644)
+    color-mix(in srgb, var(--primary, #8E4A49) 72%, #D9C9D0),
+    var(--primary, #8E4A49)
   ) padding-box !important;
   border: 2px solid transparent;
   border-radius: 999px !important;
@@ -2904,8 +2903,8 @@ td:has(> div > span:empty), td:empty {
 .timesheet-card-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--primary, #413644) 88%, #c4cbd5),
-    #3a3129
+    color-mix(in srgb, var(--primary, #8E4A49) 88%, #D9C9D0),
+    #694243
   ) padding-box !important;
 }
 
