@@ -183,18 +183,14 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
             }`}
             title="Trang chủ"
           >
-            <img
-              src="/logo.png"
-              alt=""
-              aria-hidden="true"
-              className="h-[25px] w-[25px] object-contain"
-            />
+            <span className="app-home-mark" aria-hidden="true" />
           </Link>
           <div 
-            className="text-xs font-bold tracking-wider text-foreground select-none"
-            style={{ fontFamily: "'Gentium Book Plus', serif" }}
+            className="app-brand-lockup select-none"
+            title="Payroll Hub"
           >
-            PAYROLL HUB
+            <span className="sr-only">Payroll Hub</span>
+            <span className="app-brand-wordmark" aria-hidden="true" />
           </div>
           {location.pathname !== "/" && pageTabs[lookupPath] && (
             <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-300">

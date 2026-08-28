@@ -74,6 +74,47 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Theme-aware brand marks: artwork supplies the silhouette, the selected
+   accent supplies the color. */
+.app-home-mark,
+.app-brand-wordmark {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: var(--primary, #8E4A49);
+  transition: background-color 180ms ease, transform 180ms ease;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.app-home-mark {
+  width: 23px;
+  height: 23px;
+  -webkit-mask-image: url("/home-mark.png");
+  mask-image: url("/home-mark.png");
+}
+
+.app-brand-lockup {
+  display: inline-flex;
+  min-width: 72px;
+  height: 28px;
+  align-items: center;
+}
+
+.app-brand-wordmark {
+  width: 78px;
+  height: 28px;
+  -webkit-mask-image: url("/payroll-wordmark.png");
+  mask-image: url("/payroll-wordmark.png");
+}
+
+.app-brand-lockup:hover .app-brand-wordmark {
+  transform: translateY(-1px);
+}
+
 :root {
   /* Font Families */
   --font-main: "Plus Jakarta Sans", "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
