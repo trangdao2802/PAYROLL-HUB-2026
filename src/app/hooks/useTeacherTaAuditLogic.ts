@@ -251,7 +251,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
     }
 
     // Cache check: khÃ´ng gá»­i worker náº¿u params giá»‘ng há»‡t láº§n trÆ°á»›c
-    const cacheKey = `audit-in-class-v2|${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}|${allowedTaRulesKey}`;
+    const cacheKey = `audit-in-class-v3|${fileNameA}|${fromDate}|${toDate}|${rosterData.length}|${fileAData.length}|${checkTAsDataRaw.length}|${allowedTaRulesKey}`;
     if (cacheKey === lastParamsCacheRef.current) return;
     lastParamsCacheRef.current = cacheKey;
 
@@ -263,9 +263,6 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
 
     setAuditResults((prev: any) => ({ ...prev, isCalculating: true }));
 
-    const bonusData = appData.Q_BonusData || null;
-    const bonusSheetNameActual = appData.Q_TeacherHoursFileName?.includes("Bonus") ? "Summer Instructors Bonus" : (appData.Q_BonusSheetName || "Bonus");
-
     const params = {
       fileAData,
       rosterData,
@@ -274,8 +271,6 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
       checkTAsDataRaw,
       fileNameA,
       centerMappingParam,
-      bonusData,
-      bonusSheetName: bonusSheetNameActual,
       allowedTaRules,
     };
 
@@ -329,7 +324,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
     return () => {
       if (workerRef.current) { workerRef.current.terminate(); workerRef.current = null; }
     };
-  }, [fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, fuzzyThreshold, centerMappingParam, appData.Q_BonusData, appData.Q_TeacherHoursFileName, appData.Q_BonusSheetName, allowedTaRules, allowedTaRulesKey]);
+  }, [fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, fuzzyThreshold, centerMappingParam, allowedTaRules, allowedTaRulesKey]);
 
   const fileNameB = appData.Timesheet_RosterFileName || "";
   const fileNameConfig = appData.Q_CheckTAsFileName || "";

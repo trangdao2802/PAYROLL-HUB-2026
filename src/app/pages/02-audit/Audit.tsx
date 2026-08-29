@@ -65,6 +65,7 @@ import {
   evaluateAllowedTAs,
   sanitizeAllowedTaRules,
 } from "../../lib/utils/allowed-ta-rules";
+import { summarizeAuditDay } from "../../lib/utils/audit-overview";
 import {
   clearAuditPageData,
   clearAuditTableData,
@@ -583,7 +584,7 @@ export function Audit() {
     };
   }, [rosterData, auditResults.fileDateRangeA, appData.Q_CheckTAs]);
 
-  const teacherGroupLabel = "TOTAL HOURS";
+  const teacherGroupLabel = "TOTAL TEACHING HOURS";
   const taGroupLabel = "INTERN";
 
   const location = useLocation();
@@ -652,7 +653,7 @@ export function Audit() {
         return {
           ...r,
           className: cName,
-          diffValue: r.actualTA - r.expected,
+          diffValue: Number(r.overAllowedDays) || 0,
         };
       }) || []
     );
@@ -719,85 +720,62 @@ export function Audit() {
       ),
     },
     {
+      key: "reportMonth",
+      label: "MONTH",
+      sortable: true,
+      filterable: true,
+      width: 105,
+      align: "center",
+      render: (val: string) => (
+        <span className="tabular-nums font-black text-slate-700">{val}</span>
+      ),
+    },
+    {
       key: "teacherHours",
       label: teacherGroupLabel,
       sortable: true,
       type: "number",
-      width: 150,
+      width: 180,
       render: (val: any) => (
         <span className="tabular-nums font-bold text-primary">
           {(() => {
             const n = Number(val);
-            return (val && val !== "-" && !isNaN(n) && n !== 0) ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
+            return Number.isFinite(n)
+              ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : "";
           })()}
         </span>
       ),
     },
-
     {
-      key: "actualTA",
-      label: taGroupLabel,
+      key: "classDays",
+      label: "CLASS DAYS",
       sortable: true,
       type: "number",
-      width: 207,
-      render: (val: any) => (
-        <span className="tabular-nums text-emerald-600 font-bold">
-          {(() => {
-            const n = Number(val);
-            return (val && val !== "-" && !isNaN(n) && n !== 0) ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
-          })()}
-        </span>
-      ),
-    },
-    {
-      key: "numStudents",
-      label: "STUDENTS",
-      sortable: true,
-      width: 100,
+      width: 110,
       align: "center",
       render: (val: any) => (
-        <span
-          className={`tabular-nums font-bold ${val && val !== 0 ? "text-primary" : "text-muted-foreground/30"}`}
-        >
-          {val && val !== 0 ? val : ""}
+        <span className="tabular-nums font-black text-slate-700">
+          {Number(val) || 0}
         </span>
       ),
     },
     {
-      key: "expected",
-      label: "ALLOWED INTERNS",
+      key: "overAllowedDays",
+      label: "DAYS OVER ALLOWED TAS",
       sortable: true,
       type: "number",
-      width: 140,
+      width: 190,
+      align: "center",
       render: (val: any, row: any) => (
-        <div className="flex flex-col">
-          <span className="text-slate-700 font-bold text-xs">
-            {(() => {
-              const n = Number(val);
-              return (val && val !== "-" && !isNaN(n) && n !== 0) ? n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
-            })()}
-          </span>
-          <span className="text-[10px] text-muted-foreground font-medium">
-            {row.teacherHours > 0
-              ? Number(row.expected / row.teacherHours || 0).toFixed(1)
-              : 0}{" "}
-            Intern Rule
-          </span>
-        </div>
-      ),
-    },
-    
-    {
-      key: "diffValue",
-      label: "VARIANCE",
-      sortable: true,
-      type: "number",
-      width: 150,
-      render: (_: any, row: any) => (
         <span
-          className={`font-bold ${row.statusColor === "emerald" ? "text-emerald-600" : row.statusColor === "amber" ? "text-amber-600" : "text-rose-600"}`}
+          className={`inline-flex min-w-[76px] items-center justify-center rounded-full border px-2.5 py-1 tabular-nums text-[10px] font-black ${
+            Number(val) > 0
+              ? "border-rose-200 bg-rose-50 text-rose-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
         >
-          {row.diffText}
+          {Number(val) || 0}/{Number(row.classDays) || 0} days
         </span>
       ),
     },
@@ -867,7 +845,7 @@ export function Audit() {
         </div>
       ),
     },
-  ], [setActiveTab, setDetailManualFilter, setIsConfigHidden, teacherGroupLabel, taGroupLabel, handleDetailRowClick]);
+  ], [setActiveTab, setDetailManualFilter, setIsConfigHidden, teacherGroupLabel, handleDetailRowClick]);
 
   // ----- DETAIL DATA -----
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
@@ -931,87 +909,58 @@ export function Audit() {
         j++;
       }
 
-      const span = j - i;
-      let totalTaHoursForSpan = 0;
-      let totalTeacherHoursForSpan = 0;
-      let allowedTAs = 0;
+      const teacherEntries: any[] = [];
+      const taEntries: any[] = [];
       let maxStudentsInSpan = 0;
-      const uniqueTAs = new Set();
 
       for (let k = i; k < j; k++) {
         const sess = allSessions[k];
 
         if (sess.ta) {
-          if (sess.ta.hours) {
-            totalTaHoursForSpan += sess.ta.hours;
-            if (sess.ta.id) uniqueTAs.add(sess.ta.id);
-          }
-          if (sess.ta.allowedTAs) {
-            allowedTAs = sess.ta.allowedTAs;
-          }
+          taEntries.push(sess.ta);
           const sNum = parseInt(sess.ta.numStudents) || 0;
           if (sNum > maxStudentsInSpan) maxStudentsInSpan = sNum;
         }
 
         if (sess.teacher) {
-          if (sess.teacher.hours) {
-            totalTeacherHoursForSpan += sess.teacher.hours;
-          }
-          if (sess.teacher.allowedTAs) {
-            allowedTAs = sess.teacher.allowedTAs;
-          }
+          teacherEntries.push(sess.teacher);
           const sNum = parseInt(sess.teacher.numStudents) || 0;
           if (sNum > maxStudentsInSpan) maxStudentsInSpan = sNum;
         }
       }
 
-      if (!allowedTAs) {
-        allowedTAs = evaluateAllowedTAs(current._parentClassName, maxStudentsInSpan, allowedTaRules);
-      }
-
-      let actualTAsCount = 0;
-      for (let k = i; k < j; k++) {
-        const sess = allSessions[k];
-        if (sess.ta && (sess.ta.id || sess.ta.name || (sess.ta.hours && sess.ta.hours > 0))) {
-          actualTAsCount++;
-        }
-      }
-
-      const needsReview =
-        actualTAsCount > allowedTAs ||
-        totalTaHoursForSpan > totalTeacherHoursForSpan * allowedTAs + 0.05;
+      const daySummary = summarizeAuditDay(
+        current.fullDate || current.date || "",
+        { teacher: teacherEntries, ta: taEntries },
+        evaluateAllowedTAs(
+          current._parentClassName,
+          maxStudentsInSpan,
+          allowedTaRules,
+        ),
+      );
 
       // This is the discrepancy-detail table: matched sessions do not belong
       // here, and every displayed row must carry an explicit review status.
-      if (!needsReview) {
+      if (!daySummary.isOverAllowed) {
         i = j;
         continue;
       }
-      const sessionStatus = "Cần check lại";
+      const sessionStatus = "Vượt Allowed TAs";
 
       const formattedTeacherHours =
-        totalTeacherHoursForSpan > 0
-          ? totalTeacherHoursForSpan.toFixed(2).replace(".", ",")
+        daySummary.teacherHours > 0
+          ? daySummary.teacherHours.toFixed(2).replace(".", ",")
           : "0";
-      const formattedAllowedTAs = String(allowedTAs).replace(".", ",");
+      const formattedAllowedTAs = String(daySummary.allowedTAs).replace(".", ",");
       const formattedMaxStudents =
-        maxStudentsInSpan > 0 ? String(maxStudentsInSpan) : "0";
+        daySummary.numStudents > 0 ? String(daySummary.numStudents) : "0";
 
-      let totalTaHours = 0;
-      let spanTeacherName = "";
-      for (let k = i; k < j; k++) {
-        totalTaHours += allSessions[k].ta?.hours || 0;
-        if (!spanTeacherName && allSessions[k].teacher?.name && allSessions[k].teacher.name !== "-") {
-          spanTeacherName = allSessions[k].teacher.name;
-        }
-      }
-      if (totalTeacherHoursForSpan <= 0) {
+      let spanTeacherName = daySummary.teacherName;
+      if (daySummary.teacherHours <= 0) {
         spanTeacherName = "Không có giáo viên";
       } else if (!spanTeacherName) {
         spanTeacherName = current._fallbackTeacherName || "";
       }
-      
-      const formattedTotalTaHours = totalTaHours > 0 ? totalTaHours.toFixed(2).replace(".", ",") : "0";
 
       for (let k = i; k < j; k++) {
         const s = allSessions[k];
@@ -1036,7 +985,7 @@ export function Audit() {
             : "",
           numStudents: formattedMaxStudents,
           allowedTAs: formattedAllowedTAs,
-          actualTAs: actualTAsCount,
+          actualTAs: daySummary.actualTAs,
           variance: sessionStatus,
           type: s._type || "",
           _fullDate: normalizedSessionDate,
@@ -1237,7 +1186,7 @@ export function Audit() {
     },
     {
       key: "allowedTAs",
-      label: "ALLOWED INTERNS",
+      label: "ALLOWED TAS",
       group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
@@ -1249,7 +1198,7 @@ export function Audit() {
     },
     {
       key: "actualTAs",
-      label: "ACTUAL INTERNS",
+      label: "ACTUAL TAS",
       group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
@@ -1373,9 +1322,11 @@ export function Audit() {
       "BU": row.bu || "",
       "L07": row.displayCenter || row.center,
       Lớp: row.className,
+      "THÁNG": row.reportMonth,
       KDG: row.isKDG ? "Có" : "Không",
-      "TOTAL HOURS": row.teacherHours,
-      "ACTUAL INTERN (B)": row.actualTA,
+      "TỔNG GIỜ DẠY": row.teacherHours,
+      "SỐ NGÀY CÓ LỚP": row.classDays,
+      "SỐ NGÀY VƯỢT ALLOWED TAS": row.overAllowedDays,
       "Trạng Thái": row.status,
     }));
 
@@ -1387,7 +1338,8 @@ export function Audit() {
       "Ngày Lịch": row.dateStr,
       "A - Tên GV": row.teacherName,
       "A - Sĩ Số": row.numStudents,
-      "ALLOWED INTERNS": row.allowedTAs,
+      "ALLOWED TAS": row.allowedTAs,
+      "ACTUAL TAS": row.actualTAs,
       "A - Giờ": row.teacherHours,
       "B - INTERN ID": row.taId,
       "B - INTERN NAME": row.taName,
@@ -1458,12 +1410,12 @@ export function Audit() {
                     <p className="text-[0.55rem] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                       Rule Info
                     </p>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-[0.65rem] font-bold text-slate-700">
                         Sĩ số: {selectedDetailRow.numStudents}
                       </span>
                       <span className="text-[0.65rem] font-black text-primary bg-emerald-100/40 px-2 py-0.5 rounded-full">
-                        ALLOWED INTERNS: {selectedDetailRow.allowedTAs} INTERNS
+                        ACTUAL TAS: {selectedDetailRow.actualTAs} / ALLOWED TAS: {selectedDetailRow.allowedTAs}
                       </span>
                     </div>
                   </div>
@@ -1608,9 +1560,9 @@ export function Audit() {
                 </div>
                 <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight px-1 mt-0.5">
                   {activeTab === "main"
-                    ? "Payroll and timesheet variance overview"
+                    ? "Monthly teacher hours and class days exceeding the Allowed TAs limit"
                     : activeTab === "detail"
-                      ? "Detailed discrepancy cases requiring reconciliation review"
+                      ? "Daily classes where actual TAs exceed the Allowed TAs limit"
                       : "Configure allowed intern rules by class name and student count"}
                 </p>
               </div>
@@ -1799,10 +1751,10 @@ export function Audit() {
               externalSearchTerm={deferredSearchTerm}
               onExternalSearchChange={setSearchTerm}
               onRowClick={handleMainRowClick}
-              storageKey="audit_main_v2"
+              storageKey="audit_main_v3"
               rowHeight={36}
               className="border-t-0 flex-1"
-              title="Class & Teaching Assistant Audit Overview"
+              title="Monthly Teacher Hours & TA Limit Audit"
               striped={false}
             />
           ) : (

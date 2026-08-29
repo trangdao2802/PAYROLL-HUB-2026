@@ -14,6 +14,10 @@ import {
 import { parseMr07SessionDate } from "../lib/utils/mr07-date-utils";
 import { getBusinessFromL07 } from "../lib/utils/center-utils";
 import { evaluateAllowedTAs } from "../lib/utils/allowed-ta-rules";
+import {
+  aggregateAuditDaysByMonth,
+  summarizeAuditDay,
+} from "../lib/utils/audit-overview";
 
 const RAW_MAPPINGS = [
   { l07: "BN0001.LTT", keys: ["NSL", "Ngo Si Lien", "BN01", "Ly Thai To", "Lý Thái Tổ", "BN1", "BN1.NSL"] },
@@ -156,7 +160,7 @@ function isSpecificAuditDate(value: string): boolean {
 }
 
 export function runAuditComputation(params: any) {
-  const { fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, centerMappingParam, bonusData, bonusSheetName, allowedTaRules } = params;
+  const { fileAData, rosterData, fromDate, toDate, checkTAsDataRaw, fileNameA, centerMappingParam, allowedTaRules } = params;
   const cmap: Record<string,string> = centerMappingParam || {};
   const validCls = /(KDG\s*[1-3]|PRI\s*[1-6]|PRI\s*STARTER|PRIMARY\s*STARTER|SEC\s*(STARTER|FOUND))/i;
   const INVALID_TEACHERS = ["\u1ed1 v\u1ea5n", "no teacher", "tba", "to be assigned", "kh\u00f4ng c\u00f3"];
@@ -451,105 +455,6 @@ export function runAuditComputation(params: any) {
     }
   }
 
-  // --- BUOC 2.1: Scan Bonus Data ---
-  if (bonusData && Array.isArray(bonusData)) {
-    let bHdr = -1;
-    for (let i = 0; i < Math.min(20, bonusData.length); i++) {
-      const row = bonusData[i]; if (!row) continue;
-      const arr: any[] = Array.isArray(row) ? row : Object.values(row);
-      const rs = arr.map((c) => String(c).toLowerCase()).join(" ");
-      if (rs.includes("center") || rs.includes("department") || rs.includes("full name")) { bHdr = i; break; }
-    }
-    if (bHdr !== -1) {
-      const bH: any[] = Array.isArray(bonusData[bHdr]) ? bonusData[bHdr] : Object.values(bonusData[bHdr]);
-      let bCenCol = -1, bNameCol = -1, bPaymentCol = 24; // Column Y is index 24 default
-      bH.forEach((h, idx) => {
-        const s = String(h).toLowerCase();
-        if (s.includes("center") || s.includes("department")) { if (bCenCol === -1) bCenCol = idx; }
-        else if (s.includes("full name") || s.includes("tên")) { if (bNameCol === -1) bNameCol = idx; }
-        else if (s.includes("payment") || s.includes("thanh toán") || s.includes("thành tiền") || s.includes("số tiền") || s.includes("bonus")) { bPaymentCol = idx; }
-      });
-      for (let i = bHdr + 1; i < bonusData.length; i++) {
-        const ra: any[] = Array.isArray(bonusData[i]) ? bonusData[i] : Object.values(bonusData[i]);
-        if (!ra || ra.length === 0) continue;
-        const bCen = String(ra[bCenCol] || "");
-        const mCen = resolveCenter(bCen, cmap);
-        if (!(VALID_CENTERS as Set<string>).has(mCen)) continue;
-        const bName = String(ra[bNameCol] || "").trim().toLowerCase();
-        if (!bName || INVALID_TEACHERS.some(inv => bName.includes(inv))) continue;
-        
-        let bRaw = String(ra[bPaymentCol] || "0").trim();
-        // Robust number parsing: remove thousand separators, handle decimal comma/dot
-        let bPayment = 0;
-        if (bRaw) {
-          let clean = bRaw.replace(/\s/g, "");
-          const lastComma = clean.lastIndexOf(",");
-          const lastDot = clean.lastIndexOf(".");
-          if (lastComma > lastDot) {
-            // VN style: 1.000.000,00 -> remove dots, replace comma with dot
-            clean = clean.replace(/\./g, "").replace(",", ".");
-          } else if (lastDot > lastComma) {
-            // US style: 1,000,000.00 -> remove commas
-            clean = clean.replace(/,/g, "");
-          } else if (lastComma !== -1 && lastComma === clean.indexOf(",")) {
-             // Only one comma, no dot. Is it 1,000 (thousand) or 1,0 (decimal)?
-             // If it's followed by 3 digits, likely thousand.
-             if (clean.length - lastComma === 4) clean = clean.replace(",", "");
-             else clean = clean.replace(",", ".");
-          } else if (lastDot !== -1 && lastDot === clean.indexOf(".")) {
-             // Only one dot, no comma. Is it 1.000 (thousand) or 1.0 (decimal)?
-             if (clean.length - lastDot === 4) clean = clean.replace(".", "");
-          }
-          bPayment = parseFloat(clean) || 0;
-        }
-
-        if (bPayment <= 0) continue;
-
-        const bu = getBusinessFromL07(mCen);
-        const key = norm(mCen) + "_BONUS_" + i; // Unique key per bonus row
-        if (!combined[key]) {
-          combined[key] = { 
-            center: mCen, 
-            bu: bu,
-            className: "BONUS", 
-            teacherHours: 0, 
-            actualTA: 0, 
-            expectedTA: 0, 
-            numStudents: 0, 
-            isKDG: false, 
-            taDetails: [], 
-            teacherDetails: [], 
-            dailyMap: {},
-            sourceSheet: bonusSheetName || "Bonus"
-          };
-        }
-        
-        combined[key].teacherHours += bPayment;
-        const dsBonus = "Bonus";
-        if (!combined[key].dailyMap[dsBonus]) combined[key].dailyMap[dsBonus] = { ta: [], teacher: [] };
-        const bDetail = { 
-          dateObj: 0, 
-          dateStr: dsBonus, 
-          name: bName, 
-          hours: bPayment, 
-          allowedTAs: 0, 
-          numStudents: 0, 
-          type: "Bonus",
-          sourceSheet: bonusSheetName || "Bonus"
-        };
-        combined[key].teacherDetails.push(bDetail);
-        combined[key].dailyMap[dsBonus].teacher.push({ 
-          name: bDetail.name, 
-          hours: bDetail.hours, 
-          allowedTAs: 0, 
-          numStudents: 0, 
-          type: "Bonus",
-          sourceSheet: bDetail.sourceSheet
-        });
-      }
-    }
-  }
-
   // --- BUOC 2.5: Re-check numStudents ---
   Object.keys(combined).forEach((key3) => {
     const data = combined[key3];
@@ -566,33 +471,121 @@ export function runAuditComputation(params: any) {
       }
     });
   });
-  // --- BUOC 3: Build results ---
+  // --- BUOC 3: Build monthly class results ---
   const results: any[] = []; let sumT = 0, sumA2 = 0, sumE = 0;
   Object.keys(combined).forEach((k) => {
     const data = combined[k];
-    if (data.teacherDetails.length === 0 && data.taDetails.length === 0) return; if (data.teacherHours === 0 && data.actualTA === 0) return;
-    sumT += data.teacherHours; sumA2 += data.actualTA;
-    let exp = 0; Object.keys(data.dailyMap).forEach((dk) => { data.dailyMap[dk].teacher.forEach((t: any) => { exp += t.hours*(t.allowedTAs !== undefined ? t.allowedTAs : 0); }); }); sumE += exp;
-    let status = "Kh\u1EDBp", sc2 = "emerald", diff = "";
-    const ratio = exp > 0 ? data.actualTA/exp : 0; const d1 = data.actualTA-exp;
-    if (data.teacherHours === 0) { status = "Th\u1EEBa gi\u1EDD (Kh\u00F4ng c\u00F3 L\u1ECBch GV)"; sc2 = "rose"; diff = "+"+data.actualTA.toFixed(2); }
-    else if (exp === 0) { if (data.actualTA === 0) { status = "Kh\u1EDBp"; sc2 = "emerald"; diff = "0,00"; } else { status = "Th\u1EEBa gi\u1EDD TA"; sc2 = "rose"; diff = "+"+data.actualTA.toFixed(2); } }
-    else if (data.actualTA === 0) { status = "Thi\u1EBFu TA ho\u00E0n to\u00E0n"; sc2 = "rose"; diff = "-"+exp.toFixed(2); }
-    else { if (ratio >= 0.8 && ratio <= 1.2) diff = d1 > 0 ? "+"+d1.toFixed(2) : d1.toFixed(2); else if (ratio < 0.8) { status = "Thi\u1EBFu gi\u1EDD TA"; sc2 = "rose"; diff = d1.toFixed(2); } else { status = "Th\u1EEBa gi\u1EDD TA"; sc2 = "rose"; diff = "+"+d1.toFixed(2); } }
-    data.taDetails.sort((a: any, b: any) => a.dateObj-b.dateObj); data.teacherDetails.sort((a: any, b: any) => a.dateObj-b.dateObj);
-    const dIds = [...new Set<string>(data.taDetails.map((td: any) => td.id).filter(Boolean))].join(", ");
-    const sDates = Object.keys(data.dailyMap).sort((a: string, b: string) => { const d1t = parseAnyDate(a)?.getTime()||0; const d2t = parseAnyDate(b)?.getTime()||0; return d1t-d2t; });
-    const aligned: any[] = [];
-    sDates.forEach((date: string) => { const dd3 = data.dailyMap[date]; const mx = Math.max(dd3.ta.length, dd3.teacher.length); for (let i = 0; i < mx; i++) aligned.push({ date:i===0?date:"", fullDate:date, isFirstOfDay:i===0, rowSpan:mx, teacher:dd3.teacher[i]||null, ta:dd3.ta[i]||null }); });
-    const oATAs = evaluateAllowedTAs(data.className, data.numStudents||0, allowedTaRules);
-    results.push({ ...data, expected:exp, allowedTAs:oATAs, displayCenter:data.center, displayIds:dIds, diffText:diff, status, statusColor:sc2, compareKey:k, alignedRows:aligned });
+    if (data.teacherDetails.length === 0 && data.taDetails.length === 0) return;
+
+    const daySummaries = Object.keys(data.dailyMap)
+      .filter(isSpecificAuditDate)
+      .map((date) => {
+        const dailyEntries = data.dailyMap[date];
+        const dailyStudents = Math.max(
+          0,
+          ...dailyEntries.teacher.map((entry: any) => Number(entry.numStudents) || 0),
+          ...dailyEntries.ta.map((entry: any) => Number(entry.numStudents) || 0),
+        );
+        return summarizeAuditDay(
+          date,
+          dailyEntries,
+          evaluateAllowedTAs(data.className, dailyStudents, allowedTaRules),
+        );
+      });
+
+    aggregateAuditDaysByMonth(daySummaries).forEach((monthSummary) => {
+      const monthDates = new Set(monthSummary.days.map((day) => day.date));
+      const teacherDetails = data.teacherDetails
+        .filter((detail: any) => monthDates.has(detail.dateStr))
+        .sort((a: any, b: any) => a.dateObj - b.dateObj);
+      const taDetails = data.taDetails
+        .filter((detail: any) => monthDates.has(detail.dateStr))
+        .sort((a: any, b: any) => a.dateObj - b.dateObj);
+      const displayIds = [...new Set<string>(
+        taDetails.map((detail: any) => detail.id).filter(Boolean),
+      )].join(", ");
+      const alignedRows: any[] = [];
+
+      monthSummary.days.forEach((day) => {
+        const dailyEntries = data.dailyMap[day.date];
+        const rowSpan = Math.max(
+          dailyEntries.ta.length,
+          dailyEntries.teacher.length,
+          1,
+        );
+        for (let index = 0; index < rowSpan; index++) {
+          alignedRows.push({
+            date: index === 0 ? day.date : "",
+            fullDate: day.date,
+            isFirstOfDay: index === 0,
+            rowSpan,
+            teacher: dailyEntries.teacher[index] || null,
+            ta: dailyEntries.ta[index] || null,
+            daySummary: day,
+          });
+        }
+      });
+
+      const hasOverLimitDay = monthSummary.overAllowedDays > 0;
+      const totalActualTAs = monthSummary.days.reduce(
+        (total, day) => total + day.actualTAs,
+        0,
+      );
+      const totalAllowedTAs = monthSummary.days.reduce(
+        (total, day) => total + day.allowedTAs,
+        0,
+      );
+
+      sumT += monthSummary.teacherHours;
+      sumA2 += totalActualTAs;
+      sumE += totalAllowedTAs;
+
+      results.push({
+        ...data,
+        teacherHours: monthSummary.teacherHours,
+        actualTA: monthSummary.totalTaHours,
+        expected: totalAllowedTAs,
+        allowedTAs: monthSummary.maxAllowedTAs,
+        numStudents: Math.max(0, ...monthSummary.days.map((day) => day.numStudents)),
+        reportMonth: monthSummary.month,
+        classDays: monthSummary.classDays,
+        overAllowedDays: monthSummary.overAllowedDays,
+        withinAllowedDays: monthSummary.withinAllowedDays,
+        maxActualTAs: monthSummary.maxActualTAs,
+        totalActualTAs,
+        dailySummaries: monthSummary.days,
+        teacherDetails,
+        taDetails,
+        displayCenter: data.center,
+        displayIds,
+        diffText: hasOverLimitDay
+          ? `${monthSummary.overAllowedDays}/${monthSummary.classDays} days over`
+          : "0 days over",
+        status: hasOverLimitDay ? "Review Required" : "Within Limit",
+        statusColor: hasOverLimitDay ? "rose" : "emerald",
+        compareKey: `${k}_${monthSummary.month}`,
+        alignedRows,
+      });
+    });
   });
-  results.sort((a: any, b: any) => { const rank: Record<string,number> = { rose:1, amber:2, emerald:3 }; if (rank[a.statusColor] !== rank[b.statusColor]) return rank[a.statusColor]-rank[b.statusColor]; return a.center.localeCompare(b.center); });
+  results.sort((a: any, b: any) => {
+    const rank: Record<string,number> = { rose:1, amber:2, emerald:3 };
+    if (rank[a.statusColor] !== rank[b.statusColor]) return rank[a.statusColor]-rank[b.statusColor];
+    const centerOrder = a.center.localeCompare(b.center);
+    if (centerOrder !== 0) return centerOrder;
+    const classOrder = a.className.localeCompare(b.className);
+    if (classOrder !== 0) return classOrder;
+    const [monthA, yearA] = String(a.reportMonth).split(".").map(Number);
+    const [monthB, yearB] = String(b.reportMonth).split(".").map(Number);
+    return yearA * 12 + monthA - (yearB * 12 + monthB);
+  });
   return { results, summary:{ sumTeacher:sumT, sumActualTA:sumA2, sumExpected:sumE }, missingCenters:[...cenOnlyA], fileDateRangeA:{ min:minA, max:maxA }, error:null, isCalculating:false };
 }
 
 // --- Worker message handler ---
-self.onmessage = (e: MessageEvent) => {
-  try { (self as any).postMessage(runAuditComputation(e.data)); }
-  catch (err: any) { (self as any).postMessage({ results:[], summary:{ sumTeacher:0, sumActualTA:0, sumExpected:0 }, missingCenters:[], fileDateRangeA:{ min:null, max:null }, error:err?.message||"L\u1ED7i t\u00EDnh to\u00E1n", isCalculating:false }); }
-};
+if (typeof self !== "undefined") {
+  self.onmessage = (e: MessageEvent) => {
+    try { (self as any).postMessage(runAuditComputation(e.data)); }
+    catch (err: any) { (self as any).postMessage({ results:[], summary:{ sumTeacher:0, sumActualTA:0, sumExpected:0 }, missingCenters:[], fileDateRangeA:{ min:null, max:null }, error:err?.message||"L\u1ED7i t\u00EDnh to\u00E1n", isCalculating:false }); }
+  };
+}
