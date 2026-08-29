@@ -15,7 +15,8 @@ import { parseMr07SessionDate } from "../lib/utils/mr07-date-utils";
 import { getBusinessFromL07 } from "../lib/utils/center-utils";
 import { evaluateAllowedTAs } from "../lib/utils/allowed-ta-rules";
 import {
-  aggregateAuditDaysByMonth,
+  aggregateAuditDaysForPeriod,
+  getAuditMonthKey,
   summarizeAuditDay,
 } from "../lib/utils/audit-overview";
 
@@ -471,14 +472,18 @@ export function runAuditComputation(params: any) {
       }
     });
   });
-  // --- BUOC 3: Build monthly class results ---
+  // --- BUOC 3: Build one result per class for the complete report period ---
   const results: any[] = []; let sumT = 0, sumA2 = 0, sumE = 0;
   Object.keys(combined).forEach((k) => {
     const data = combined[k];
     if (data.teacherDetails.length === 0 && data.taDetails.length === 0) return;
 
     const daySummaries = Object.keys(data.dailyMap)
-      .filter(isSpecificAuditDate)
+      .filter((date) => {
+        if (!isSpecificAuditDate(date)) return false;
+        const teachers = data.dailyMap[date]?.teacher || [];
+        return teachers.some((entry: any) => Number(entry.hours) > 0);
+      })
       .map((date) => {
         const dailyEntries = data.dailyMap[date];
         const dailyStudents = Math.max(
@@ -493,79 +498,81 @@ export function runAuditComputation(params: any) {
         );
       });
 
-    aggregateAuditDaysByMonth(daySummaries).forEach((monthSummary) => {
-      const monthDates = new Set(monthSummary.days.map((day) => day.date));
-      const teacherDetails = data.teacherDetails
-        .filter((detail: any) => monthDates.has(detail.dateStr))
-        .sort((a: any, b: any) => a.dateObj - b.dateObj);
-      const taDetails = data.taDetails
-        .filter((detail: any) => monthDates.has(detail.dateStr))
-        .sort((a: any, b: any) => a.dateObj - b.dateObj);
-      const displayIds = [...new Set<string>(
-        taDetails.map((detail: any) => detail.id).filter(Boolean),
-      )].join(", ");
-      const alignedRows: any[] = [];
+    if (daySummaries.length === 0) return;
 
-      monthSummary.days.forEach((day) => {
-        const dailyEntries = data.dailyMap[day.date];
-        const rowSpan = Math.max(
-          dailyEntries.ta.length,
-          dailyEntries.teacher.length,
-          1,
-        );
-        for (let index = 0; index < rowSpan; index++) {
-          alignedRows.push({
-            date: index === 0 ? day.date : "",
-            fullDate: day.date,
-            isFirstOfDay: index === 0,
-            rowSpan,
-            teacher: dailyEntries.teacher[index] || null,
-            ta: dailyEntries.ta[index] || null,
-            daySummary: day,
-          });
-        }
-      });
+    const reportMonth = tDate ? getAuditMonthKey(toAuditDateKey(tDate)) : "";
+    const periodSummary = aggregateAuditDaysForPeriod(daySummaries, reportMonth);
+    const teachingDates = new Set(periodSummary.days.map((day) => day.date));
+    const teacherDetails = data.teacherDetails
+      .filter((detail: any) => teachingDates.has(detail.dateStr))
+      .sort((a: any, b: any) => a.dateObj - b.dateObj);
+    const taDetails = data.taDetails
+      .filter((detail: any) => teachingDates.has(detail.dateStr))
+      .sort((a: any, b: any) => a.dateObj - b.dateObj);
+    const displayIds = [...new Set<string>(
+      taDetails.map((detail: any) => detail.id).filter(Boolean),
+    )].join(", ");
+    const alignedRows: any[] = [];
 
-      const hasOverLimitDay = monthSummary.overAllowedDays > 0;
-      const totalActualTAs = monthSummary.days.reduce(
-        (total, day) => total + day.actualTAs,
-        0,
+    periodSummary.days.forEach((day) => {
+      const dailyEntries = data.dailyMap[day.date];
+      const rowSpan = Math.max(
+        dailyEntries.ta.length,
+        dailyEntries.teacher.length,
+        1,
       );
-      const totalAllowedTAs = monthSummary.days.reduce(
-        (total, day) => total + day.allowedTAs,
-        0,
-      );
+      for (let index = 0; index < rowSpan; index++) {
+        alignedRows.push({
+          date: index === 0 ? day.date : "",
+          fullDate: day.date,
+          isFirstOfDay: index === 0,
+          rowSpan,
+          teacher: dailyEntries.teacher[index] || null,
+          ta: dailyEntries.ta[index] || null,
+          daySummary: day,
+        });
+      }
+    });
 
-      sumT += monthSummary.teacherHours;
-      sumA2 += totalActualTAs;
-      sumE += totalAllowedTAs;
+    const hasOverLimitDay = periodSummary.overAllowedDays > 0;
+    const totalActualTAs = periodSummary.days.reduce(
+      (total, day) => total + day.actualTAs,
+      0,
+    );
+    const totalAllowedTAs = periodSummary.days.reduce(
+      (total, day) => total + day.allowedTAs,
+      0,
+    );
 
-      results.push({
-        ...data,
-        teacherHours: monthSummary.teacherHours,
-        actualTA: monthSummary.totalTaHours,
-        expected: totalAllowedTAs,
-        allowedTAs: monthSummary.maxAllowedTAs,
-        numStudents: Math.max(0, ...monthSummary.days.map((day) => day.numStudents)),
-        reportMonth: monthSummary.month,
-        classDays: monthSummary.classDays,
-        overAllowedDays: monthSummary.overAllowedDays,
-        withinAllowedDays: monthSummary.withinAllowedDays,
-        maxActualTAs: monthSummary.maxActualTAs,
-        totalActualTAs,
-        dailySummaries: monthSummary.days,
-        teacherDetails,
-        taDetails,
-        displayCenter: data.center,
-        displayIds,
-        diffText: hasOverLimitDay
-          ? `${monthSummary.overAllowedDays}/${monthSummary.classDays} days over`
-          : "0 days over",
-        status: hasOverLimitDay ? "Review Required" : "Within Limit",
-        statusColor: hasOverLimitDay ? "rose" : "emerald",
-        compareKey: `${k}_${monthSummary.month}`,
-        alignedRows,
-      });
+    sumT += periodSummary.teacherHours;
+    sumA2 += totalActualTAs;
+    sumE += totalAllowedTAs;
+
+    results.push({
+      ...data,
+      teacherHours: periodSummary.teacherHours,
+      actualTA: periodSummary.totalTaHours,
+      expected: totalAllowedTAs,
+      allowedTAs: periodSummary.maxAllowedTAs,
+      numStudents: Math.max(0, ...periodSummary.days.map((day) => day.numStudents)),
+      reportMonth: periodSummary.month,
+      classDays: periodSummary.classDays,
+      overAllowedDays: periodSummary.overAllowedDays,
+      withinAllowedDays: periodSummary.withinAllowedDays,
+      maxActualTAs: periodSummary.maxActualTAs,
+      totalActualTAs,
+      dailySummaries: periodSummary.days,
+      teacherDetails,
+      taDetails,
+      displayCenter: data.center,
+      displayIds,
+      diffText: hasOverLimitDay
+        ? `${periodSummary.overAllowedDays}/${periodSummary.classDays} days over`
+        : "0 days over",
+      status: hasOverLimitDay ? "Review Required" : "Within Limit",
+      statusColor: hasOverLimitDay ? "rose" : "emerald",
+      compareKey: k,
+      alignedRows,
     });
   });
   results.sort((a: any, b: any) => {
@@ -573,11 +580,7 @@ export function runAuditComputation(params: any) {
     if (rank[a.statusColor] !== rank[b.statusColor]) return rank[a.statusColor]-rank[b.statusColor];
     const centerOrder = a.center.localeCompare(b.center);
     if (centerOrder !== 0) return centerOrder;
-    const classOrder = a.className.localeCompare(b.className);
-    if (classOrder !== 0) return classOrder;
-    const [monthA, yearA] = String(a.reportMonth).split(".").map(Number);
-    const [monthB, yearB] = String(b.reportMonth).split(".").map(Number);
-    return yearA * 12 + monthA - (yearB * 12 + monthB);
+    return a.className.localeCompare(b.className);
   });
   return { results, summary:{ sumTeacher:sumT, sumActualTA:sumA2, sumExpected:sumE }, missingCenters:[...cenOnlyA], fileDateRangeA:{ min:minA, max:maxA }, error:null, isCalculating:false };
 }

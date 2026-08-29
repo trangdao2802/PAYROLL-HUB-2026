@@ -163,6 +163,56 @@ function monthSortValue(month: string): number {
   return match ? Number(match[2]) * 12 + Number(match[1]) - 1 : 0;
 }
 
+function auditDateSortValue(date: string): number {
+  const match = date.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
+  if (!match) return 0;
+  return Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+}
+
+function summarizeAuditDays(
+  days: AuditDaySummary[],
+  month: string,
+): AuditMonthSummary {
+  const uniqueDays = new Map<string, AuditDaySummary>();
+  days.forEach((day) => {
+    if (day.date && !uniqueDays.has(day.date)) {
+      uniqueDays.set(day.date, day);
+    }
+  });
+
+  const sortedDays = Array.from(uniqueDays.values()).sort(
+    (a, b) => auditDateSortValue(a.date) - auditDateSortValue(b.date),
+  );
+  const overAllowedDays = sortedDays.filter((day) => day.isOverAllowed).length;
+
+  return {
+    month,
+    teacherHours: sortedDays.reduce((total, day) => total + day.teacherHours, 0),
+    classDays: sortedDays.length,
+    overAllowedDays,
+    withinAllowedDays: sortedDays.length - overAllowedDays,
+    maxAllowedTAs: Math.max(0, ...sortedDays.map((day) => day.allowedTAs)),
+    maxActualTAs: Math.max(0, ...sortedDays.map((day) => day.actualTAs)),
+    totalTaHours: sortedDays.reduce((total, day) => total + day.totalTaHours, 0),
+    days: sortedDays,
+  };
+}
+
+/**
+ * Audit Overview represents one reporting period, which can cross a calendar
+ * month boundary. Keep all unique MR03 teaching dates in one class summary.
+ */
+export function aggregateAuditDaysForPeriod(
+  days: AuditDaySummary[],
+  reportMonth = "",
+): AuditMonthSummary {
+  const latestMonth = [...days]
+    .sort((a, b) => auditDateSortValue(a.date) - auditDateSortValue(b.date))
+    .at(-1)?.month || "";
+
+  return summarizeAuditDays(days, reportMonth || latestMonth);
+}
+
 export function aggregateAuditDaysByMonth(
   days: AuditDaySummary[],
 ): AuditMonthSummary[] {
@@ -176,20 +226,6 @@ export function aggregateAuditDaysByMonth(
   });
 
   return Array.from(byMonth.entries())
-    .map(([month, monthDays]) => {
-      const sortedDays = [...monthDays].sort((a, b) => a.date.localeCompare(b.date));
-      const overAllowedDays = sortedDays.filter((day) => day.isOverAllowed).length;
-      return {
-        month,
-        teacherHours: sortedDays.reduce((total, day) => total + day.teacherHours, 0),
-        classDays: sortedDays.length,
-        overAllowedDays,
-        withinAllowedDays: sortedDays.length - overAllowedDays,
-        maxAllowedTAs: Math.max(0, ...sortedDays.map((day) => day.allowedTAs)),
-        maxActualTAs: Math.max(0, ...sortedDays.map((day) => day.actualTAs)),
-        totalTaHours: sortedDays.reduce((total, day) => total + day.totalTaHours, 0),
-        days: sortedDays,
-      };
-    })
+    .map(([month, monthDays]) => summarizeAuditDays(monthDays, month))
     .sort((a, b) => monthSortValue(a.month) - monthSortValue(b.month));
 }

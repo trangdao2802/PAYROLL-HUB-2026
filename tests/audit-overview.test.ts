@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  aggregateAuditDaysForPeriod,
   aggregateAuditDaysByMonth,
   summarizeAuditDay,
 } from "../src/app/lib/utils/audit-overview";
@@ -75,6 +76,33 @@ test("monthly overview counts the number of over-limit class days", () => {
   assert.equal(summaries[0].withinAllowedDays, 1);
 });
 
+test("report-period overview keeps class dates across calendar months in one summary", () => {
+  const days = [
+    summarizeAuditDay("23/07/2026", {
+      teacher: [{ name: "Teacher A", hours: 2, allowedTAs: 1 }],
+      ta: [],
+    }),
+    summarizeAuditDay("30/07/2026", {
+      teacher: [{ name: "Teacher A", hours: 2, allowedTAs: 1 }],
+      ta: [],
+    }),
+    summarizeAuditDay("06/08/2026", {
+      teacher: [{ name: "Teacher A", hours: 2, allowedTAs: 1 }],
+      ta: [],
+    }),
+  ];
+
+  const summary = aggregateAuditDaysForPeriod(days, "08.2026");
+
+  assert.equal(summary.month, "08.2026");
+  assert.equal(summary.classDays, 3);
+  assert.equal(summary.teacherHours, 6);
+  assert.deepEqual(
+    summary.days.map((day) => day.date),
+    ["23/07/2026", "30/07/2026", "06/08/2026"],
+  );
+});
+
 test("audit worker returns monthly teacher hours and days over Allowed TAs", () => {
   const fileAData = [
     ["Center", "Class", "Teacher", "Type", "Students", "Schedule Date", ""],
@@ -106,4 +134,69 @@ test("audit worker returns monthly teacher hours and days over Allowed TAs", () 
   assert.equal(result.results[0].status, "Review Required");
   assert.equal(result.results[0].dailySummaries[1].actualTAs, 1);
   assert.equal(result.results[0].dailySummaries[1].isOverAllowed, false);
+});
+
+test("audit worker returns one class row and counts only unique MR03 teaching dates", () => {
+  const dates = [
+    "23/07/2026",
+    "25/07/2026",
+    "30/07/2026",
+    "01/08/2026",
+    "06/08/2026",
+    "08/08/2026",
+    "13/08/2026",
+    "15/08/2026",
+    "20/08/2026",
+  ];
+  const fileAData = [
+    ["Center", "Class", "Teacher", "Type", "Students", "Schedule Date", ...dates.slice(1)],
+    ["", "", "", "", "", ...dates],
+    ["BN0001.LTT", "NSL - PRI1 - 0138", "Giulia Cirillo", "Normal Class", 10, 2, 0, 2, 0, 2, 0, 2, 0, 2],
+    ["BN0001.LTT", "NSL - PRI1 - 0138", "Helen May Famoso Custodio", "Normal Class", 10, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+    ["BN0001.LTT", "NSL - PRI1 - 0138", "Vikramjeet Singh Kalsi", "Normal Class", 10, 0, 0, 0, 2, 0, 2, 0, 2, 0],
+  ];
+  const rosterData = [
+    ...dates.map((date, index) => ({
+      l07: "BN0001.LTT",
+      class: "NSL - PRI1 - 0138",
+      date,
+      type: "IN-CLASS",
+      id: `TA${String(index + 1).padStart(3, "0")}`,
+      "full name": `TA ${index + 1}`,
+      hours: 2,
+    })),
+    {
+      l07: "BN0001.LTT",
+      class: "NSL - PRI1 - 0138",
+      date: "28/07/2026",
+      type: "IN-CLASS",
+      id: "TA999",
+      "full name": "TA on non-teaching date",
+      hours: 2,
+    },
+  ];
+
+  const result = runAuditComputation({
+    fileAData,
+    rosterData,
+    fromDate: "2026-07-21",
+    toDate: "2026-08-20",
+    checkTAsDataRaw: [],
+    fileNameA: "MR03_21072026_20082026.xlsx",
+    centerMappingParam: {},
+    allowedTaRules: DEFAULT_ALLOWED_TA_RULES,
+  });
+
+  assert.equal(result.results.length, 1);
+  assert.equal(result.results[0].className, "NSL - PRI1 - 0138");
+  assert.equal(result.results[0].reportMonth, "08.2026");
+  assert.equal(result.results[0].teacherHours, 18);
+  assert.equal(result.results[0].classDays, 9);
+  assert.equal(result.results[0].dailySummaries.length, 9);
+  assert.equal(
+    result.results[0].dailySummaries.some(
+      (day: { date?: string }) => day.date === "28/07/2026",
+    ),
+    false,
+  );
 });
