@@ -102,16 +102,24 @@
   transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
 
-.app-table-initial-mark__glyph {
+.app-table-initial-mark--cat-letter {
+  width: 1.58rem;
+  overflow: visible;
+}
+
+.app-table-initial-mark__artwork {
   display: block;
-  color: currentColor;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.app-table-initial-mark__letter-shape {
   font-family: "Nunito", "Plus Jakarta Sans", sans-serif;
-  font-size: 1.45rem;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.08em;
+  font-size: 33px;
+  font-weight: 1000;
+  letter-spacing: -1.2px;
   text-transform: uppercase;
-  transform: scaleX(0.94);
 }
 
 /* The P is the supplied cat-letter artwork itself, not an extra icon. */
@@ -2388,11 +2396,14 @@ div.audit-data-table-wrapper {
 
 .audit-source-cluster__header {
   display: flex;
-  min-height: 42px;
+  min-height: 46px;
   align-items: center;
   gap: 8px;
-  padding: 1px 2px 7px;
-  border-bottom: 1px solid color-mix(in srgb, var(--primary, #781d1d) 9%, var(--border, #cbd5e1));
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 18%, var(--border, #cbd5e1));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #781d1d) 8%, var(--card, #ffffff));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 72%, transparent);
 }
 
 .audit-source-cluster__header-icon {
@@ -2706,11 +2717,13 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
   align-items: center;
   gap: 10px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 16%, var(--border, #cbd5e1));
+  border: 1px solid color-mix(in srgb, var(--primary, #781d1d) 24%, var(--border, #cbd5e1));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--primary, #781d1d) 5%, var(--card, #ffffff));
+  background: color-mix(in srgb, var(--primary, #781d1d) 10%, var(--card, #ffffff));
   padding: 9px 10px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--primary, #781d1d) 58%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
 }
 
 @media (max-width: 767px) {
@@ -2780,6 +2793,57 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Audit uses the table sections themselves as the sticky layers. Keeping the
+   cells in the same compositing layer removes the one-pixel seams where body
+   rows previously showed through beneath the title/header and above totals. */
+.audit-data-table-wrapper .table-body-region {
+  background: var(--card, #ffffff) !important;
+}
+
+.audit-data-table-wrapper .audit-sticky-header,
+.audit-data-table-wrapper .audit-sticky-footer {
+  isolation: isolate;
+  transform: translateZ(0);
+  background-clip: border-box !important;
+}
+
+.audit-data-table-wrapper .audit-sticky-header {
+  box-shadow:
+    0 1px 0 var(--grid-line-color, #cbd5e1),
+    0 5px 10px -9px rgba(15, 23, 42, 0.42) !important;
+}
+
+.audit-data-table-wrapper .audit-sticky-footer {
+  box-shadow:
+    0 -1px 0 var(--grid-line-color, #cbd5e1),
+    0 -5px 10px -9px rgba(15, 23, 42, 0.42) !important;
+}
+
+.audit-data-table-wrapper .audit-sticky-header::after,
+.audit-data-table-wrapper .audit-sticky-footer::before {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 90;
+  height: 1px;
+  background: var(--grid-line-color, #cbd5e1);
+  content: "";
+  pointer-events: none;
+}
+
+.audit-data-table-wrapper .audit-sticky-header::after {
+  bottom: -1px;
+}
+
+.audit-data-table-wrapper .audit-sticky-footer::before {
+  top: -1px;
+}
+
+.audit-data-table-wrapper .audit-sticky-header th,
+.audit-data-table-wrapper .audit-sticky-footer td {
+  background-clip: border-box !important;
 }
 
 /* Audit columns are grouped by meaning with distinct harmonious header colors and clean backgrounds */

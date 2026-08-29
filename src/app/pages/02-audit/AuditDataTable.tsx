@@ -71,6 +71,10 @@ import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
 import { SaveStatusCard } from "../../components/shared/SaveStatusCard";
+import {
+  applyContiguousRowSpans,
+  sortRowsPreservingGroupBlocks,
+} from "../../lib/utils/row-span-utils";
 
 export interface Column {
   key: string;
@@ -1211,7 +1215,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         const col = columns.find((c) => c.key === sortConfig.key);
         const type = columnTypes[sortConfig.key] || col?.type || "text";
 
-        result.sort((a, b) => {
+        const compareRows = (a: any, b: any) => {
           const aVal = a[sortConfig.key];
           const bVal = b[sortConfig.key];
 
@@ -1244,7 +1248,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           return sortConfig.direction === "asc"
             ? aStr.localeCompare(bStr, undefined, { numeric: true })
             : bStr.localeCompare(aStr, undefined, { numeric: true });
-        });
+        };
+
+        result = columns.some((column) => column.autoRowSpan)
+          ? sortRowsPreservingGroupBlocks(result, compareRows)
+          : [...result].sort(compareRows);
       }
 
       return result;
@@ -1344,39 +1352,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         result = filteredAndSortedData.slice(start, start + itemsPerPage);
       }
       
-      const spanCols = columns.filter((c) => c.autoRowSpan).map((c) => c.key);
-      if (spanCols.length > 0) {
-        // Clone rows to avoid mutating original data's _rowSpans
-        result = result.map(row => ({ ...row, _rowSpans: { ...(row._rowSpans || {}) } }));
-        for (const colKey of spanCols) {
-          let spanStartIdx = 0;
-          while (spanStartIdx < result.length) {
-            let spanLen = 1;
-            const startVal = result[spanStartIdx][colKey];
-            const startGroupId = result[spanStartIdx].groupId; 
-            
-            for (let i = spanStartIdx + 1; i < result.length; i++) {
-              const currentVal = result[i][colKey];
-              const currentGroupId = result[i].groupId;
-              
-              const valueMatches = currentVal === startVal;
-              const groupMatches = startGroupId === undefined || currentGroupId === undefined || startGroupId === currentGroupId;
-              
-              if (valueMatches && groupMatches) {
-                spanLen++;
-              } else {
-                break;
-              }
-            }
-            
-            result[spanStartIdx]._rowSpans[colKey] = spanLen;
-            for (let i = spanStartIdx + 1; i < spanStartIdx + spanLen; i++) {
-              result[i]._rowSpans[colKey] = 0;
-            }
-            spanStartIdx += spanLen;
-          }
-        }
-      }
+      const spanColumns = columns
+        .filter((column) => column.autoRowSpan)
+        .map((column) => column.key);
+      result = applyContiguousRowSpans(result, spanColumns);
       
       return result;
     }, [filteredAndSortedData, currentPage, itemsPerPage, columns]);
@@ -2578,7 +2557,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       },
     };
 
-    const renderHeaderCell = (col: Column, cIdx: number, rowSpan: number = 1, top: string = "top-0") => {
+    const renderHeaderCell = (col: Column, cIdx: number, rowSpan: number = 1) => {
       const isColActive =
         activeCell?.c === cIdx ||
         (selectionRange &&
@@ -2610,7 +2589,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative sticky ${top} z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase`}
+          className={`relative z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase`}
           style={{
             padding: "var(--table-padding, 0.25rem 0.4rem)",
             width: widthStyle,
@@ -2787,14 +2766,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   );
                 })}
               </colgroup>
-              <thead className="sticky top-0 z-[60] bg-white">
+              <thead className="audit-sticky-header sticky top-0 z-[60] bg-[var(--table-column-header-bg,#F8FAFC)]">
                 {/* Grouped Headers Row if any column has a group defined */}
                 {columns.some(c => c.group) && (
                   <tr className="h-[30px]">
                     {showRowNumber && (
                       <th 
                         rowSpan={2} 
-                        className={`sticky top-0 z-[70] w-[50px] min-w-[50px] text-center bg-[#F8FAFC] dark:bg-slate-800 border-b border-r border-[var(--grid-line-color,#CBD5E1)] py-1 text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
+                        className={`relative z-[70] w-[50px] min-w-[50px] text-center bg-[#F8FAFC] dark:bg-slate-800 border-b border-r border-[var(--grid-line-color,#CBD5E1)] py-1 text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
                         style={{ verticalAlign: "middle", textTransform: "none" }}
                       >
                         <div className="flex items-center justify-center gap-1">
@@ -2836,7 +2815,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                             <th 
                               key={`grp-${idx}`} 
                               colSpan={g.count}
-                              className={`sticky top-0 z-[70] h-[30px] ${groupClass} border-b border-r border-[var(--grid-line-color,#CBD5E1)] px-2 py-1 text-[11px] font-black tracking-wider uppercase text-center select-none`}
+                              className={`relative z-[70] h-[30px] ${groupClass} border-b border-r border-[var(--grid-line-color,#CBD5E1)] px-2 py-1 text-[11px] font-black tracking-wider uppercase text-center select-none`}
                               style={{ verticalAlign: "middle" }}
                             >
                               {g.group}
@@ -2845,7 +2824,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                         } else {
                           // Individual column with no group - rendering rowSpan=2
                           return g.cols.map((col, colIdx) => 
-                            renderHeaderCell(col, g.startIdx + colIdx, 2, "top-0")
+                            renderHeaderCell(col, g.startIdx + colIdx, 2)
                           );
                         }
                       });
@@ -2855,7 +2834,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 <tr className={`h-[30px] ${headerClassName ? "" : "bg-[#F8FAFC]"}`}>
                   {selectable && !columns.some(c => c.group) && (
                     <th
-                      className={`sticky top-0 z-[60] w-10 border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-slate-800 dark:text-slate-200`}
+                      className={`relative z-[60] w-10 border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-slate-800 dark:text-slate-200`}
                       style={{ padding: "var(--table-padding, 0.25rem 0.4rem)", verticalAlign: "middle" }}
                     >
                       <button
@@ -2879,7 +2858,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   )}
                   {showRowNumber && !columns.some(c => c.group) && (
                     <th
-                      className={`sticky top-0 z-[60] w-[50px] border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
+                      className={`relative z-[60] w-[50px] border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
                       style={{ padding: "var(--table-padding, 0.25rem 0.4rem)", verticalAlign: "middle", textTransform: "none" }}
                     >
                       <div className="flex items-center justify-center gap-1">
@@ -2900,7 +2879,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     // Skip rendering if it was already rendered via rowSpan=2 in the group row (only if grouping is present)
                     if (columns.some(c => c.group) && !col.group) return null;
                     
-                    return renderHeaderCell(col, cIdx, 1, columns.some(c => c.group) ? "top-[30px]" : "top-0");
+                    return renderHeaderCell(col, cIdx, 1);
                   })}
                 </tr>
 
@@ -3045,9 +3024,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               </tbody>
               {showFooter && (
                 <tfoot
-                  className="sticky bottom-0 z-30"
+                  className="audit-sticky-footer sticky bottom-0 z-30 bg-[var(--table-column-header-bg,#F4ECD8)]"
                   style={{
-                    willChange: "transform",
                     boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
                   }}
                 >
@@ -3059,9 +3037,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       <td
                         className={`border-b border-r-0 border-l-0 border-t border-[var(--table-border-color,#e7dbdc)] ${footerClassName || ""}`}
                         style={{
-                          position: "sticky",
-                          bottom: 0,
-                          zIndex: 30,
                           backgroundColor: footerClassName ? undefined : "var(--table-column-header-bg, #F4ECD8)",
                         }}
                       />
@@ -3070,9 +3045,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       <td
                         className={`border-b border-r-0 border-l-0 border-t border-[var(--table-border-color,#e7dbdc)] ${footerClassName || ""}`}
                         style={{
-                          position: "sticky",
-                          bottom: 0,
-                          zIndex: 30,
                           backgroundColor: footerClassName ? undefined : "var(--table-column-header-bg, #F4ECD8)",
                         }}
                       />
@@ -3101,9 +3073,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                             maxWidth: widthStyle,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            position: "sticky",
-                            bottom: 0,
-                            zIndex: 30,
                             backgroundColor: footerClassName ? undefined : "var(--table-column-header-bg, #F4ECD8)",
                           }}
                         >

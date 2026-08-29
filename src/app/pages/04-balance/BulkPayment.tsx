@@ -220,7 +220,6 @@ export function BulkPayment({
     remainingHoldByMonth,
     bankExportData,
     isGenerating,
-    progress,
     isSuccess,
     reportStats,
     isRefreshing,
@@ -3112,40 +3111,6 @@ export function BulkPayment({
 
           </div>
 
-          {/* Creation Action Footer - Pinned at bottom of sidebar */}
-          <div className="p-3.5 border-t border-[var(--border)] bg-[var(--card)] flex flex-col gap-2.5 shrink-0 z-10 shadow-2xs">
-            {isGenerating && (
-              <div className="w-full flex flex-col gap-1.5 px-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[0.6rem] font-bold uppercase tracking-[0.15em] text-[var(--accent)] animate-pulse font-sans">
-                    Đang đồng bộ...
-                  </span>
-                  <span className="text-[0.7rem] tabular-nums font-bold text-slate-800">
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100 h-[2px]">
-                  <div
-                    className="bg-[var(--accent)] h-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleGenerateReport}
-              disabled={isGenerating}
-              className="bg-[var(--primary)] text-white hover:bg-black flex items-center justify-center gap-2 px-3 py-2 min-h-[36px] w-full transition-all rounded-xl font-bold uppercase text-[10.5px] tracking-[0.08em] cursor-pointer shadow-2xs active:scale-[0.98] active:translate-y-[1px]"
-            >
-              {isGenerating ? (
-                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-              ) : (
-                <FileSpreadsheet className="w-4 h-4 shrink-0" />
-              )}
-              <span className="shrink-0">TẠO BẢNG KÊ THEO SỐ AE</span>
-            </button>
-          </div>
         </div>
       )}
 

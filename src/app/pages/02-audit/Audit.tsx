@@ -69,6 +69,7 @@ import {
   sanitizeAllowedTaRules,
 } from "../../lib/utils/allowed-ta-rules";
 import { summarizeAuditDay } from "../../lib/utils/audit-overview";
+import { isAuditDiscrepancySharedColumn } from "../../lib/utils/audit-discrepancy";
 import {
   clearAuditPageData,
   clearAuditTableData,
@@ -1048,7 +1049,8 @@ export function Audit() {
     return result.filter(row => groupMatches.has(row.groupId));
   }, [appData.AuditClearedTables?.detail, detailData, deferredDetailFilter]);
 
-  const detailColumns: Column[] = useMemo(() => [
+  const detailColumns: Column[] = useMemo(() => {
+    const columns: Column[] = [
     {
       key: "bu",
       label: "BU",
@@ -1312,7 +1314,13 @@ export function Audit() {
         </div>
       )
     }
-  ], [handleDetailRowClick, taGroupLabel]);
+    ];
+
+    return columns.map((column) => ({
+      ...column,
+      autoRowSpan: isAuditDiscrepancySharedColumn(column.key),
+    }));
+  }, [handleDetailRowClick, taGroupLabel]);
 
   const handleExportExcel = () => {
     if (!auditResults.results || auditResults.results.length === 0) {
