@@ -18,7 +18,6 @@ import {
   FileSpreadsheet,
   Download,
   AlertCircle,
-  FileText,
   ListOrdered,
   PlusCircle,
   CheckCircle2,
@@ -29,7 +28,6 @@ import {
   Eye,
   EyeOff,
   Menu,
-  PanelLeft,
 } from "lucide-react";
 import {
   parseAnyDate,
@@ -58,6 +56,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { Input } from "../../components/ui/input";
 import { X } from "lucide-react";
 import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
+import { PayrollMark } from "../../components/PayrollMark";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -1521,7 +1520,7 @@ export function Audit() {
                   title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
                   type="button"
                 >
-                  <PanelLeft className="w-3.5 h-3.5 text-primary" />
+                  <PayrollMark className="w-3.5 h-3.5 text-primary" />
                 </button>
               )}
 
@@ -1530,7 +1529,7 @@ export function Audit() {
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
                   {activeTab === "main" ? (
                     <>
-                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-primary font-extrabold">AUDIT OVERVIEW</span>
                       {mainData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
@@ -1540,7 +1539,7 @@ export function Audit() {
                     </>
                   ) : activeTab === "detail" ? (
                     <>
-                      <ListOrdered className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-emerald-800 font-extrabold">AUDIT DISCREPANCY DETAILS</span>
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
@@ -1550,7 +1549,7 @@ export function Audit() {
                     </>
                   ) : (
                     <>
-                      <ListOrdered className="w-4 h-4 text-primary shrink-0" />
+                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-primary font-extrabold">ALLOWED INTERN RULES</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}

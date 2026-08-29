@@ -26,9 +26,9 @@ import {
   EyeOff,
   X,
   ArrowLeft,
-  Columns2
 } from "lucide-react";
 import { DataTable } from "../../components/DataTable";
+import { PayrollMark } from "../../components/PayrollMark";
 import {
   Tooltip,
   TooltipTrigger,
@@ -919,7 +919,7 @@ export function MasterAE() {
                           >
                             <div className="flex min-w-0 items-center gap-2.5">
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                                <Columns2 className="h-4 w-4" />
+                                <PayrollMark className="h-4 w-4" />
                               </div>
                               <div className="min-w-0">
                                 <h3 

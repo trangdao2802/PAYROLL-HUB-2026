@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useUiSettings } from "../../../lib/ui-settings";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
 import { ConfirmDialog } from "../../../components/shared/ConfirmDialog";
+import { PayrollMark } from "../../../components/PayrollMark";
 import { parseMoneyToNumber, removeVietnameseTones } from "../../../lib/utils/data-utils";
 import { clearBalancePageData } from "../../../lib/utils/data-clear-scopes";
 import {
@@ -2325,7 +2326,7 @@ export function HoldAddDashboard() {
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
           <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ borderRadius: "0px", minHeight: "38px" }}>
             <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-1 inline-flex items-center gap-1.5">
-              <Scale className="w-4 h-4 text-primary shrink-0" />
+              <PayrollMark className="w-4 h-4 text-primary shrink-0" />
               TRIAL BALANCE
             </span>
             <span className="text-[11px] bg-transparent border-0 rounded-none px-1.5 py-0.5 text-foreground flex items-center gap-1.5 shadow-none">

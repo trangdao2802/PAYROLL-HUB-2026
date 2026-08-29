@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PanelLeft } from "lucide-react";
 import { DataTable } from "../../../components/DataTable";
+import { PayrollMark } from "../../../components/PayrollMark";
 import { CENTER_COLUMNS } from "../../../constants/timesheet-columns";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
 
@@ -107,10 +107,10 @@ function CenterTableComponent({
               title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
               type="button"
             >
-              <PanelLeft className="w-3.5 h-3.5 text-primary" />
+              <PayrollMark className="w-3.5 h-3.5 text-primary" />
             </button>
           )}
-          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <PayrollMark className="h-3.5 w-3.5 text-primary/75" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold uppercase tracking-wider text-primary text-[12px] leading-snug">
               ROSTER CENTER PAYMENT SUMMARY

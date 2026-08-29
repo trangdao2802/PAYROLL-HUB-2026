@@ -6,13 +6,12 @@ import {
   Calendar,
   Clock,
   Database,
-  EyeOff,
   Layers3,
   Play,
-  RotateCcw,
   Scale,
   ShieldCheck,
 } from "lucide-react";
+import { PayrollMark } from "../../components/PayrollMark";
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -97,7 +96,7 @@ export function Dashboard() {
               onClick={restoreCards}
               className="flex shrink-0 cursor-pointer items-center gap-2 self-start rounded-full border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-colors hover:bg-muted sm:self-center"
             >
-              <RotateCcw className="h-3.5 w-3.5 text-primary" />
+              <PayrollMark className="h-3.5 w-3.5 text-primary" />
               Restore cards ({hiddenCards.length})
             </button>
           )}
@@ -144,7 +143,7 @@ export function Dashboard() {
                         aria-label={`Hide ${card.title}`}
                         className="pointer-events-auto relative z-10 cursor-pointer rounded-lg p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
                       >
-                        <EyeOff className="h-4 w-4" />
+                        <PayrollMark className="h-4 w-4" />
                       </button>
                     </div>
                   </div>

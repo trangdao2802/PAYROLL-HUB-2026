@@ -48,7 +48,6 @@ import {
   ChevronsRight,
   ExternalLink,
   Zap,
-  LayoutDashboard,
   Maximize2,
 } from "lucide-react";
 import {
@@ -70,6 +69,7 @@ import {
 } from "../../lib/utils/payment-processor";
 import * as XLSX from "xlsx";
 import { Button } from "../../components/ui/button";
+import { PayrollMark } from "../../components/PayrollMark";
 import {
   Dialog,
   DialogContent,
@@ -3182,8 +3182,10 @@ export function BulkPayment({
               title={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
               aria-label={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
             >
-              <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+              <PayrollMark className="h-3.5 w-3.5 shrink-0" />
             </button>
+
+            <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
 
             <div className="min-w-0">
               <DropdownMenu>

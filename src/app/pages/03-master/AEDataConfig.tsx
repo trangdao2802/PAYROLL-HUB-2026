@@ -58,6 +58,7 @@ import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
 import { resolveGrossPayTotal } from "../../lib/utils/gross-pay";
+import { PayrollMark } from "../../components/PayrollMark";
 
 function cleanIDNumber(val: any): string {
   return formatIdNumber(val);
@@ -2417,7 +2418,7 @@ export function AEDataConfig({
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="master-config-icon flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-              <FileSpreadsheet className="h-4 w-4" />
+              <PayrollMark className="h-4 w-4" />
             </div>
 
             <div className="min-w-0 flex-1">

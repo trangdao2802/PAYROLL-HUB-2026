@@ -3,7 +3,6 @@ import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import {
   Download,
-  LayoutDashboard,
   RefreshCw,
   Search,
   Settings,
@@ -16,6 +15,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { DataTable, type Column } from "../../../components/DataTable";
+import { PayrollMark } from "../../../components/PayrollMark";
 import {
   type BulkPaymentAnalyticsResult,
   type PayrollBuMonthSummaryRow,
@@ -1144,8 +1144,10 @@ export function BulkPaymentAnalytics({
                 : "Hiện bảng điều khiển"
             }
           >
-            <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+            <PayrollMark className="h-3.5 w-3.5 shrink-0" />
           </button>
+
+          <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
 
           <div className="flex min-w-0 flex-col justify-center">
             <DropdownMenu>

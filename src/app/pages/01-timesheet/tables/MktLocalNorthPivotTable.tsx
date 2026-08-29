@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { PanelLeft, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
+import { PayrollMark } from "../../../components/PayrollMark";
 import {
   Select,
   SelectContent,
@@ -168,10 +169,10 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
               type="button"
             >
-              <PanelLeft className="w-3.5 h-3.5 text-primary" />
+              <PayrollMark className="w-3.5 h-3.5 text-primary" />
             </button>
           )}
-          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
+          <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
               PIVOT TIMESHEET

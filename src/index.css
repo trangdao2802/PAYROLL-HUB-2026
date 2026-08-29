@@ -89,6 +89,21 @@
   mask-size: contain;
 }
 
+.app-payroll-mark {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  transition: background-color 180ms ease, transform 180ms ease;
+  -webkit-mask-image: url("/home-mark.png");
+  mask-image: url("/home-mark.png");
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 .app-brand-lockup {
   display: inline-flex;
   width: 78px;

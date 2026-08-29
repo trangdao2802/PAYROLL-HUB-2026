@@ -5,7 +5,8 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, AlertTriangle, Lock } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock } from "lucide-react";
+import { PayrollMark } from "../../../components/PayrollMark";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -818,7 +819,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         >
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-              <Columns2 className="h-4 w-4" />
+              <PayrollMark className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <h3 

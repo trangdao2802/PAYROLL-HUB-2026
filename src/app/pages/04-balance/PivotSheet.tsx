@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { PayrollMark } from "../../components/PayrollMark";
 
 // ==========================================
 // HELPER UTILITIES EXPORTS FOR COMPATIBILITY
@@ -1989,7 +1990,7 @@ export function PivotSheet() {
       >
         <div className="flex w-full min-w-0 items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shrink-0">
-            <FileSpreadsheet className="h-4 w-4" />
+            <PayrollMark className="h-4 w-4" />
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
