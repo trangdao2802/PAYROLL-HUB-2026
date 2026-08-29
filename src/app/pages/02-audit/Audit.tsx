@@ -57,7 +57,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { Input } from "../../components/ui/input";
 import { X } from "lucide-react";
 import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
-import { TableInitialMark } from "../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../components/TableInitialMark";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -1513,7 +1516,7 @@ export function Audit() {
             className="unified-table-frame-header relative z-[200] flex min-h-[52px] shrink-0 items-center justify-between gap-3 rounded-t-none border-b border-slate-200 px-3 py-2 bg-[var(--table-header-bg,#FAF3E8)]"
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-0.5">
               {activeTab !== "rules" ? (
                 <button
                   onClick={() => setIsConfigHidden(!isConfigHidden)}
@@ -1534,7 +1537,9 @@ export function Audit() {
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
                   {activeTab === "main" ? (
                     <>
-                      <span className="text-primary font-extrabold">AUDIT OVERVIEW</span>
+                      <span className="text-primary font-extrabold">
+                        <TableTitleRemainder label="AUDIT OVERVIEW" />
+                      </span>
                       {mainData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                           {mainData.length}
@@ -1543,7 +1548,9 @@ export function Audit() {
                     </>
                   ) : activeTab === "detail" ? (
                     <>
-                      <span className="text-emerald-800 font-extrabold">AUDIT DISCREPANCY DETAILS</span>
+                      <span className="text-emerald-800 font-extrabold">
+                        <TableTitleRemainder label="AUDIT DISCREPANCY DETAILS" />
+                      </span>
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
                           {filteredDetailData.length}
@@ -1552,7 +1559,9 @@ export function Audit() {
                     </>
                   ) : (
                     <>
-                      <span className="text-primary font-extrabold">ALLOWED INTERN RULES</span>
+                      <span className="text-primary font-extrabold">
+                        <TableTitleRemainder label="ALLOWED INTERN RULES" />
+                      </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}
                       </span>

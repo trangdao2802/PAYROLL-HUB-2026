@@ -60,7 +60,10 @@ import {
   DialogFooter,
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
-import { TableInitialMark } from "../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../components/TableInitialMark";
 
 import ExcelWorker from "../../workers/excelParser.worker?worker";
 import type {
@@ -1232,11 +1235,11 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
               </div>
             </div>
           )}
-          <div className="relative z-10 flex min-w-0 flex-1 items-center gap-3">
+          <div className="relative z-10 flex min-w-0 flex-1 items-center gap-0.5">
             {onBack && (
               <button
                 onClick={onBack}
-                className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-2xs transition-all hover:bg-muted active:scale-95"
+                className="mr-2 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-2xs transition-all hover:bg-muted active:scale-95"
                 title="Quay lại"
                 aria-label="Quay lại bảng Timesheet"
               >
@@ -1250,7 +1253,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
-                Settings &amp; Upload (Timesheet)
+                <TableTitleRemainder label="Settings & Upload (Timesheet)" />
               </h1>
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-muted-foreground mt-0.5">
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">

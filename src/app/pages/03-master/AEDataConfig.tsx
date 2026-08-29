@@ -58,7 +58,10 @@ import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
 import { resolveGrossPayTotal } from "../../lib/utils/gross-pay";
-import { TableInitialMark } from "../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../components/TableInitialMark";
 
 function cleanIDNumber(val: any): string {
   return formatIdNumber(val);
@@ -2404,14 +2407,14 @@ export function AEDataConfig({
         <div 
           className="master-config-header unified-table-frame-header relative z-10 flex w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-2 px-4 md:flex-row md:items-center border-b border-border bg-card/90 backdrop-blur-xs"
         >
-          <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="relative z-10 flex min-w-0 flex-1 items-center gap-0.5">
             <button
               type="button"
               onClick={() => {
                 if (onSwitchToFinal) onSwitchToFinal();
                 else navigate("/master-ae");
               }}
-              className="master-config-icon flex shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+              className="master-config-icon mr-2 flex shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
               title="Quay lại Gross Pay"
               aria-label="Quay lại bảng Gross Pay"
             >
@@ -2424,7 +2427,7 @@ export function AEDataConfig({
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-extrabold leading-5 tracking-tight text-foreground">
-                Cài đặt &amp; Tải file (Master)
+                <TableTitleRemainder label="Cài đặt & Tải file (Master)" />
               </h1>
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium leading-4 text-muted-foreground">
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">

@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataTable } from "../../../components/DataTable";
-import { TableInitialMark } from "../../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../../components/TableInitialMark";
 import { getDynamicEmployeeColumns } from "../../../constants/timesheet-columns";
 import { memo, useMemo } from "react";
 
@@ -39,7 +42,7 @@ function EmployeeTableComponent({
       <div 
         className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[50px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5">
           {onToggleSidebar ? (
             <button
               onClick={onToggleSidebar}
@@ -56,7 +59,7 @@ function EmployeeTableComponent({
           )}
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold uppercase tracking-wider text-primary text-[12px] leading-snug">
-              EMPLOYEE WORKING HOURS SUMMARY
+              <TableTitleRemainder label="EMPLOYEE WORKING HOURS SUMMARY" />
             </h3>
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
               Summary of total working hours, overtime, and task allocations per employee

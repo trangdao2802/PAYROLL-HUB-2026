@@ -15,7 +15,10 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { DataTable, type Column } from "../../../components/DataTable";
-import { TableInitialMark } from "../../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../../components/TableInitialMark";
 import {
   type BulkPaymentAnalyticsResult,
   type PayrollBuMonthSummaryRow,
@@ -1124,7 +1127,7 @@ export function BulkPaymentAnalytics({
         className="unified-table-frame-header flex h-[54px] min-h-[54px] shrink-0 items-center justify-between gap-3 p-0 bg-[var(--table-header-bg,#FAF3E8)] border-b border-primary/10"
         style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-0.5 px-3">
           <button
             type="button"
             onClick={onToggleBulkPaymentCard}
@@ -1153,7 +1156,7 @@ export function BulkPaymentAnalytics({
                   title="Chuyển bảng"
                 >
                   <span className="text-[12px] font-bold uppercase tracking-[0.16em] leading-tight flex items-center gap-1">
-                    ANALYSIS
+                    <TableTitleRemainder label="ANALYSIS" />
                   </span>
                 </button>
               </DropdownMenuTrigger>

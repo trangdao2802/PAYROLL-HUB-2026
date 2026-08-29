@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
-import { TableInitialMark } from "../../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../../components/TableInitialMark";
 import {
   Select,
   SelectContent,
@@ -161,7 +164,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
       <div 
         className="unified-table-frame-header table-header flex min-h-[50px] w-full shrink-0 items-center justify-between border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3.5 py-2"
       >
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-0.5">
           {onToggleSidebar ? (
             <button
               onClick={onToggleSidebar}
@@ -178,7 +181,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
           )}
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
-              PIVOT TIMESHEET
+              <TableTitleRemainder label="PIVOT TIMESHEET" />
             </h3>
             <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
               MKT Local North cost allocation by task type and department

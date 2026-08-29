@@ -69,7 +69,10 @@ import {
 } from "../../lib/utils/payment-processor";
 import * as XLSX from "xlsx";
 import { Button } from "../../components/ui/button";
-import { TableInitialMark } from "../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../components/TableInitialMark";
 import {
   Dialog,
   DialogContent,
@@ -3170,7 +3173,7 @@ export function BulkPayment({
             maxHeight: "73px",
           }}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-0.5">
             <button
               type="button"
               onClick={() => setShowLeftCard(!showLeftCard)}
@@ -3199,11 +3202,15 @@ export function BulkPayment({
                     title="Chuyển bảng"
                   >
                     <span className="text-[12px] font-black uppercase tracking-[0.18em]">
-                      {rightPanelTab === "table"
-                        ? "TRANSACTION"
-                        : rightPanelTab === "reconcile"
-                        ? "RECONCILIATION"
-                        : "ANALYSIS"}
+                      <TableTitleRemainder
+                        label={
+                          rightPanelTab === "table"
+                            ? "TRANSACTION"
+                            : rightPanelTab === "reconcile"
+                              ? "RECONCILIATION"
+                              : "ANALYSIS"
+                        }
+                      />
                     </span>
                   </button>
                 </DropdownMenuTrigger>

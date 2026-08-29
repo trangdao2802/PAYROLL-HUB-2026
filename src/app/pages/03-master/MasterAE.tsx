@@ -28,7 +28,10 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { DataTable } from "../../components/DataTable";
-import { TableInitialMark } from "../../components/TableInitialMark";
+import {
+  TableInitialMark,
+  TableTitleRemainder,
+} from "../../components/TableInitialMark";
 import {
   Tooltip,
   TooltipTrigger,
@@ -932,7 +935,7 @@ export function MasterAE() {
                             className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none"
                             style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
                           >
-                            <div className="flex min-w-0 items-center gap-2.5">
+                            <div className="flex min-w-0 items-center gap-0.5">
                               <TableInitialMark
                                 label={getMasterTableTitle(activeTab, currentPeriodVal)}
                                 className="shrink-0 text-primary"
@@ -942,7 +945,9 @@ export function MasterAE() {
                                   className="truncate font-bold tracking-tight text-foreground"
                                   style={{ fontSize: "13px", lineHeight: "23px", height: "18.0012px" }}
                                 >
-                                  {getMasterTableTitle(activeTab, currentPeriodVal)}
+                                  <TableTitleRemainder
+                                    label={getMasterTableTitle(activeTab, currentPeriodVal)}
+                                  />
                                 </h3>
                                 <p 
                                   className="truncate font-medium text-muted-foreground"
