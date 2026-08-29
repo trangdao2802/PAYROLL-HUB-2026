@@ -17,6 +17,128 @@ export interface HoldCarryoverResult {
 
 const cleanText = (value: unknown) => String(value ?? "").trim();
 
+type HoldOperation = "Hold" | "Cancel" | "Add" | "";
+
+function getHoldOperation(row: HoldCarryRow): HoldOperation {
+  const operation = cleanText(row["Nghiệp vụ"]).toUpperCase();
+  if (operation === "C" || operation.includes("CANCEL")) return "Cancel";
+  if (operation === "A" || operation.includes("ADD")) return "Add";
+  if (operation === "H" || operation.includes("HOLD")) return "Hold";
+
+  if (operation) return "";
+
+  const legacyType = `${cleanText(row["Trạng thái trước lưu"])} ${cleanText(
+    row._holdStatusBeforeSave,
+  )} ${cleanText(row["Trạng thái"])} ${cleanText(row["Sheet Source"])}`.toUpperCase();
+  if (legacyType.includes("CANCEL")) return "Cancel";
+  if (legacyType.includes("ADD")) return "Add";
+  if (legacyType.includes("HOLD")) return "Hold";
+  return "";
+}
+
+function hasHoldOrigin(row: HoldCarryRow): boolean {
+  if (getHoldOperation(row) === "Hold") return true;
+  if (
+    cleanText(row._holdCarryKey) ||
+    cleanText(row._holdCarryOriginId) ||
+    cleanText(row._holdStatusBeforeSave).toUpperCase().includes("HOLD") ||
+    cleanText(row["Trạng thái trước lưu"]).toUpperCase().includes("HOLD")
+  ) {
+    return true;
+  }
+
+  // A HOLD changed to CANCEL/ADD keeps the source sheet. This is the durable
+  // lineage needed to reconcile old data that predates the internal markers.
+  const sheetSource = cleanText(row["Sheet Source"]).toUpperCase();
+  return /^HOLD(?:\b|[\s._-])/.test(sheetSource);
+}
+
+function operationPriority(operation: HoldOperation): number {
+  if (operation === "Cancel") return 3;
+  if (operation === "Add") return 2;
+  if (operation === "Hold") return 1;
+  return 0;
+}
+
+function timestampValue(row: HoldCarryRow, keys: string[]): number {
+  for (const key of keys) {
+    const parsed = Date.parse(cleanText(row[key]));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function preferHoldTransactionRow(
+  existing: HoldCarryRow,
+  incoming: HoldCarryRow,
+): HoldCarryRow {
+  const existingOperation = getHoldOperation(existing);
+  const incomingOperation = getHoldOperation(incoming);
+  const existingPriority = operationPriority(existingOperation);
+  const incomingPriority = operationPriority(incomingOperation);
+  const existingOperationTimestamp = timestampValue(existing, [
+    "_holdOperationUpdatedAt",
+  ]);
+  const incomingOperationTimestamp = timestampValue(incoming, [
+    "_holdOperationUpdatedAt",
+  ]);
+
+  // Explicit user changes are authoritative. This lets a later ADD/HOLD
+  // replace an earlier CANCEL while still protecting CANCEL from a repeated
+  // workbook row that only has an upload timestamp.
+  if (existingOperationTimestamp !== incomingOperationTimestamp) {
+    return incomingOperationTimestamp > existingOperationTimestamp
+      ? incoming
+      : existing;
+  }
+
+  // A resolved operation always wins over a stale HOLD copy. CANCEL has the
+  // highest safety priority so an already-cancelled deduction cannot reopen.
+  if (incomingPriority !== existingPriority) {
+    return incomingPriority > existingPriority ? incoming : existing;
+  }
+
+  const existingIsCarry = Boolean(existing?._holdCarryKey);
+  const incomingIsCarry = Boolean(incoming?._holdCarryKey);
+  if (existingIsCarry !== incomingIsCarry) {
+    return existingIsCarry ? incoming : existing;
+  }
+
+  const existingTimestamp = timestampValue(existing, [
+    "_uploadTimestamp",
+    "_holdCarryCreatedAt",
+  ]);
+  const incomingTimestamp = timestampValue(incoming, [
+    "_uploadTimestamp",
+    "_holdCarryCreatedAt",
+  ]);
+  if (existingTimestamp !== incomingTimestamp) {
+    return incomingTimestamp > existingTimestamp ? incoming : existing;
+  }
+
+  return existing;
+}
+
+function amountForOperation(
+  amount: unknown,
+  operation: HoldOperation,
+): number {
+  const absoluteAmount = Math.abs(parseMoneyToNumber(amount));
+  return operation === "Add" ? absoluteAmount : -absoluteAmount;
+}
+
+function canonicalizeHoldTransactionRow(
+  row: HoldCarryRow,
+): HoldCarryRow {
+  const operation = getHoldOperation(row) || "Hold";
+  return {
+    ...row,
+    "TOTAL PAYMENT": amountForOperation(row["TOTAL PAYMENT"], operation),
+    "Nghiệp vụ": operation,
+    _holdStatusBeforeSave: "Hold",
+  };
+}
+
 export function parsePayrollMonth(value: unknown): PayrollMonth | null {
   const raw = cleanText(value);
   if (!raw) return null;
@@ -107,37 +229,13 @@ function getArisingMonth(row: HoldCarryRow): PayrollMonth | null {
 }
 
 function isHoldRow(row: HoldCarryRow): boolean {
-  const operation = cleanText(row["Nghiệp vụ"]).toUpperCase();
-  if (operation === "H" || operation.includes("HOLD")) return true;
-
-  // Legacy imported rows may not have Nghiệp vụ yet. Do not let ADD/CANCEL
-  // rows pass merely because another free-text column mentions HOLD.
-  if (operation) return false;
-  const legacyType = `${cleanText(row["Trạng thái trước lưu"])} ${cleanText(
-    row._holdStatusBeforeSave,
-  )} ${cleanText(row["Trạng thái"])} ${cleanText(row["Sheet Source"])}`.toUpperCase();
-  return (
-    legacyType.includes("HOLD") &&
-    !legacyType.includes("ADD") &&
-    !legacyType.includes("CANCEL")
-  );
+  return getHoldOperation(row) === "Hold";
 }
 
 function isHoldMergeCandidate(row: HoldCarryRow): boolean {
-  if (isHoldRow(row)) return true;
-
   const operation = cleanText(row["Nghiệp vụ"]).toUpperCase();
-  if (operation.includes("CANCEL") || operation.includes("BONUS")) return false;
-
-  const beforeSave = `${cleanText(row["Trạng thái trước lưu"])} ${cleanText(
-    row._holdStatusBeforeSave,
-  )}`.toUpperCase();
-  if (beforeSave.includes("HOLD")) return true;
-
-  // Legacy source-file rows can be incorrectly inferred as ADD solely because
-  // their amount is positive. The sheet label remains the reliable origin.
-  const sheetSource = cleanText(row["Sheet Source"]).toUpperCase();
-  return /^HOLD(?:\b|[\s._-])/.test(sheetSource);
+  if (operation.includes("BONUS")) return false;
+  return hasHoldOrigin(row);
 }
 
 function normalizedPart(value: unknown): string {
@@ -291,52 +389,98 @@ export function mergeDuplicateHoldRows(
       return;
     }
 
-    const semanticIdentity = getHoldSemanticIdentity(row);
+    const canonicalRow = canonicalizeHoldTransactionRow(row);
+
+    const semanticIdentity = getHoldSemanticIdentity(canonicalRow);
     if (!semanticIdentity) {
-      result.push(row);
+      result.push(canonicalRow);
       return;
     }
 
-    const reportMonth = options.scopeByReportMonth ? getReportMonth(row) : null;
+    const reportMonth = options.scopeByReportMonth
+      ? getReportMonth(canonicalRow)
+      : null;
     const key = options.scopeByReportMonth
       ? `${reportMonth?.dot || "UNKNOWN"}|${semanticIdentity}`
       : semanticIdentity;
     const existingIndex = holdIndexes.get(key);
     if (existingIndex === undefined) {
       holdIndexes.set(key, result.length);
-      result.push(row);
+      result.push(canonicalRow);
       return;
     }
 
     const existing = result[existingIndex];
-    const existingIsCarry = Boolean(existing?._holdCarryKey);
-    const incomingIsCarry = Boolean(row?._holdCarryKey);
-    const preferred = existingIsCarry && !incomingIsCarry ? row : existing;
+    const preferred = preferHoldTransactionRow(existing, canonicalRow);
+    const preferredOperation = getHoldOperation(preferred) || "Hold";
     const duplicateCount =
       Number(existing?._holdMergedDuplicateCount || 1) +
       Number(row?._holdMergedDuplicateCount || 1);
     const mergedOriginalIndexes = Array.from(
       new Set([
         ...getMergedHoldOriginalIndexes(existing),
-        ...getMergedHoldOriginalIndexes(row),
+        ...getMergedHoldOriginalIndexes(canonicalRow),
       ]),
     );
 
     result[existingIndex] = {
       ...preferred,
-      "TOTAL PAYMENT": -Math.abs(
-        parseMoneyToNumber(preferred["TOTAL PAYMENT"]),
+      "TOTAL PAYMENT": amountForOperation(
+        preferred["TOTAL PAYMENT"],
+        preferredOperation,
       ),
-      "Nghiệp vụ": "Hold",
+      "Nghiệp vụ": preferredOperation,
       _holdMergedDuplicateCount: duplicateCount,
       ...(mergedOriginalIndexes.length > 1
         ? { _holdMergedOriginalIndexes: mergedOriginalIndexes }
         : {}),
+      // Preserve the HOLD lineage after the transaction becomes CANCEL/ADD so
+      // future source-file copies are reconciled with the resolved row.
       _holdStatusBeforeSave: "Hold",
     };
   });
 
   return result;
+}
+
+/**
+ * Reconciles the full multi-month transaction history. Rows are first merged
+ * inside each report month. Once a HOLD is resolved as CANCEL/ADD, any later
+ * copies of that exact transaction are removed and therefore cannot be saved
+ * or carried again.
+ */
+export function reconcileHoldTransactionRows(
+  rows: HoldCarryRow[],
+): HoldCarryRow[] {
+  const mergedRows = mergeDuplicateHoldRows(rows, {
+    scopeByReportMonth: true,
+  });
+  const resolvedMonthByIdentity = new Map<string, number>();
+
+  mergedRows.forEach((row) => {
+    if (!row || !isHoldMergeCandidate(row)) return;
+    const operation = getHoldOperation(row);
+    if (operation !== "Cancel" && operation !== "Add") return;
+
+    const reportMonth = getReportMonth(row);
+    const identity = getHoldSemanticIdentity(row);
+    if (!reportMonth || !identity) return;
+
+    const resolvedMonth = resolvedMonthByIdentity.get(identity);
+    if (resolvedMonth === undefined || reportMonth.index < resolvedMonth) {
+      resolvedMonthByIdentity.set(identity, reportMonth.index);
+    }
+  });
+
+  return mergedRows.filter((row) => {
+    if (!row || !isHoldMergeCandidate(row)) return true;
+    const reportMonth = getReportMonth(row);
+    const identity = getHoldSemanticIdentity(row);
+    if (!reportMonth || !identity) return true;
+
+    const resolvedMonth = resolvedMonthByIdentity.get(identity);
+    return resolvedMonth === undefined || reportMonth.index <= resolvedMonth;
+  });
 }
 
 /**
@@ -405,7 +549,7 @@ export function getEligibleHoldRowsForReport(
 
   const uniqueRows = new Map<string, HoldCarryRow>();
 
-  rows.forEach((row) => {
+  reconcileHoldTransactionRows(rows).forEach((row) => {
     if (!row || !isHoldRow(row)) return;
     const rowReportMonth = getReportMonth(row);
     const arisingMonth = getArisingMonth(row);
@@ -449,7 +593,9 @@ export function carryEligibleHoldsToNextMonth({
 
   // Re-saving a period refreshes only the rows previously generated from that
   // period. Imported and manually-entered rows in the next month stay intact.
-  const retainedRows = removeHoldCarryoverFromReport(existingRows, current.dot);
+  const retainedRows = reconcileHoldTransactionRows(
+    removeHoldCarryoverFromReport(existingRows, current.dot),
+  );
 
   const existingCarryKeys = new Set(
     retainedRows.map((row) => cleanText(row?._holdCarryKey)).filter(Boolean),
@@ -457,7 +603,7 @@ export function carryEligibleHoldsToNextMonth({
   const existingSemanticKeys = new Set<string>();
 
   retainedRows.forEach((row) => {
-    if (!row || !isHoldRow(row)) return;
+    if (!row || !isHoldMergeCandidate(row)) return;
     const rowReportMonth = getReportMonth(row);
     const arisingMonth = getArisingMonth(row);
     if (
@@ -471,6 +617,20 @@ export function carryEligibleHoldsToNextMonth({
 
   const carriedRows: HoldCarryRow[] = [];
 
+  const resolvedSemanticKeys = new Set<string>();
+  retainedRows.forEach((row) => {
+    if (!row || !isHoldMergeCandidate(row)) return;
+    const operation = getHoldOperation(row);
+    const rowReportMonth = getReportMonth(row);
+    if (
+      (operation === "Cancel" || operation === "Add") &&
+      rowReportMonth &&
+      rowReportMonth.index <= current.index
+    ) {
+      resolvedSemanticKeys.add(getHoldSemanticIdentity(row));
+    }
+  });
+
   getEligibleHoldRowsForReport(sourceRows, current.dot).forEach((row) => {
     const arisingMonth = getArisingMonth(row);
     if (!arisingMonth) return;
@@ -480,7 +640,8 @@ export function carryEligibleHoldsToNextMonth({
     const rowSemanticKey = getHoldSemanticIdentity(row);
     if (
       existingCarryKeys.has(carryKey) ||
-      existingSemanticKeys.has(rowSemanticKey)
+      existingSemanticKeys.has(rowSemanticKey) ||
+      resolvedSemanticKeys.has(rowSemanticKey)
     ) {
       return;
     }
@@ -517,11 +678,10 @@ export function carryEligibleHoldsToNextMonth({
   });
 
   return {
-    rows: mergeDuplicateHoldRows(
+    rows: reconcileHoldTransactionRows(
       carriedRows.length > 0
         ? [...retainedRows, ...carriedRows]
         : retainedRows,
-      { scopeByReportMonth: true },
     ),
     carriedCount: carriedRows.length,
   };

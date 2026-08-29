@@ -18,6 +18,7 @@ import { resolveL07BuFromAeCode } from "../utils/center-utils";
 import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
 import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
+import { reconcileHoldTransactionRows } from "../utils/hold-carryover";
 
 // Configure localforage
 localforage.config({
@@ -356,6 +357,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                     ? { ...row, "Sheet Source": "Unknown" }
                     : row,
                 ),
+              };
+            }
+
+            // Repair legacy duplicates on hydration. A CANCEL/ADD that already
+            // resolved a HOLD remains the single canonical transaction, and
+            // stale copies in later report months are discarded.
+            if (Array.isArray(saved.Hold_AE.data)) {
+              saved.Hold_AE = {
+                ...saved.Hold_AE,
+                data: reconcileHoldTransactionRows(saved.Hold_AE.data),
               };
             }
           }

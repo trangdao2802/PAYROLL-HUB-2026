@@ -49,7 +49,11 @@ import {
   isSheetOneMasterSheetName,
   normalizeMasterSheetName,
 } from "../../lib/utils/master-sheet-utils";
-import { getHoldScopedIdentity } from "../../lib/utils/hold-carryover";
+import {
+  getHoldScopedIdentity,
+  mergeDuplicateHoldRows,
+  reconcileHoldTransactionRows,
+} from "../../lib/utils/hold-carryover";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
@@ -2118,6 +2122,20 @@ export function AEDataConfig({
 
         // Group and map existing data by ID/Key and Timestamp
         const recordsMap = new Map<string, any>();
+        const mergeSameScopedRecord = (existing: any, incoming: any) => {
+          const reconciledPair = mergeDuplicateHoldRows(
+            [existing, incoming],
+            { scopeByReportMonth: true },
+          );
+
+          // HOLD-origin rows collapse to one transaction and preserve a
+          // resolved CANCEL/ADD even when a newer workbook repeats the HOLD.
+          if (reconciledPair.length === 1) return reconciledPair[0];
+
+          const existingTime = new Date(existing._uploadTimestamp || 0).getTime();
+          const incomingTime = new Date(incoming._uploadTimestamp || 0).getTime();
+          return incomingTime >= existingTime ? incoming : existing;
+        };
 
         existingHoldData.forEach((row) => {
           const key = holdKeyFn(row);
@@ -2128,8 +2146,10 @@ export function AEDataConfig({
           }
           
           const existing = recordsMap.get(key);
-          if (!existing || new Date(row._uploadTimestamp).getTime() > new Date(existing._uploadTimestamp).getTime()) {
+          if (!existing) {
             recordsMap.set(key, row);
+          } else {
+            recordsMap.set(key, mergeSameScopedRecord(existing, row));
           }
         });
 
@@ -2142,16 +2162,13 @@ export function AEDataConfig({
           if (!existing) {
             recordsMap.set(key, row);
           } else {
-            // Compare upload timestamps to prevent duplicates, keeping the newest upload
-            const existingTime = new Date(existing._uploadTimestamp || 0).getTime();
-            const incomingTime = new Date(row._uploadTimestamp).getTime();
-            if (incomingTime >= existingTime) {
-              recordsMap.set(key, row); // Replace with fresher record
-            }
+            recordsMap.set(key, mergeSameScopedRecord(existing, row));
           }
         });
 
-        const mergedHoldData = Array.from(recordsMap.values());
+        const mergedHoldData = reconcileHoldTransactionRows(
+          Array.from(recordsMap.values()),
+        );
 
         // Re-calculate row numbers
         mergedHoldData.forEach((row, idx) => {

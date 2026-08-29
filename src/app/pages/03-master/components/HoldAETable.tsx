@@ -43,6 +43,7 @@ import {
   getMergedHoldOriginalIndexes,
   mergeDuplicateHoldRows,
   parsePayrollMonth,
+  reconcileHoldTransactionRows,
   removeHoldCarryoverFromReport,
   removeSelectedHoldSourceRows,
 } from "../../../lib/utils/hold-carryover";
@@ -162,7 +163,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       const currentPeriodVal = appData.globalMonth || "03.2026";
       const currentLimit = parseToMonthIndex(currentPeriodVal);
 
-      const normalizedRows = raw.data.filter((r: any) => {
+      const normalizedRows = reconcileHoldTransactionRows(raw.data).filter((r: any) => {
         const nghiepVu = String(r["Nghiệp vụ"] || "").toUpperCase().trim();
         if (nghiepVu === "BONUS" || nghiepVu === "B" || nghiepVu.includes("BONUS") || nghiepVu === "⏩" || nghiepVu === "⏯") {
           return false; // Bonus moved to Gross Pay (Extra Summer Instructors)
@@ -280,6 +281,12 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           // Automatically offset the TOTAL PAYMENT sign based on Trạng thái or Nghiệp vụ
           if (columnKey === "Trạng thái" || columnKey === "Nghiệp vụ") {
             const valUpper = String(value || "").toUpperCase();
+            const previousOperation = String(row["Nghiệp vụ"] || "").toUpperCase();
+            const hasHoldLineage =
+              previousOperation.includes("HOLD") ||
+              Boolean(row._holdCarryKey) ||
+              String(row._holdStatusBeforeSave || "").toUpperCase().includes("HOLD") ||
+              /^HOLD(?:\b|[\s._-])/i.test(String(row["Sheet Source"] || "").trim());
             const currentTotalPayment = parseMoneyToNumber(
               updatedRow["TOTAL PAYMENT"] || 0,
             );
@@ -294,6 +301,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               updatedRow["Nghiệp vụ"] = "Add";
             }
 
+            updatedRow._holdOperationUpdatedAt = new Date().toISOString();
+            if (
+              hasHoldLineage ||
+              valUpper.includes("HOLD") ||
+              valUpper === "H"
+            ) {
+              updatedRow._holdStatusBeforeSave = "Hold";
+            }
+
             if (!valUpper.includes("HOLD") && valUpper !== "H") {
               delete updatedRow._holdCarryKey;
               delete updatedRow._holdCarryOriginId;
@@ -302,7 +318,6 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               delete updatedRow._holdCarrySaved;
               delete updatedRow._holdMergedDuplicateCount;
               delete updatedRow._holdMergedOriginalIndexes;
-              delete updatedRow._holdStatusBeforeSave;
             }
           }
 
@@ -315,7 +330,10 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
           return {
             ...prev,
-            Hold_AE: { ...targetTab, data: collapsedData },
+            Hold_AE: {
+              ...targetTab,
+              data: reconcileHoldTransactionRows(collapsedData),
+            },
           };
         });
       },
