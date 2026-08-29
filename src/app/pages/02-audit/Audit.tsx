@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   Download,
   AlertCircle,
+  FileText,
   ListOrdered,
   PlusCircle,
   CheckCircle2,
@@ -56,7 +57,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { Input } from "../../components/ui/input";
 import { X } from "lucide-react";
 import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
-import { PayrollMark } from "../../components/PayrollMark";
+import { TableInitialMark } from "../../components/TableInitialMark";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -1513,15 +1514,19 @@ export function Audit() {
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
             <div className="flex min-w-0 items-center gap-3">
-              {activeTab !== "rules" && (
+              {activeTab !== "rules" ? (
                 <button
                   onClick={() => setIsConfigHidden(!isConfigHidden)}
-                  className="flex items-center justify-center rounded-full border border-slate-200/90 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition-all shadow-xs cursor-pointer w-7 h-7 p-0 active:scale-95 shrink-0"
+                  className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
                   title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                  aria-label={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                  aria-expanded={!isConfigHidden}
                   type="button"
                 >
-                  <PayrollMark className="w-3.5 h-3.5 text-primary" />
+                  <TableInitialMark label="AUDIT" />
                 </button>
+              ) : (
+                <TableInitialMark label="ALLOWED INTERN RULES" className="shrink-0 text-primary" />
               )}
 
               {/* Active table name & detailed description */}
@@ -1529,7 +1534,6 @@ export function Audit() {
                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
                   {activeTab === "main" ? (
                     <>
-                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-primary font-extrabold">AUDIT OVERVIEW</span>
                       {mainData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
@@ -1539,7 +1543,6 @@ export function Audit() {
                     </>
                   ) : activeTab === "detail" ? (
                     <>
-                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-emerald-800 font-extrabold">AUDIT DISCREPANCY DETAILS</span>
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
@@ -1549,7 +1552,6 @@ export function Audit() {
                     </>
                   ) : (
                     <>
-                      <PayrollMark className="w-4 h-4 text-primary shrink-0" />
                       <span className="text-primary font-extrabold">ALLOWED INTERN RULES</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}

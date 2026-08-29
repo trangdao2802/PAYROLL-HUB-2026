@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataTable } from "../../../components/DataTable";
-import { PayrollMark } from "../../../components/PayrollMark";
+import { TableInitialMark } from "../../../components/TableInitialMark";
 import { CENTER_COLUMNS } from "../../../constants/timesheet-columns";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
 
@@ -100,17 +100,20 @@ function CenterTableComponent({
         className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[50px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
       >
         <div className="flex items-center gap-2">
-          {onToggleSidebar && (
+          {onToggleSidebar ? (
             <button
               onClick={onToggleSidebar}
-              className="flex items-center justify-center rounded-full border border-border bg-card hover:bg-accent/10 text-foreground transition-all shadow-2xs cursor-pointer w-7 h-7 p-0 active:scale-95 shrink-0"
+              className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
               title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+              aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+              aria-expanded={showSidebar}
               type="button"
             >
-              <PayrollMark className="w-3.5 h-3.5 text-primary" />
+              <TableInitialMark label="ROSTER CENTER PAYMENT SUMMARY" />
             </button>
+          ) : (
+            <TableInitialMark label="ROSTER CENTER PAYMENT SUMMARY" className="text-primary" />
           )}
-          <PayrollMark className="h-3.5 w-3.5 text-primary/75" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold uppercase tracking-wider text-primary text-[12px] leading-snug">
               ROSTER CENTER PAYMENT SUMMARY

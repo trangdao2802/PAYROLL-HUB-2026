@@ -15,7 +15,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { DataTable, type Column } from "../../../components/DataTable";
-import { PayrollMark } from "../../../components/PayrollMark";
+import { TableInitialMark } from "../../../components/TableInitialMark";
 import {
   type BulkPaymentAnalyticsResult,
   type PayrollBuMonthSummaryRow,
@@ -1128,11 +1128,7 @@ export function BulkPaymentAnalytics({
           <button
             type="button"
             onClick={onToggleBulkPaymentCard}
-            className={`bulk-panel-toggle shrink-0 transition-all cursor-pointer active:scale-95 ${
-              isBulkPaymentCardVisible
-                ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                : "bg-primary text-white border-primary shadow-xs hover:brightness-90"
-            }`}
+            className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
             title={
               isBulkPaymentCardVisible
                 ? "Ẩn bảng điều khiển"
@@ -1143,11 +1139,10 @@ export function BulkPaymentAnalytics({
                 ? "Ẩn bảng điều khiển"
                 : "Hiện bảng điều khiển"
             }
+            aria-expanded={isBulkPaymentCardVisible}
           >
-            <PayrollMark className="h-3.5 w-3.5 shrink-0" />
+            <TableInitialMark label="ANALYSIS" />
           </button>
-
-          <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
 
           <div className="flex min-w-0 flex-col justify-center">
             <DropdownMenu>

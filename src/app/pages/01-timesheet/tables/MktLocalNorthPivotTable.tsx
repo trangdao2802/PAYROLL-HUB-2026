@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
 import { formatMoneyVND } from "../../../lib/utils/data-utils";
-import { PayrollMark } from "../../../components/PayrollMark";
+import { TableInitialMark } from "../../../components/TableInitialMark";
 import {
   Select,
   SelectContent,
@@ -162,17 +162,20 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
         className="unified-table-frame-header table-header flex min-h-[50px] w-full shrink-0 items-center justify-between border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3.5 py-2"
       >
         <div className="flex min-w-0 items-center gap-2">
-          {onToggleSidebar && (
+          {onToggleSidebar ? (
             <button
               onClick={onToggleSidebar}
-              className="flex items-center justify-center rounded-full border border-border bg-card hover:bg-accent/10 text-foreground transition-all shadow-2xs cursor-pointer w-7 h-7 p-0 active:scale-95 shrink-0"
+              className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
               title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+              aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+              aria-expanded={showSidebar}
               type="button"
             >
-              <PayrollMark className="w-3.5 h-3.5 text-primary" />
+              <TableInitialMark label="PIVOT TIMESHEET" />
             </button>
+          ) : (
+            <TableInitialMark label="PIVOT TIMESHEET" className="shrink-0 text-primary" />
           )}
-          <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
           <div className="flex flex-col min-w-0">
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
               PIVOT TIMESHEET

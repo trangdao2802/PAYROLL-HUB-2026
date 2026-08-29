@@ -69,7 +69,7 @@ import {
 } from "../../lib/utils/payment-processor";
 import * as XLSX from "xlsx";
 import { Button } from "../../components/ui/button";
-import { PayrollMark } from "../../components/PayrollMark";
+import { TableInitialMark } from "../../components/TableInitialMark";
 import {
   Dialog,
   DialogContent,
@@ -3174,18 +3174,21 @@ export function BulkPayment({
             <button
               type="button"
               onClick={() => setShowLeftCard(!showLeftCard)}
-              className={`bulk-panel-toggle shrink-0 transition-all cursor-pointer active:scale-[0.98] ${
-                showLeftCard
-                  ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                  : "bg-primary text-white border-primary shadow-xs hover:brightness-90"
-              }`}
+              className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-[0.98]"
               title={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
               aria-label={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
+              aria-expanded={showLeftCard}
             >
-              <PayrollMark className="h-3.5 w-3.5 shrink-0" />
+              <TableInitialMark
+                label={
+                  rightPanelTab === "table"
+                    ? "TRANSACTION"
+                    : rightPanelTab === "reconcile"
+                      ? "RECONCILIATION"
+                      : "ANALYSIS"
+                }
+              />
             </button>
-
-            <PayrollMark className="h-3.5 w-3.5 shrink-0 text-primary/75" />
 
             <div className="min-w-0">
               <DropdownMenu>

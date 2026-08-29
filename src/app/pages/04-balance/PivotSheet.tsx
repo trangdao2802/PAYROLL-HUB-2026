@@ -48,7 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { PayrollMark } from "../../components/PayrollMark";
+import { TableInitialMark } from "../../components/TableInitialMark";
 
 // ==========================================
 // HELPER UTILITIES EXPORTS FOR COMPATIBILITY
@@ -1989,9 +1989,7 @@ export function PivotSheet() {
         className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
       >
         <div className="flex w-full min-w-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shrink-0">
-            <PayrollMark className="h-4 w-4" />
-          </div>
+          <TableInitialMark label="Pivot Master" className="shrink-0 text-primary" />
           <div className="min-w-0">
             <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
               Pivot Master

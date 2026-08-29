@@ -28,7 +28,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { DataTable } from "../../components/DataTable";
-import { PayrollMark } from "../../components/PayrollMark";
+import { TableInitialMark } from "../../components/TableInitialMark";
 import {
   Tooltip,
   TooltipTrigger,
@@ -78,6 +78,21 @@ const containerVariants = {
     },
   },
 } as const;
+
+function getMasterTableTitle(tab: string, period: string): string {
+  switch (tab) {
+    case "Sheet1_AE":
+      return `GROSS PAY - THÁNG ${period}`;
+    case "Deductions":
+      return "BẢNG CHI TIẾT KHẤU TRỪ VÀ THU KHÁC";
+    case "NetPay":
+      return "BẢNG LƯƠNG NET THỰC CHUYỂN";
+    case "Mkt_Local_North":
+      return "BẢNG PHÂN PHỐI LƯƠNG AE LOCAL (NORTH)";
+    default:
+      return tab;
+  }
+}
 
 export function MasterAE() {
   const { appData, updateAppData } = useAppData();
@@ -918,23 +933,16 @@ export function MasterAE() {
                             style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
                           >
                             <div className="flex min-w-0 items-center gap-2.5">
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-                                <PayrollMark className="h-4 w-4" />
-                              </div>
+                              <TableInitialMark
+                                label={getMasterTableTitle(activeTab, currentPeriodVal)}
+                                className="shrink-0 text-primary"
+                              />
                               <div className="min-w-0">
                                 <h3 
                                   className="truncate font-bold tracking-tight text-foreground"
                                   style={{ fontSize: "13px", lineHeight: "23px", height: "18.0012px" }}
                                 >
-                                  {activeTab === "Sheet1_AE"
-                                    ? `GROSS PAY - THÁNG ${currentPeriodVal}`
-                                    : activeTab === "Deductions"
-                                      ? "BẢNG CHI TIẾT KHẤU TRỪ VÀ THU KHÁC"
-                                      : activeTab === "NetPay"
-                                        ? "BẢNG LƯƠNG NET THỰC CHUYỂN"
-                                        : activeTab === "Mkt_Local_North"
-                                          ? "BẢNG PHÂN PHỐI LƯƠNG AE LOCAL (NORTH)"
-                                          : activeTab}
+                                  {getMasterTableTitle(activeTab, currentPeriodVal)}
                                 </h3>
                                 <p 
                                   className="truncate font-medium text-muted-foreground"

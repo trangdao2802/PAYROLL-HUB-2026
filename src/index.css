@@ -89,19 +89,21 @@
   mask-size: contain;
 }
 
-.app-payroll-mark {
-  display: inline-block;
+.app-table-initial-mark {
+  display: inline-flex;
+  min-width: 0.72em;
   flex: 0 0 auto;
-  background-color: currentColor;
-  transition: background-color 180ms ease, transform 180ms ease;
-  -webkit-mask-image: url("/home-mark.png");
-  mask-image: url("/home-mark.png");
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
-  mask-size: contain;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  font-family: "Great Vibes", "Newsreader", serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  transform: translateY(0.02em);
+  transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
 
 .app-brand-lockup {
@@ -2878,31 +2880,37 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
   font-family: var(--font-table, var(--font-main)) !important;
 }
 
-/* Bulk Payment panel switch: isolate it from legacy positional overrides that
-   could stretch the icon and render a second circular stroke. */
-.bulk-panel-toggle {
+/* The table initial is also the panel switch: it intentionally has no badge,
+   circular border, fill or shadow. */
+.table-initial-toggle {
   display: inline-flex !important;
-  width: 28px !important;
+  width: auto !important;
   height: 28px !important;
-  min-width: 28px !important;
+  min-width: 20px !important;
   min-height: 28px !important;
-  padding: 0 !important;
+  padding: 0 1px !important;
   align-items: center !important;
   justify-content: center !important;
-  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
-  border-radius: 9999px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--primary) !important;
   box-shadow: none !important;
   outline: none !important;
 }
 
-.bulk-panel-toggle > svg {
-  width: 14px !important;
-  height: 14px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
+.table-initial-toggle:hover .app-table-initial-mark {
+  color: color-mix(in srgb, var(--primary) 72%, var(--foreground)) !important;
+  transform: translateY(-1px);
+}
+
+.table-initial-toggle[aria-expanded="false"] .app-table-initial-mark {
+  opacity: 0.55;
+}
+
+.table-initial-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 32%, transparent) !important;
+  outline-offset: 2px !important;
 }
 
 /* ANALYSIS footer keeps one continuous grid, including intentionally empty

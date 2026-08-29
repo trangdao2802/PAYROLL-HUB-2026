@@ -60,7 +60,7 @@ import {
   DialogFooter,
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
-import { PayrollMark } from "../../components/PayrollMark";
+import { TableInitialMark } from "../../components/TableInitialMark";
 
 import ExcelWorker from "../../workers/excelParser.worker?worker";
 import type {
@@ -1243,9 +1243,10 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-2xs">
-              <PayrollMark className="h-4 w-4" />
-            </div>
+            <TableInitialMark
+              label="Settings & Upload (Timesheet)"
+              className="shrink-0 text-primary"
+            />
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
