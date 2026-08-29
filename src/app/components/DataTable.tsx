@@ -299,6 +299,8 @@ interface DataTableProps {
   onResetFilters?: () => void;
   hideColumnVisibilityToggle?: boolean;
   defaultItemsPerPage?: number | typeof Infinity;
+  /** Replaces the generic saved-time badge in the table footer. */
+  footerStatusContent?: React.ReactNode;
 }
 
 const ColumnFilter = ({
@@ -919,6 +921,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       onResetFilters,
       hideColumnVisibilityToggle = false,
       defaultItemsPerPage,
+      footerStatusContent,
     },
     ref,
   ) => {
@@ -2946,6 +2949,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         : "150px";
       
       const isColFiltered = columnFilters[col.key] instanceof Set && columnFilters[col.key]!.size > 0;
+      const isNoHeader = isNoCol(col.key) || isNoCol(col.label);
       const filteredHeaderClass = isColFiltered
         ? "bg-[#FEF3C7] dark:bg-amber-950/40 border-amber-300 text-amber-900 font-extrabold"
         : (col.group ? groupColorMap.get(col.group) : (headerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"));
@@ -2971,7 +2975,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase ${col.group ? "" : "text-slate-800"}`}
+          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"} ${col.group ? "" : "text-slate-800"}`}
           style={{
             padding: "var(--table-padding, 0.15rem 0.4rem)",
             paddingTop: "1px",
@@ -2981,6 +2985,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             minWidth: widthStyle,
             maxWidth: widthStyle,
             overflow: "visible",
+            textTransform: isNoHeader ? "none" : undefined,
             ...(stickyFirstColumn && cIdx === 0 ? {
               left: (selectable ? 40 : 0) + (showRowNumber ? 50 : 0)
             } : {})
@@ -3295,12 +3300,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     {isRowNumberVisible && (
                       <th
                         rowSpan={2}
-                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
                         style={{ 
                           padding: "var(--table-padding, 0.25rem 0.4rem)", 
                           paddingTop: "1px", 
                           paddingBottom: "1px", 
-                          backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
+                        backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
+                        textTransform: "none",
                           ...(stickyFirstColumn ? { left: selectable ? 40 : 0 } : {})
                         }}
                       >
@@ -3389,12 +3395,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   )}
                   {isRowNumberVisible && !columns.some(c => c.group) && (
                     <th
-                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
                       style={{ 
                         padding: "var(--table-padding, 0.25rem 0.4rem)", 
                         paddingTop: "1px", 
                         paddingBottom: "1px", 
-                        backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
+                          backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
+                          textTransform: "none",
                         ...(stickyFirstColumn ? { left: selectable ? 40 : 0 } : {})
                       }}
                     >
@@ -3809,26 +3816,28 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   height: "36.9953px"
                 }}
               >
-                <SaveStatusCard 
-                  scope={storageKey === "bulk_payment" ? "transaction" : "default"}
-                  className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
-                  style={{
-                    paddingLeft: "0px",
-                    paddingRight: "0px",
-                    marginRight: "12px"
-                  }}
-                  textStyle={{
-                    fontFamily: "inherit",
-                    fontWeight: "600",
-                    fontSize: "9px",
-                    color: "#475569",
-                  }}
-                  iconStyle={{
-                    width: "11px",
-                    height: "11px",
-                    color: "#475569",
-                  }}
-                />
+                {footerStatusContent || (
+                  <SaveStatusCard
+                    scope={storageKey === "bulk_payment" ? "transaction" : "default"}
+                    className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
+                    style={{
+                      paddingLeft: "0px",
+                      paddingRight: "0px",
+                      marginRight: "12px"
+                    }}
+                    textStyle={{
+                      fontFamily: "inherit",
+                      fontWeight: "600",
+                      fontSize: "9px",
+                      color: "#475569",
+                    }}
+                    iconStyle={{
+                      width: "11px",
+                      height: "11px",
+                      color: "#475569",
+                    }}
+                  />
+                )}
               </div>
             </div>
 

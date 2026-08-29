@@ -103,6 +103,26 @@ export interface AppData {
   TrialBalanceTransactionVersion?: number;
   TrialBalanceTransactionVersions?: Record<string, number>;
   TrialBalanceRefreshedAt?: string;
+  ReconciliationByMonth?: Record<
+    string,
+    {
+      actual: number;
+      expected: number;
+      variance: number;
+      grossPayTotal: number;
+      deductionsTotal: number;
+      generatedAt: string;
+    }
+  >;
+  HoldCarrySnapshots?: Record<
+    string,
+    {
+      savedAt: string;
+      eligibleCount: number;
+      carriedCount: number;
+      nextMonth?: string;
+    }
+  >;
   ConfirmedIds_HoldAdd?: string[];
   Timesheet_RosterEditHistory?: any[];
 }

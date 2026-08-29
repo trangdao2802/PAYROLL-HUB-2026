@@ -14,6 +14,7 @@ import {
   markTransactionGenerated,
   markTransactionSaved,
 } from "../lib/utils/transaction-activity";
+import { calculateReconciliationTotals } from "../lib/utils/reconciliation-sync";
 
 // ==========================================
 // PURE UTILITY & LOGIC HELPER FUNCTIONS
@@ -674,7 +675,7 @@ export function useBulkPaymentLogic() {
     let sameMonthHoldTotal = 0;
     let sameMonthAddTotal = 0;
     let diffMonthAddTotal = 0;
-    let bonusTotal = 0;
+    const bonusTotal = 0;
 
     holdAddItems.forEach(item => {
       if (!finalTotals[item.biz]) {
@@ -1055,13 +1056,22 @@ export function useBulkPaymentLogic() {
         };
       });
 
+      const generatedAt = new Date().toISOString();
+      const reconciliationTotals = calculateReconciliationTotals(
+        appData,
+        currentMonthVal,
+      );
       updateAppData((prev) => ({
         ...prev,
         BankExport: {
           ...prev.BankExport,
           data: data,
         },
-        TransactionActivity: markTransactionGenerated(prev),
+        ReconciliationByMonth: {
+          ...(prev.ReconciliationByMonth || {}),
+          [currentMonthVal]: { ...reconciliationTotals, generatedAt },
+        },
+        TransactionActivity: markTransactionGenerated(prev, generatedAt),
       }));
 
       const reportTotal = data.reduce((sum, r) => sum + r["Payment Amount"], 0);

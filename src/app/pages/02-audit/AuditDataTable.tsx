@@ -553,9 +553,9 @@ const DataRow = React.memo(
           const customSpan = row._rowSpans?.[col.key];
           if (customSpan === 0) return null;
           const groupCellClass =
-            col.group === "THÔNG TIN CHUNG"
+            col.group === "THÔNG TIN CHUNG" || col.group === "GENERAL INFORMATION"
               ? "audit-group-common-cell"
-              : col.group === "CHI TIẾT GIỜ LÀM TA"
+              : col.group === "CHI TIẾT GIỜ LÀM TA" || col.group === "INTERN WORK DETAILS"
                 ? "audit-group-hours-cell"
                 : "";
 
@@ -2593,9 +2593,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
       const isColFiltered = columnFilters[col.key] instanceof Set && columnFilters[col.key]!.size > 0;
       const groupHeaderClass =
-        col.group === "THÔNG TIN CHUNG"
+        col.group === "THÔNG TIN CHUNG" || col.group === "GENERAL INFORMATION"
           ? (rowSpan === 2 ? "audit-group-common-header" : "audit-group-common-sub-header")
-          : col.group === "CHI TIẾT GIỜ LÀM TA"
+          : col.group === "CHI TIẾT GIỜ LÀM TA" || col.group === "INTERN WORK DETAILS"
             ? (rowSpan === 2 ? "audit-group-hours-header" : "audit-group-hours-sub-header")
             : "";
       const defaultHeaderBg = "bg-[#F8FAFC] dark:bg-slate-800 text-slate-800 dark:text-slate-200";
@@ -2794,8 +2794,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     {showRowNumber && (
                       <th 
                         rowSpan={2} 
-                        className={`sticky top-0 z-[70] w-[50px] min-w-[50px] text-center bg-[#F8FAFC] dark:bg-slate-800 border-b border-r border-[var(--grid-line-color,#CBD5E1)] py-1 text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-slate-800 dark:text-slate-200 group/no`}
-                        style={{ verticalAlign: "middle" }}
+                        className={`sticky top-0 z-[70] w-[50px] min-w-[50px] text-center bg-[#F8FAFC] dark:bg-slate-800 border-b border-r border-[var(--grid-line-color,#CBD5E1)] py-1 text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
+                        style={{ verticalAlign: "middle", textTransform: "none" }}
                       >
                         <div className="flex items-center justify-center gap-1">
                           <span>No.</span>
@@ -2829,8 +2829,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       return groupings.map((g, idx) => {
                         if (g.group) {
                           const groupClass =
-                            g.group === 'THÔNG TIN CHUNG' ? 'audit-group-common-header' :
-                            g.group === 'CHI TIẾT GIỜ LÀM TA' ? 'audit-group-hours-header' :
+                            (g.group === 'THÔNG TIN CHUNG' || g.group === 'GENERAL INFORMATION') ? 'audit-group-common-header' :
+                            (g.group === 'CHI TIẾT GIỜ LÀM TA' || g.group === 'INTERN WORK DETAILS') ? 'audit-group-hours-header' :
                             headerClassName || "bg-[#F1F5F9]";
                           return (
                             <th 
@@ -2879,8 +2879,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   )}
                   {showRowNumber && !columns.some(c => c.group) && (
                     <th
-                      className={`sticky top-0 z-[60] w-[50px] border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-slate-800 dark:text-slate-200 group/no`}
-                      style={{ padding: "var(--table-padding, 0.25rem 0.4rem)", verticalAlign: "middle" }}
+                      className={`sticky top-0 z-[60] w-[50px] border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${headerClassName ? headerClassName : "bg-[#F8FAFC]"} text-[var(--header-font-size,0.6875rem)] font-bold text-slate-800 dark:text-slate-200 group/no`}
+                      style={{ padding: "var(--table-padding, 0.25rem 0.4rem)", verticalAlign: "middle", textTransform: "none" }}
                     >
                       <div className="flex items-center justify-center gap-1">
                         <span>No.</span>

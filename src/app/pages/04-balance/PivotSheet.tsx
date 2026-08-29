@@ -471,25 +471,43 @@ export function PivotSheet() {
     const startX = e.clientX;
     const startWidth = columnWidths[colKey] || defaultW;
     resizingColRef.current = { colKey, startX, startWidth };
+    let latestWidth = startWidth;
+    let resizeFrame: number | null = null;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!resizingColRef.current) return;
       const targetColKey = resizingColRef.current.colKey;
       const deltaX = moveEvent.clientX - resizingColRef.current.startX;
-      const newWidth = Math.max(45, resizingColRef.current.startWidth + deltaX);
-      setColumnWidths(prev => {
-        if (!targetColKey) return prev;
-        const next = { ...prev, [targetColKey]: newWidth };
-        try {
-          localStorage.setItem("pivot_master_column_widths", JSON.stringify(next));
-        } catch {
-          // ignore
-        }
-        return next;
+      latestWidth = Math.max(45, resizingColRef.current.startWidth + deltaX);
+      if (resizeFrame !== null) return;
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null;
+        setColumnWidths((prev) =>
+          targetColKey ? { ...prev, [targetColKey]: latestWidth } : prev,
+        );
       });
     };
 
     const handleMouseUp = () => {
+      const targetColKey = resizingColRef.current?.colKey;
+      if (resizeFrame !== null) {
+        window.cancelAnimationFrame(resizeFrame);
+        resizeFrame = null;
+      }
+      if (targetColKey) {
+        setColumnWidths((prev) => {
+          const next = { ...prev, [targetColKey]: latestWidth };
+          try {
+            localStorage.setItem(
+              "pivot_master_column_widths",
+              JSON.stringify(next),
+            );
+          } catch {
+            // Ignore local storage quota/privacy errors.
+          }
+          return next;
+        });
+      }
       resizingColRef.current = null;
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -1609,13 +1627,13 @@ export function PivotSheet() {
       let maxW = minWidth;
       if (context) {
         context.font = "bold 11px Inter, sans-serif";
-        maxW = Math.max(maxW, context.measureText(headerText).width + 52);
+        maxW = Math.max(maxW, context.measureText(headerText).width + 72);
 
         context.font = "12px 'Plus Jakarta Sans', 'Inter', sans-serif";
         for (const val of values) {
           if (val === undefined || val === null || val === "") continue;
           const text = typeof val === "number" ? formatNumber(val) : String(val);
-          const w = context.measureText(text).width + 36;
+          const w = context.measureText(text).width + 40;
           if (w > maxW) maxW = w;
         }
       } else {
@@ -1623,7 +1641,7 @@ export function PivotSheet() {
           (length, value) => Math.max(length, String(value ?? "").length),
           headerText.length
         );
-        maxW = Math.max(minWidth, longest * 9 + 52);
+        maxW = Math.max(minWidth, longest * 9 + 72);
       }
       return Math.min(maxWidth, Math.max(minWidth, Math.ceil(maxW)));
     };
@@ -1740,7 +1758,7 @@ export function PivotSheet() {
           {!hiddenColumns.no && (
             <td 
               style={{ width: columnWidths["no"] || 50, minWidth: columnWidths["no"] || 50, maxWidth: columnWidths["no"] || 50 }}
-              className="group/no relative border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2 py-2 text-center text-xs tabular-nums text-muted-foreground"
+              className="group/no relative align-middle border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2 py-2 text-center text-xs tabular-nums text-muted-foreground"
             >
               <span>{item.globalRowId}</span>
               <button
@@ -1756,7 +1774,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["business"] || 90, minWidth: columnWidths["business"] || 90, maxWidth: columnWidths["business"] || 90 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "bu", item.bu)}
-              className="cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs font-semibold text-card-foreground transition-colors"
+              className="cursor-pointer align-middle whitespace-normal break-words border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs font-semibold text-card-foreground transition-colors"
               title="Nhấp đúp để sửa Business"
             >
               {isEditingThisRow && editingCell.field === "bu" ? (
@@ -1780,7 +1798,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["charge"] || 220, minWidth: columnWidths["charge"] || 220, maxWidth: columnWidths["charge"] || 220 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "l07", item.l07)}
-              className="cursor-pointer truncate border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-left text-xs font-medium text-card-foreground transition-colors"
+              className="cursor-pointer align-middle whitespace-normal break-words border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-left text-xs font-medium text-card-foreground transition-colors"
               title={item.sourceLabels.length > 0
                 ? `L07 ${item.l07} — Khoản: ${item.sourceLabels.join(" / ")}. Nhấp đúp để sửa L07.`
                 : `Nhấp đúp để sửa L07 (${item.l07})`}
@@ -1798,10 +1816,10 @@ export function PivotSheet() {
                   className="w-full rounded-md border border-primary/35 bg-card px-1.5 py-0.5 text-xs font-medium text-foreground outline-none ring-2 ring-primary/15"
                 />
               ) : (
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="shrink-0">{item.l07}</span>
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="break-all">{item.l07}</span>
                   {item.sourceLabels.length > 0 && (
-                    <span className="truncate rounded border border-primary/15 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary/75">
+                    <span className="whitespace-normal break-words rounded border border-primary/15 bg-primary/8 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary/75">
                       Khoản: {item.sourceLabels.join(" / ")}
                     </span>
                   )}
@@ -1813,7 +1831,7 @@ export function PivotSheet() {
             <td 
               style={{ width: columnWidths["month"] || 90, minWidth: columnWidths["month"] || 90, maxWidth: columnWidths["month"] || 90 }}
               onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, "month", item.month)}
-              className="cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs tabular-nums text-card-foreground transition-colors"
+              className="cursor-pointer align-middle whitespace-normal break-words border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-center text-xs tabular-nums text-card-foreground transition-colors"
               title="Nhấp đúp để sửa Tháng"
             >
               {isEditingThisRow && editingCell.field === "month" ? (
@@ -1844,7 +1862,7 @@ export function PivotSheet() {
                 key={colKey}
                 style={{ width: w, minWidth: w, maxWidth: w }}
                 onDoubleClick={() => handleStartEdit(item.bu, item.l07, item.month, type, val)}
-                className={`cursor-pointer border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-right text-xs font-normal tabular-nums transition-colors ${val > 0 ? "text-card-foreground" : "text-muted-foreground"}`}
+                className={`cursor-pointer align-middle whitespace-normal break-words border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] px-2.5 py-2 text-right text-xs font-normal tabular-nums transition-colors ${val > 0 ? "text-card-foreground" : "text-muted-foreground"}`}
                 title={`Nhấp đúp để sửa ${type}`}
               >
                 {isEditingThisRow && editingCell.field === type ? (
@@ -1868,7 +1886,7 @@ export function PivotSheet() {
           {!hiddenColumns.grandTotal && (
             <td 
               style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
-              className="border-b border-border px-3 py-2 text-right text-xs font-semibold tabular-nums text-primary"
+              className="align-middle whitespace-normal break-words border-b border-border px-3 py-2 text-right text-xs font-semibold tabular-nums text-primary"
             >
               {item.rowTotal ? formatNumber(item.rowTotal) : "0"}
             </td>
@@ -2241,9 +2259,9 @@ export function PivotSheet() {
               <tr>
                 {!hiddenColumns.no && (
                   <th 
-                    style={{ width: columnWidths["no"] || 60, minWidth: columnWidths["no"] || 60, maxWidth: columnWidths["no"] || 60 }}
                     onClick={() => toggleSort("no")}
-                    className="group relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    className="group relative cursor-pointer align-middle border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    style={{ width: columnWidths["no"] || 60, minWidth: columnWidths["no"] || 60, maxWidth: columnWidths["no"] || 60, textTransform: "none" }}
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
@@ -2336,8 +2354,8 @@ export function PivotSheet() {
                       className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
                       title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                     >
-                      <div className="inline-flex items-center justify-end gap-1 w-full">
-                        <span className="whitespace-nowrap truncate" title={type}>{type}</span>
+                      <div className="flex w-full min-w-0 items-center justify-end gap-1">
+                        <span className="min-w-0 whitespace-normal break-words text-right leading-tight" title={type}>{type}</span>
                         {renderSortIndicator(colKey)}
                       </div>
                       <div

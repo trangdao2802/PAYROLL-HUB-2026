@@ -16,6 +16,8 @@ export function clearMasterTableData(
   return {
     ...previous,
     [table]: emptyTable(previous[table]),
+    ...(table === "Hold_AE" ? { HoldCarrySnapshots: {} } : {}),
+    ...(table === "BankExport" ? { ReconciliationByMonth: {} } : {}),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -30,6 +32,8 @@ export function clearMasterPageData(previous: AppData): AppData {
     Bank_North_AE: emptyTable(previous.Bank_North_AE),
     SoSanh_AE: emptyTable(previous.SoSanh_AE),
     BankExport: emptyTable(previous.BankExport),
+    ReconciliationByMonth: {},
+    HoldCarrySnapshots: {},
     CustomReport: emptyTable(previous.CustomReport),
     Master_Roster: [],
     Master_RosterFileName: "",
@@ -126,6 +130,8 @@ export function createClearedWebData(previous: AppData): AppData {
     TrialBalanceTransactionVersion: 0,
     TrialBalanceTransactionVersions: {},
     TrialBalanceRefreshedAt: undefined,
+    ReconciliationByMonth: {},
+    HoldCarrySnapshots: {},
     AuditClearedTables: {},
     Timesheet_SkipSupabaseRestore: true,
     Timesheet_LocalClearedAt: new Date().toISOString(),

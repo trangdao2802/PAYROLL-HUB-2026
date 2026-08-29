@@ -27,11 +27,12 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import { TableData } from "../../types";
 import { MonthPicker } from "../shared/MonthPicker";
 import { toast } from "sonner";
+import { syncReportingMonthReconciliation } from "../../lib/utils/reconciliation-sync";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +61,7 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
   "/audit": [
     { id: "main", label: "Audit Overview", icon: ShieldCheck },
     { id: "detail", label: "Audit Discrepancy Details", icon: AlertCircle },
-    { id: "rules", label: "Allowed TAs Rules", icon: ListChecks },
+    { id: "rules", label: "Allowed Intern Rules", icon: ListChecks },
   ],
   "/master-ae": [
     { id: "Sheet1_AE", label: "Gross Pay", icon: Database },
@@ -154,7 +155,23 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
   );
 
   const showMonthCard = location.pathname === "/master-ae" || location.pathname === "/hold-dashboard" || location.pathname === "/payment" || location.pathname === "/pivot";
+  const shouldAutoSyncReconciliation = location.pathname === "/master-ae" || location.pathname === "/payment" || location.pathname === "/pivot";
   const currentMonth = appData.globalMonth || "03.2026";
+  const bankSourceRowCount = appData.Bank_North_AE?.data?.length || 0;
+  const lastAutoSyncedMonthRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!shouldAutoSyncReconciliation || bankSourceRowCount === 0) {
+      lastAutoSyncedMonthRef.current = null;
+      return;
+    }
+    if (lastAutoSyncedMonthRef.current === currentMonth) return;
+
+    lastAutoSyncedMonthRef.current = currentMonth;
+    updateAppData((prev) =>
+      syncReportingMonthReconciliation(prev, currentMonth),
+    );
+  }, [bankSourceRowCount, currentMonth, shouldAutoSyncReconciliation, updateAppData]);
 
   return (
     <header 

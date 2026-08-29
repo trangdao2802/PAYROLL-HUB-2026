@@ -5,7 +5,7 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, Columns2, ChevronDown, Save, AlertTriangle, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +43,10 @@ import {
   getMergedHoldOriginalIndexes,
   mergeDuplicateHoldRows,
   parsePayrollMonth,
+  removeHoldCarryoverFromReport,
   removeSelectedHoldSourceRows,
 } from "../../../lib/utils/hold-carryover";
+import { calculateReconciliationTotals } from "../../../lib/utils/reconciliation-sync";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -75,8 +77,32 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
     const { appData, updateAppData } = useAppData();
     const [showSearch, setShowSearch] = React.useState(false);
     const [showClearConfirm, setShowClearConfirm] = React.useState(false);
+    const [showDeleteSnapshotConfirm, setShowDeleteSnapshotConfirm] = React.useState(false);
     const hasActiveSearch = searchTerm.trim().length > 0;
     const isSearchVisible = showSearch || hasActiveSearch;
+    const currentReportMonth =
+      parsePayrollMonth(appData.globalMonth || "03.2026")?.dot || "03.2026";
+    const currentHoldSnapshot =
+      appData.HoldCarrySnapshots?.[currentReportMonth];
+    const isCurrentMonthLocked = Boolean(currentHoldSnapshot);
+    const reconciliationTotals = useMemo(
+      () =>
+        calculateReconciliationTotals(
+          {
+            globalMonth: currentReportMonth,
+            Sheet1_AE: appData.Sheet1_AE,
+            Hold_AE: appData.Hold_AE,
+            Bank_North_AE: appData.Bank_North_AE,
+          },
+          currentReportMonth,
+        ),
+      [
+        appData.Sheet1_AE,
+        appData.Hold_AE,
+        appData.Bank_North_AE,
+        currentReportMonth,
+      ],
+    );
 
     const handleToggleSearch = () => {
       if (isSearchVisible) {
@@ -201,6 +227,12 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
     // 3. Special cell change handler for Hold_AE
     const handleCellChange = useCallback(
       (row: Record<string, any>, columnKey: string, value: any) => {
+        if (isCurrentMonthLocked) {
+          toast.warning(
+            `Hold ${currentReportMonth} đã được lưu và đang khóa chỉnh sửa.`,
+          );
+          return;
+        }
         if (["Tháng báo cáo"].includes(columnKey)) {
           return;
         }
@@ -287,12 +319,28 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           };
         });
       },
-      [updateAppData],
+      [currentReportMonth, isCurrentMonthLocked, updateAppData],
     );
+
+    React.useEffect(() => {
+      (window as any).__applyHoldAEOperation = (
+        row: Record<string, any>,
+        operation: string,
+      ) => handleCellChange(row, "Nghiệp vụ", operation);
+      return () => {
+        delete (window as any).__applyHoldAEOperation;
+      };
+    }, [handleCellChange]);
 
     // 4. Row deletion handler for Hold_AE
     const handleDeleteRow = useCallback(
       (rowToDelete: Record<string, any>) => {
+        if (isCurrentMonthLocked) {
+          toast.warning(
+            `Hold ${currentReportMonth} đã được lưu và không thể xóa dòng.`,
+          );
+          return;
+        }
         updateAppData((prev: any) => {
           const targetTab = prev.Hold_AE;
           if (!targetTab || !targetTab.data) return prev;
@@ -306,11 +354,17 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         });
         toast.success("Đã xóa dòng");
       },
-      [updateAppData],
+      [currentReportMonth, isCurrentMonthLocked, updateAppData],
     );
 
     const handleDeleteSelection = useCallback(
       (range: { startR: number; endR: number; startC?: number; endC?: number }) => {
+        if (isCurrentMonthLocked) {
+          toast.warning(
+            `Hold ${currentReportMonth} đã được lưu và không thể xóa vùng dữ liệu.`,
+          );
+          return;
+        }
         const currentRef = ref as any;
         let rowsToDelete: any[] = [];
         
@@ -350,7 +404,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         
         toast.success(`Đã xóa ${rowsToDelete.length} dòng`);
       },
-      [filteredData.data, updateAppData, ref],
+      [currentReportMonth, filteredData.data, isCurrentMonthLocked, updateAppData, ref],
     );
 
     // 5. Dynamic Columns memoization
@@ -523,7 +577,13 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 >
                   <button
                     onKeyDown={(e) => {
-                      if (e.ctrlKey || e.metaKey || e.altKey || !isPeriodMatch) {
+                      if (
+                        e.ctrlKey ||
+                        e.metaKey ||
+                        e.altKey ||
+                        !isPeriodMatch ||
+                        isCurrentMonthLocked
+                      ) {
                         return;
                       }
                       const nextStatus =
@@ -535,7 +595,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isPeriodMatch) {
+                      if (isPeriodMatch && !isCurrentMonthLocked) {
                         let nextStatus = "Add";
                         if (isAdd) nextStatus = "Hold";
                         else if (isHold) nextStatus = "Cancel";
@@ -544,7 +604,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                       }
                     }}
                     className={`flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-lg border shadow-sm transition-all select-none h-7 w-24 hover:brightness-95 active:scale-95 ${
-                      !isPeriodMatch
+                      !isPeriodMatch || isCurrentMonthLocked
                         ? "bg-secondary/30 border-border text-foreground/40 opacity-40 cursor-not-allowed pointer-events-none shadow-none"
                         : isHold
                           ? "bg-amber-500 border-amber-500 text-white"
@@ -552,8 +612,14 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                             ? "bg-rose-500 border-rose-500 text-white"
                             : "bg-primary border-primary text-white"
                     }`}
-                    title={!isPeriodMatch ? `Chỉ sửa đổi được tại card tháng chọn` : `Chọn ô rồi bấm A/H/C, hoặc bấm nút để chuyển nghiệp vụ`}
-                    disabled={!isPeriodMatch}
+                    title={
+                      isCurrentMonthLocked
+                        ? `Hold ${currentReportMonth} đã được lưu và khóa chỉnh sửa`
+                        : !isPeriodMatch
+                          ? `Chỉ sửa đổi được tại card tháng chọn`
+                          : `Chọn ô rồi bấm A/H/C, hoặc bấm nút để chuyển nghiệp vụ`
+                    }
+                    disabled={!isPeriodMatch || isCurrentMonthLocked}
                   >
                     <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-black/10 text-white text-[10px] font-extrabold">
                       {isHold ? "H" : isCancel ? "C" : "A"}
@@ -581,7 +647,14 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               (isChargeAmount || type === "currency"),
           };
         });
-    }, [filteredData.headers, filteredData.data, handleCellChange, appData.globalMonth]);
+    }, [
+      filteredData.headers,
+      filteredData.data,
+      handleCellChange,
+      appData.globalMonth,
+      currentReportMonth,
+      isCurrentMonthLocked,
+    ]);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const handleRefresh = () => {
@@ -611,38 +684,24 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       updateAppData((prev: any) => ({
         ...prev,
         Hold_AE: { ...prev.Hold_AE, data: [] },
+        HoldCarrySnapshots: {},
       }));
       setShowClearConfirm(false);
       toast.success("Đã xóa tất cả dữ liệu Deductions");
     };
 
-    const currentReportMonth = appData.globalMonth || "03.2026";
-    const { eligibleHoldCount, savedHoldCount } = useMemo(() => {
+    const eligibleHoldCount = useMemo(() => {
       const rows = appData.Hold_AE?.data || [];
-      const currentReportMonthIndex =
-        parsePayrollMonth(currentReportMonth)?.index;
-      let savedCount = 0;
-
-      rows.forEach((row: any) => {
-        const carriedFrom = parsePayrollMonth(row?._holdCarryFromReportMonth);
-        if (
-          currentReportMonthIndex !== undefined &&
-          carriedFrom?.index === currentReportMonthIndex
-        ) {
-          savedCount += 1;
-        }
-      });
-
-      return {
-        eligibleHoldCount: getEligibleHoldRowsForReport(
-          rows,
-          currentReportMonth,
-        ).length,
-        savedHoldCount: savedCount,
-      };
+      return getEligibleHoldRowsForReport(rows, currentReportMonth).length;
     }, [appData.Hold_AE?.data, currentReportMonth]);
 
     const handleSaveHolds = () => {
+      if (isCurrentMonthLocked) {
+        toast.warning(
+          `Hold ${currentReportMonth} đã được lưu. Hãy xóa bản lưu trước nếu cần tạo lại.`,
+        );
+        return;
+      }
       if (eligibleHoldCount === 0) {
         toast.warning(
           "Không có khoản Hold nào có tháng phát sinh nhỏ hơn hoặc bằng tháng báo cáo.",
@@ -650,27 +709,83 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         return;
       }
 
+      const savedAt = new Date().toISOString();
+      const nextMonth = getNextPayrollMonth(currentReportMonth)?.dot;
+      const carryoverPreview = carryEligibleHoldsToNextMonth({
+        sourceRows: filteredData.data,
+        existingRows: appData.Hold_AE?.data || [],
+        reportMonth: currentReportMonth,
+        createdAt: savedAt,
+      });
+      const carriedCount = carryoverPreview.carriedCount;
+
       updateAppData((prev: any) => {
+        if (prev.HoldCarrySnapshots?.[currentReportMonth]) return prev;
         const holdCarryover = carryEligibleHoldsToNextMonth({
           sourceRows: filteredData.data,
           existingRows: prev.Hold_AE?.data || [],
           reportMonth: currentReportMonth,
+          createdAt: savedAt,
         });
-
         return {
           ...prev,
           Hold_AE: {
             ...(prev.Hold_AE || { headers: [], data: [] }),
             data: holdCarryover.rows,
           },
+          HoldCarrySnapshots: {
+            ...(prev.HoldCarrySnapshots || {}),
+            [currentReportMonth]: {
+              savedAt,
+              eligibleCount: eligibleHoldCount,
+              carriedCount: holdCarryover.carriedCount,
+              nextMonth,
+            },
+          },
         };
       });
 
-      const nextMonth = getNextPayrollMonth(currentReportMonth)?.dot;
       toast.success(
-        `Đã lưu ${eligibleHoldCount} khoản Hold${
-          nextMonth ? ` và chuyển sang tháng ${nextMonth}` : ""
-        }!`,
+        `Đã chốt ${eligibleHoldCount} khoản Hold của ${currentReportMonth}${
+          nextMonth
+            ? `; ${carriedCount} khoản được chuyển sang ${nextMonth}`
+            : ""
+        }.`,
+      );
+    };
+
+    const handleDeleteSavedHold = () => {
+      if (!isCurrentMonthLocked) {
+        toast.warning(`Tháng ${currentReportMonth} chưa có bản lưu Hold.`);
+        return;
+      }
+
+      const sourceRows = appData.Hold_AE?.data || [];
+      const retainedRows = removeHoldCarryoverFromReport(
+        sourceRows,
+        currentReportMonth,
+      );
+      const removedCount = sourceRows.length - retainedRows.length;
+
+      updateAppData((prev: any) => {
+        const snapshots = { ...(prev.HoldCarrySnapshots || {}) };
+        delete snapshots[currentReportMonth];
+        return {
+          ...prev,
+          Hold_AE: {
+            ...(prev.Hold_AE || { headers: [], data: [] }),
+            data: removeHoldCarryoverFromReport(
+              prev.Hold_AE?.data || [],
+              currentReportMonth,
+            ),
+          },
+          HoldCarrySnapshots: snapshots,
+        };
+      });
+
+      setShowDeleteSnapshotConfirm(false);
+      toast.success(
+        `Đã xóa bản lưu Hold ${currentReportMonth} và ${removedCount} khoản chuyển tiếp.`,
       );
     };
 
@@ -715,30 +830,6 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               </button>
             )}
 
-            <button
-              onClick={handleSaveHolds}
-              className={`group flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[10px] font-extrabold uppercase tracking-wider shadow-sm transition-all active:scale-95 ${
-                savedHoldCount > 0
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                  : "border-primary bg-primary text-primary-foreground hover:brightness-95"
-              }`}
-              title={
-                savedHoldCount > 0
-                  ? `Đã chuyển ${savedHoldCount} khoản Hold. Bấm để lưu lại dữ liệu hiện tại.`
-                  : `Lưu ${eligibleHoldCount} khoản Hold hợp lệ sang tháng tiếp theo.`
-              }
-              aria-label="Lưu các khoản Hold sang tháng báo cáo tiếp theo"
-            >
-              {savedHoldCount > 0 ? (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              <span className="whitespace-nowrap">
-                {savedHoldCount > 0 ? "Đã lưu Hold" : "Lưu Hold"}
-              </span>
-            </button>
-            
             {/* Search Input shown dynamically */}
             {isSearchVisible && (
               <div 
@@ -776,11 +867,22 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               </div>
             )}
 
-            {/* Key statistics block perfectly matching the second image */}
+            {/* Reconciliation and deductions totals */}
             <div className="flex items-center gap-4 mr-1">
-              <div className="flex flex-col items-end">
-                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter whitespace-nowrap">NHÂN VIÊN</span>
-                <span className="text-xs font-black text-foreground leading-tight">{filteredData.data.length}</span>
+              <div
+                className="flex flex-col items-end"
+                title={`Actual bank: ${formatVNRobust(reconciliationTotals.actual, 0)} · Expected: ${formatVNRobust(reconciliationTotals.expected, 0)}`}
+              >
+                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter whitespace-nowrap">TOTAL VARIANCE</span>
+                <span
+                  className={`text-xs font-black leading-tight tabular-nums ${
+                    Math.abs(reconciliationTotals.variance) < 1
+                      ? "text-emerald-600"
+                      : "text-rose-600"
+                  }`}
+                >
+                  {formatVNRobust(reconciliationTotals.variance, 0)}
+                </span>
               </div>
               <div className="flex flex-col items-end border-l border-border pl-4">
                 <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter whitespace-nowrap">TỔNG TIỀN</span>
@@ -817,7 +919,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                     {isSearchVisible ? "Ẩn công cụ tìm kiếm" : "Tìm kiếm..."}
                   </span>
                 </DropdownMenuItem>
-                {onAddRow && (
+                {onAddRow && !isCurrentMonthLocked && (
                   <DropdownMenuItem
                     onClick={() => onAddRow()}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
@@ -886,15 +988,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
             columns={columns}
             data={filteredData.data}
             onFilteredDataChange={handleFilteredTableDataChange}
-            onCellChange={handleCellChange}
-            onDeleteRow={handleDeleteRow}
-            onDeleteSelection={handleDeleteSelection}
-            onAddRow={onAddRow}
-            isEditable={true}
+            onCellChange={isCurrentMonthLocked ? undefined : handleCellChange}
+            onDeleteRow={isCurrentMonthLocked ? undefined : handleDeleteRow}
+            onDeleteSelection={isCurrentMonthLocked ? undefined : handleDeleteSelection}
+            onAddRow={isCurrentMonthLocked ? undefined : onAddRow}
+            isEditable={!isCurrentMonthLocked}
             showRowNumber={true}
             autoHideZeroSumColumns={false}
             selectable={false}
-            bulkActions={[
+            bulkActions={isCurrentMonthLocked ? [] : [
               {
                 label: "Xóa các dòng đã chọn",
                 icon: <Trash2 className="w-3 h-3" />,
@@ -929,6 +1031,43 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           ignoreSavedHiddenColumns={true}
           hideSearch={true}
           showFooter={true}
+          footerStatusContent={
+            <div className="mr-3 flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleSaveHolds}
+                disabled={isCurrentMonthLocked}
+                className={`inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-[9px] font-extrabold uppercase tracking-wider shadow-sm transition-all ${
+                  isCurrentMonthLocked
+                    ? "cursor-not-allowed border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "cursor-pointer border-primary bg-primary text-primary-foreground hover:brightness-95 active:scale-95"
+                }`}
+                title={
+                  isCurrentMonthLocked
+                    ? `Snapshot Hold ${currentReportMonth} đã khóa từ ${currentHoldSnapshot?.savedAt || ""}`
+                    : `Chốt ${eligibleHoldCount} khoản Hold và chuyển sang tháng tiếp theo`
+                }
+              >
+                {isCurrentMonthLocked ? (
+                  <Lock className="h-3.5 w-3.5" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                <span>{isCurrentMonthLocked ? "HOLD SAVED" : "SAVE HOLD"}</span>
+              </button>
+              {isCurrentMonthLocked && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteSnapshotConfirm(true)}
+                  className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 text-[9px] font-extrabold uppercase tracking-wider text-rose-600 shadow-sm transition-all hover:bg-rose-100 active:scale-95"
+                  title={`Xóa snapshot Hold ${currentReportMonth} và dữ liệu chuyển tiếp do snapshot này tạo`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>DELETE SAVED HOLD</span>
+                </button>
+              )}
+            </div>
+          }
           footerClassName="bg-card text-foreground border-t border-border font-bold"
           totalCalculationOverride={(row: any, colKey: string) => {
             if (colKey === "TOTAL PAYMENT" && row._isPastMonthHoldOrCancel) return 0;
@@ -982,6 +1121,59 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
               >
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                 Xóa dữ liệu
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={showDeleteSnapshotConfirm}
+          onOpenChange={setShowDeleteSnapshotConfirm}
+        >
+          <AlertDialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl">
+            <AlertDialogHeader
+              className="flex-row items-center gap-3 border-b border-border px-5 py-4 text-left"
+              style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/10 text-destructive">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-0.5 text-[9px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
+                  Hold snapshot · {currentReportMonth}
+                </p>
+                <AlertDialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+                  Xóa bản lưu Hold?
+                </AlertDialogTitle>
+              </div>
+            </AlertDialogHeader>
+
+            <div className="space-y-4 px-5 py-5">
+              <AlertDialogDescription className="text-xs font-medium leading-5 text-muted-foreground">
+                Bản chốt của tháng {currentReportMonth} sẽ được mở khóa. Chỉ các
+                khoản chuyển sang tháng sau do bản lưu này tạo ra bị xóa; dữ liệu
+                gốc của tháng hiện tại vẫn được giữ nguyên.
+              </AlertDialogDescription>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/35 px-4 py-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Khoản đã chốt
+                </span>
+                <span className="rounded-lg bg-card px-3 py-1 text-sm font-black tabular-nums text-foreground shadow-sm ring-1 ring-border">
+                  {currentHoldSnapshot?.eligibleCount || 0}
+                </span>
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex-row justify-end gap-2 border-t border-border bg-muted/20 px-5 py-4">
+              <AlertDialogCancel className="mt-0 h-9 rounded-full border-border bg-card px-5 text-[10px] font-extrabold uppercase tracking-wider text-foreground hover:bg-muted">
+                Hủy
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteSavedHold}
+                className="h-9 rounded-full bg-destructive px-5 text-[10px] font-extrabold uppercase tracking-wider text-destructive-foreground shadow-sm hover:bg-destructive/90"
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Xóa bản lưu
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

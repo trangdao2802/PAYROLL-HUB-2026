@@ -95,7 +95,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
             className="flex h-8 items-center gap-1.5 rounded-md border border-primary/30 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-primary shadow-xs transition-colors hover:bg-primary/5"
           >
             <Plus className="h-3.5 w-3.5" />
-            Thêm dòng
+            Add Row
           </button>
           <button
             type="button"
@@ -104,7 +104,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
             className="flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-[10px] font-black uppercase tracking-wide text-primary-foreground shadow-xs transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Save className="h-3.5 w-3.5" />
-            Lưu quy tắc
+            Save Rules
           </button>
         </div>
       </div>
@@ -117,11 +117,11 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
         <table className="min-w-[860px] w-full table-fixed border-separate border-spacing-0 text-xs">
           <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#D9C9D0)] text-slate-800 shadow-[0_1px_0_var(--table-border-color,#d5d8dc)]">
             <tr>
-              <th className="w-[58px] border-b border-r border-[var(--table-border-color,#d5d8dc)] px-2 py-3 text-center text-[10px] font-black uppercase tracking-wider">
+              <th className="w-[58px] border-b border-r border-[var(--table-border-color,#d5d8dc)] px-2 py-3 text-center text-[10px] font-black tracking-wider" style={{ textTransform: "none" }}>
                 No.
               </th>
               <th className="w-[42%] border-b border-r border-[var(--table-border-color,#d5d8dc)] px-3 py-3 text-left text-[10px] font-black uppercase tracking-wider">
-                Tên lớp chứa
+                Class Name Contains
               </th>
               <th className="w-[25%] border-b border-r border-[var(--table-border-color,#d5d8dc)] px-3 py-3 text-center text-[10px] font-black uppercase tracking-wider">
                 No. Students
@@ -130,7 +130,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
                 Result
               </th>
               <th className="w-[140px] border-b border-[var(--table-border-color,#d5d8dc)] px-3 py-3 text-center text-[10px] font-black uppercase tracking-wider">
-                Thao tác
+                Actions
               </th>
             </tr>
           </thead>
@@ -165,7 +165,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
                     step={1}
                     value={rule.result}
                     onChange={(event) => updateRule(index, "result", Math.max(0, Number(event.target.value) || 0))}
-                    aria-label={`Kết quả Allowed TAs, dòng ${index + 1}`}
+                    aria-label={`Allowed Intern result, row ${index + 1}`}
                     className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-center font-black tabular-nums text-primary outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary/20"
                   />
                 </td>
@@ -211,7 +211,7 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
         </div>
         <div className="flex items-center gap-3">
           <p className="text-[10px] font-bold text-slate-500">
-            No. Students = 0 → Allowed TAs = 0
+            No. Students = 0 → Allowed Interns = 0
           </p>
           <button
             type="button"

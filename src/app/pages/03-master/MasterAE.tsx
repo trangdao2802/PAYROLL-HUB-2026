@@ -151,14 +151,17 @@ export function MasterAE() {
         if (key === "C") state = "Cancel";
         
         if (row["Nghiệp vụ"] !== state) {
-          handleCellChange(activeTab, row, "Nghiệp vụ", state);
+          const applyHoldOperation = (window as any).__applyHoldAEOperation;
+          if (typeof applyHoldOperation === "function") {
+            applyHoldOperation(row, state);
+          }
         }
       }
     };
     
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [activeTab, handleCellChange]);
+  }, [activeTab]);
 
   useEffect(() => {
     const handleRequestTabChange = (e: any) => {

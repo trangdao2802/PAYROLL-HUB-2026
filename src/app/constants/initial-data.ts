@@ -124,6 +124,8 @@ export const INITIAL_APP_DATA: AppData = {
     ],
     data: [],
   },
+  ReconciliationByMonth: {},
+  HoldCarrySnapshots: {},
   CustomReport: {
     headers: ["No.", "Trung Tâm", "Tháng", "Tổng tiền", "Ghi chú"],
     data: [],

@@ -250,7 +250,7 @@ export function Audit() {
       Q_AllowedTARules: rules.map((rule) => ({ ...rule })),
       updatedAt: new Date().toISOString(),
     }));
-    toast.success("Đã lưu quy tắc Allowed TAs");
+    toast.success("Allowed Intern rules saved");
   }, [updateAppData]);
 
   useEffect(() => {
@@ -348,7 +348,7 @@ export function Audit() {
       if (idStr && idStr !== "-") {
         cascadeFilters["ma_nv"] = idStr;
       }
-      toastMsg = `Đang chuyển đến Raw Data & lọc L07 ➔ Lớp ➔ Ngày ➔ ID TA: ${idStr || nameStr}`;
+      toastMsg = `Opening Raw Data · L07 → Class → Date → Intern ID: ${idStr || nameStr}`;
     } else if (columnKey === "taName") {
       // Level 1: L07 -> Level 2: Class -> Level 3: Date -> Level 4: ID NUMBER -> Level 5: FULL NAME
       if (targetClassName && targetClassName !== "KHÔNG CÓ LỚP HỌC") {
@@ -390,8 +390,8 @@ export function Audit() {
       columnKey === "center" ? "L07" :
       columnKey === "className" ? "Class" :
       columnKey === "dateStr" ? "Date" :
-      columnKey === "taId" ? "TA ID" :
-      columnKey === "taName" ? "TA Name" : "Filter";
+      columnKey === "taId" ? "INTERN ID" :
+      columnKey === "taName" ? "INTERN NAME" : "Filter";
 
     const navigateState: any = {
       activeTab: "roster_raw",
@@ -584,7 +584,7 @@ export function Audit() {
   }, [rosterData, auditResults.fileDateRangeA, appData.Q_CheckTAs]);
 
   const teacherGroupLabel = "TOTAL HOURS";
-  const taGroupLabel = "TA";
+  const taGroupLabel = "INTERN";
 
   const location = useLocation();
 
@@ -632,7 +632,7 @@ export function Audit() {
       updateAppData((prev) => clearAuditTableData(prev, activeTab));
       toast.success(
         activeTab === "rules"
-          ? "Đã xóa dữ liệu bảng Allowed TAs Rules"
+          ? "Allowed Intern Rules data cleared"
           : activeTab === "detail"
             ? "Đã xóa dữ liệu bảng Audit Discrepancy Details"
             : "Đã xóa dữ liệu bảng Audit Overview",
@@ -693,7 +693,7 @@ export function Audit() {
     },
     {
       key: "className",
-      label: "Lớp",
+      label: "CLASS",
       sortable: true,
       filterable: true,
       width: 200,
@@ -765,7 +765,7 @@ export function Audit() {
     },
     {
       key: "expected",
-      label: "ALLOWED TAs",
+      label: "ALLOWED INTERNS",
       sortable: true,
       type: "number",
       width: 140,
@@ -781,7 +781,7 @@ export function Audit() {
             {row.teacherHours > 0
               ? Number(row.expected / row.teacherHours || 0).toFixed(1)
               : 0}{" "}
-            TAs Rule
+            Intern Rule
           </span>
         </div>
       ),
@@ -789,7 +789,7 @@ export function Audit() {
     
     {
       key: "diffValue",
-      label: "Độ Lệch",
+      label: "VARIANCE",
       sortable: true,
       type: "number",
       width: 150,
@@ -803,7 +803,7 @@ export function Audit() {
     },
     {
       key: "status",
-      label: "TRẠNG THÁI",
+      label: "STATUS",
       sortable: true,
       filterable: true,
       width: 150,
@@ -830,7 +830,7 @@ export function Audit() {
     },
     {
       key: "actions",
-      label: "THAO TÁC",
+      label: "ACTIONS",
       width: 76,
       render: (_: any, row: any) => (
         <div className="flex items-center justify-center w-full h-full gap-1">
@@ -1100,7 +1100,7 @@ export function Audit() {
     {
       key: "bu",
       label: "BU",
-      group: "THÔNG TIN CHUNG",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 80,
@@ -1112,7 +1112,7 @@ export function Audit() {
     {
       key: "center",
       label: "L07",
-      group: "THÔNG TIN CHUNG",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 140,
@@ -1130,8 +1130,8 @@ export function Audit() {
     },
     {
       key: "className",
-      label: "Lớp",
-      group: "THÔNG TIN CHUNG",
+      label: "CLASS",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 140,
@@ -1153,7 +1153,7 @@ export function Audit() {
     {
       key: "dateStr",
       label: "DATE",
-      group: "THÔNG TIN CHUNG",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 100,
@@ -1173,21 +1173,32 @@ export function Audit() {
     // Group: Giáo Viên (Nguồn 1)
     {
       key: "teacherName",
-      label: "GIÁO VIÊN",
-      group: "THÔNG TIN CHUNG",
+      label: "TEACHER",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 160,
-      render: (val: string) => (
-        <span className="font-bold text-foreground">
-          {capitalizeName(val)}
-        </span>
-      ),
+      render: (val: string) => {
+        const teacherName = capitalizeName(val);
+        const isMissingTeacher =
+          teacherName.toLocaleLowerCase("vi-VN") === "không có giáo viên";
+        return (
+          <span
+            className={`inline-flex rounded-md px-2 py-0.5 font-bold ${
+              isMissingTeacher
+                ? "border border-rose-200 bg-rose-50 text-rose-600"
+                : "text-foreground"
+            }`}
+          >
+            {teacherName}
+          </span>
+        );
+      },
     },
     {
       key: "teacherHours",
-      label: "Giờ dạy (h)",
-      group: "THÔNG TIN CHUNG",
+      label: "TEACHING HOURS (H)",
+      group: "GENERAL INFORMATION",
       type: "number",
       sortable: true,
       filterable: true,
@@ -1209,8 +1220,8 @@ export function Audit() {
     // Group: Thông tin chung (Common Context)
     {
       key: "numStudents",
-      label: "No. Students",
-      group: "THÔNG TIN CHUNG",
+      label: "NO. STUDENTS",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 100,
@@ -1226,8 +1237,8 @@ export function Audit() {
     },
     {
       key: "allowedTAs",
-      label: "Allowed TAs",
-      group: "THÔNG TIN CHUNG",
+      label: "ALLOWED INTERNS",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 90,
@@ -1238,8 +1249,8 @@ export function Audit() {
     },
     {
       key: "actualTAs",
-      label: "Actual TAs",
-      group: "THÔNG TIN CHUNG",
+      label: "ACTUAL INTERNS",
+      group: "GENERAL INFORMATION",
       sortable: true,
       filterable: true,
       width: 90,
@@ -1253,7 +1264,7 @@ export function Audit() {
     {
       key: "taId",
       label: "ID NUMBER",
-      group: "CHI TIẾT GIỜ LÀM TA",
+      group: "INTERN WORK DETAILS",
       sortable: true,
       filterable: true,
       width: 120,
@@ -1272,7 +1283,7 @@ export function Audit() {
     {
       key: "taName",
       label: taGroupLabel,
-      group: "CHI TIẾT GIỜ LÀM TA",
+      group: "INTERN WORK DETAILS",
       sortable: true,
       filterable: true,
       width: 180,
@@ -1290,8 +1301,8 @@ export function Audit() {
     },
     {
       key: "taHours",
-      label: "Giờ làm (h)", // Renamed to reflect merged sum
-      group: "CHI TIẾT GIỜ LÀM TA",
+      label: "WORKING HOURS (H)",
+      group: "INTERN WORK DETAILS",
       type: "number",
       sortable: true,
       filterable: true,
@@ -1310,8 +1321,8 @@ export function Audit() {
     // Group: Đối Soát (Kết luận)
     {
       key: "variance",
-      label: "CHÊNH LỆCH",
-      group: "CHI TIẾT GIỜ LÀM TA",
+      label: "VARIANCE",
+      group: "INTERN WORK DETAILS",
       sortable: true,
       filterable: true,
       width: 110,
@@ -1332,7 +1343,7 @@ export function Audit() {
     },
     {
       key: "actions",
-      label: "THAO TÁC",
+      label: "ACTIONS",
       width: 60,
       render: (_: any, row: any) => (
         <div className="flex items-center justify-center w-full h-full">
@@ -1364,7 +1375,7 @@ export function Audit() {
       Lớp: row.className,
       KDG: row.isKDG ? "Có" : "Không",
       "TOTAL HOURS": row.teacherHours,
-      "TA Thực Tế (B)": row.actualTA,
+      "ACTUAL INTERN (B)": row.actualTA,
       "Trạng Thái": row.status,
     }));
 
@@ -1376,10 +1387,10 @@ export function Audit() {
       "Ngày Lịch": row.dateStr,
       "A - Tên GV": row.teacherName,
       "A - Sĩ Số": row.numStudents,
-      "ALLOWED TAs": row.allowedTAs,
+      "ALLOWED INTERNS": row.allowedTAs,
       "A - Giờ": row.teacherHours,
-      "B - ID TA": row.taId,
-      "B - Tên TA": row.taName,
+      "B - INTERN ID": row.taId,
+      "B - INTERN NAME": row.taName,
       "B - Giờ": row.taHours,
       "Trạng Thái Lớp": row.variance,
     }));
@@ -1452,7 +1463,7 @@ export function Audit() {
                         Sĩ số: {selectedDetailRow.numStudents}
                       </span>
                       <span className="text-[0.65rem] font-black text-primary bg-emerald-100/40 px-2 py-0.5 rounded-full">
-                        ALLOWED TAs: {selectedDetailRow.allowedTAs} TAs
+                        ALLOWED INTERNS: {selectedDetailRow.allowedTAs} INTERNS
                       </span>
                     </div>
                   </div>
@@ -1588,7 +1599,7 @@ export function Audit() {
                   ) : (
                     <>
                       <ListOrdered className="w-4 h-4 text-primary shrink-0" />
-                      <span className="text-primary font-extrabold">ALLOWED TAS RULES</span>
+                      <span className="text-primary font-extrabold">ALLOWED INTERN RULES</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}
                       </span>
@@ -1597,10 +1608,10 @@ export function Audit() {
                 </div>
                 <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight px-1 mt-0.5">
                   {activeTab === "main"
-                    ? "Báo cáo kiểm toán tổng hợp chênh lệch dữ liệu giữa bảng lương và bảng chấm công"
+                    ? "Payroll and timesheet variance overview"
                     : activeTab === "detail"
-                      ? "Danh sách phân tích chi tiết từng trường hợp chênh lệch cần kiểm tra đối soát"
-                      : "Thiết lập công thức Allowed TAs theo tên lớp và số lượng học sinh"}
+                      ? "Detailed discrepancy cases requiring reconciliation review"
+                      : "Configure allowed intern rules by class name and student count"}
                 </p>
               </div>
 
@@ -1695,7 +1706,7 @@ export function Audit() {
                   >
                     <ListOrdered className="w-4 h-4 text-primary" />
                     <span className="text-xs font-bold text-slate-700">
-                      Quy tắc Allowed TAs
+                      Allowed Intern Rules
                     </span>
                   </DropdownMenuItem>
 
@@ -1724,7 +1735,7 @@ export function Audit() {
                     <Trash2 className="w-4 h-4" />
                     <span className="text-xs font-bold">
                       {activeTab === "rules"
-                        ? "Xóa bảng Allowed TAs Rules"
+                        ? "Clear Allowed Intern Rules"
                         : activeTab === "detail"
                           ? "Xóa bảng Audit Details"
                           : "Xóa bảng Audit Overview"}
