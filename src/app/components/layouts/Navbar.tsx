@@ -193,22 +193,14 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
         <div className="flex items-center gap-3">
           <Link
             to="/"
-            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all active:scale-95 outline-none focus:outline-none focus-visible:outline-none shadow-2xs overflow-hidden ${
-              location.pathname === "/" 
-                ? "bg-accent/10 border-accent/30 text-accent" 
-                : "bg-card border-border text-foreground hover:bg-accent/5 hover:text-accent hover:border-accent/30"
-            }`}
-            title="Trang chủ"
-          >
-            <span className="app-home-mark" aria-hidden="true" />
-          </Link>
-          <div 
-            className="app-brand-lockup select-none"
-            title="Payroll Hub"
+            className="app-brand-lockup select-none border-0 bg-transparent p-0 shadow-none no-underline outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            title="Dashboard"
+            aria-label="Về Dashboard"
+            aria-current={location.pathname === "/" ? "page" : undefined}
           >
             <span className="sr-only">Payroll Hub</span>
             <span className="app-brand-wordmark" aria-hidden="true" />
-          </div>
+          </Link>
           {location.pathname !== "/" && pageTabs[lookupPath] && (
             <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-300">
               <span className="text-muted-foreground/60 text-xs mr-2 tabular-nums select-none">/</span>

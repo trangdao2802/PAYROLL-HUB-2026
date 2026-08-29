@@ -74,9 +74,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Theme-aware brand marks: artwork supplies the silhouette, the selected
-   accent supplies the color. */
-.app-home-mark,
+/* Theme-aware Payroll wordmark: artwork supplies the silhouette, while the
+   selected theme supplies the color. */
 .app-brand-wordmark {
   display: inline-block;
   flex: 0 0 auto;
@@ -90,18 +89,16 @@
   mask-size: contain;
 }
 
-.app-home-mark {
-  width: 23px;
-  height: 23px;
-  -webkit-mask-image: url("/home-mark.png");
-  mask-image: url("/home-mark.png");
-}
-
 .app-brand-lockup {
   display: inline-flex;
-  min-width: 72px;
+  width: 78px;
   height: 28px;
   align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .app-brand-wordmark {
