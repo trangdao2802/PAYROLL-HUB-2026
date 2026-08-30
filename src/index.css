@@ -3125,15 +3125,18 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
 }
 
 .pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
-.pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td {
+.pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td,
+.data-table-wrapper.roster-center-data-table tbody tr.data-table-subtotal-row > td {
   background: #E9D9DF !important;
   background-color: #E9D9DF !important;
   border-color: #C7AEB8 !important;
   color: #694243 !important;
+  font-weight: 800 !important;
 }
 
 .dark .pivot-table-container table.pivot-timesheet-table tbody tr.pivot-bu-subtotal-row > td,
-.dark .pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td {
+.dark .pivot-master-frame table.pivot-master-table tbody tr.pivot-master-subtotal-row > td,
+.dark .data-table-wrapper.roster-center-data-table tbody tr.data-table-subtotal-row > td {
   background: #58495b !important;
   background-color: #58495b !important;
   border-color: #806f85 !important;
