@@ -203,3 +203,68 @@ test("does not merge transactions when an exact identity field differs", () => {
     2,
   );
 });
+
+
+test("merges the same HOLD even when carried and workbook source labels differ", () => {
+  const carried = row("02.2026", "Hold", {
+    id: "carry",
+    _holdCarryKey: "carry",
+    _originalIndex: 0,
+    "Sheet Source": "Hold T1",
+    BU: "AHN",
+    L07: "HN0001.TEST",
+  });
+  const imported = row("02.2026", "Hold", {
+    id: "source",
+    _originalIndex: 1,
+    "Sheet Source": "HOLD",
+    BU: "AHN-ENRICHED",
+    L07: "HN0001.UPDATED",
+  });
+
+  const merged = mergeDuplicateHoldRows([carried, imported]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(getMergedHoldOriginalIndexes(merged[0]), [0, 1]);
+});
+
+test("operation change collapses semantic duplicates even without original indexes", () => {
+  const carried = row("02.2026", "Hold", { id: "carry", _holdCarryKey: "carry" });
+  const imported = row("02.2026", "Hold", { id: "source" });
+  const merged = mergeDuplicateHoldRows([carried, imported]);
+
+  const collapsed = collapseMergedHoldSourceRows({
+    rows: [carried, imported],
+    mergedRow: merged[0],
+    canonicalIndex: 1,
+    updatedRow: { ...imported, "Nghiệp vụ": "Cancel" },
+  });
+
+  assert.equal(collapsed.length, 1);
+  assert.equal(collapsed[0]["Nghiệp vụ"], "Cancel");
+});
+
+test("a resolved HOLD suppresses a later workbook copy despite source metadata changes", () => {
+  const februaryCancel = row("02.2026", "Cancel", {
+    id: "feb-cancel",
+    _holdStatusBeforeSave: "Hold",
+    "Sheet Source": "Hold T1",
+    BU: "AHN",
+    L07: "HN0001.TEST",
+  });
+  const marchWorkbookHold = row("03.2026", "Hold", {
+    id: "mar-source",
+    "Sheet Source": "HOLD",
+    BU: "AHN-ENRICHED",
+    L07: "HN0001.UPDATED",
+  });
+
+  const reconciled = reconcileHoldTransactionRows([
+    februaryCancel,
+    marchWorkbookHold,
+  ]);
+
+  assert.deepEqual(
+    reconciled.map((item) => [item["Tháng báo cáo"], item["Nghiệp vụ"]]),
+    [["02.2026", "Cancel"]],
+  );
+});

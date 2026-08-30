@@ -291,14 +291,26 @@ export function collapseMergedHoldSourceRows({
   const mergedIndexes = getMergedHoldOriginalIndexes(mergedRow).filter(
     (index) => index < rows.length,
   );
-  if (mergedIndexes.length <= 1) {
-    const nextRows = [...rows];
-    nextRows[canonicalIndex] = updatedRow;
-    return nextRows;
-  }
+
+  // Legacy/carried rows do not always retain _originalIndex. Fall back to the
+  // report-scoped semantic identity so changing one displayed merged HOLD to
+  // CANCEL/ADD physically removes every hidden duplicate from storage.
+  const scopedIdentity = getHoldScopedIdentity(mergedRow);
+  const semanticDuplicateIndexes = scopedIdentity
+    ? rows
+        .map((sourceRow, index) =>
+          sourceRow && getHoldScopedIdentity(sourceRow) === scopedIdentity
+            ? index
+            : -1,
+        )
+        .filter((index) => index >= 0)
+    : [];
+  const representedIndexes = Array.from(
+    new Set([...mergedIndexes, ...semanticDuplicateIndexes, canonicalIndex]),
+  ).filter((index) => index >= 0 && index < rows.length);
 
   const indexesToRemove = new Set(
-    mergedIndexes.filter((index) => index !== canonicalIndex),
+    representedIndexes.filter((index) => index !== canonicalIndex),
   );
 
   return rows
@@ -336,21 +348,33 @@ export function getHoldSemanticIdentity(row: HoldCarryRow): string {
   const arisingMonth = getArisingMonth(row);
   if (!arisingMonth) return "";
 
-  return [
-    arisingMonth.dot,
-    firstPresent(row, ["ID Number", "ID NUMBER", "ID", "Mã AE"]),
-    firstPresent(row, ["Full name", "FULL NAME", "Full Name", "Beneficiary Name"]),
-    firstPresent(row, ["L07", "Mã ae", "Mã AE"]),
-    firstPresent(row, ["BU", "Business"]),
-    firstPresent(row, ["Bank Account Number", "BANK ACCOUNT NUMBER", "STK AE"]),
-    Math.abs(
-      parseMoneyToNumber(
-        firstPresent(row, ["TOTAL PAYMENT", "Total Payment", "Payment Amount"]),
-      ),
+  // A carried HOLD and the same HOLD re-imported from a later workbook are
+  // one business transaction even when enrichment/source labels differ.
+  const idNumber = firstPresent(row, ["ID Number", "ID NUMBER", "ID", "Mã AE"]);
+  const bankAccount = firstPresent(row, [
+    "Bank Account Number",
+    "BANK ACCOUNT NUMBER",
+    "STK AE",
+  ]);
+  const fullName = firstPresent(row, [
+    "Full name",
+    "FULL NAME",
+    "Full Name",
+    "Beneficiary Name",
+  ]);
+  const l07 = firstPresent(row, ["L07", "Mã ae", "Mã AE"]);
+  const employeeIdentity = cleanText(idNumber)
+    ? `ID:${normalizedPart(idNumber)}`
+    : cleanText(bankAccount)
+      ? `BANK:${normalizedPart(bankAccount)}`
+      : `NAME:${normalizedPart(fullName)}|L07:${normalizedPart(l07)}`;
+  const amount = Math.abs(
+    parseMoneyToNumber(
+      firstPresent(row, ["TOTAL PAYMENT", "Total Payment", "Payment Amount"]),
     ),
-    firstPresent(row, ["Sheet Source", "SHEET SOURCE"]),
-    "HOLD",
-  ]
+  );
+
+  return [arisingMonth.dot, employeeIdentity, bankAccount, amount, "HOLD"]
     .map(normalizedPart)
     .join("|");
 }
