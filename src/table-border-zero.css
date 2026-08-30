@@ -1,0 +1,49 @@
+/*
+ * Table outer-border normalization.
+ *
+ * All table shells/cards must expose Border = 0. Internal grid dividers on
+ * th/td/header/footer remain untouched so column/row readability is preserved.
+ * The #root + :is(...) specificity intentionally outranks runtime UI-setting
+ * rules (which are injected later with !important).
+ */
+html body #root :is(
+  #table-card,
+  .table-container,
+  .data-table-wrapper,
+  .audit-data-table-wrapper,
+  .pivot-table-container,
+  .master-ae-table-wrapper,
+  .unified-table-frame,
+  .pivot-master-frame,
+  .analysis-table-frame,
+  .analysis-data-table,
+  .reconcile-table-region,
+  .trial-balance-frame,
+  .table-data-container,
+  .table-wrapper,
+  .master-config-data-table,
+  .master-config-table-region,
+  .hold-dashboard-card
+) {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}
+
+/* Native table elements never own an outside frame. */
+html body #root table {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}
+
+/* Legacy nested table shells previously reintroduced a 1px frame. */
+html body #root .table-container > div.min-h-0,
+html body #root .unified-table-frame > .table-body-region,
+html body #root .trial-balance-frame > .table-body-region,
+html body #root .analysis-table-frame .table-body-region,
+html body #root .master-config-data-table > .master-config-table-region {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}

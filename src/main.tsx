@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./app/App";
 import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
+import "./table-border-zero.css";
 
 declare global {
   interface Window {
