@@ -1128,26 +1128,27 @@ export function BulkPaymentAnalytics({
         style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
       >
         <div className="flex min-w-0 flex-1 items-center gap-0.5 px-3">
-          <button
-            type="button"
-            onClick={onToggleBulkPaymentCard}
-            className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
-            title={
-              isBulkPaymentCardVisible
-                ? "Ẩn bảng điều khiển"
-                : "Hiện bảng điều khiển"
-            }
-            aria-label={
-              isBulkPaymentCardVisible
-                ? "Ẩn bảng điều khiển"
-                : "Hiện bảng điều khiển"
-            }
-            aria-expanded={isBulkPaymentCardVisible}
-          >
-            <TableInitialMark label="ANALYSIS" />
-          </button>
+          <div className="app-table-title-lockup min-w-0">
+            <div className="app-table-title-line">
+              <button
+                type="button"
+                onClick={onToggleBulkPaymentCard}
+                className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
+                title={
+                  isBulkPaymentCardVisible
+                    ? "Ẩn bảng điều khiển"
+                    : "Hiện bảng điều khiển"
+                }
+                aria-label={
+                  isBulkPaymentCardVisible
+                    ? "Ẩn bảng điều khiển"
+                    : "Hiện bảng điều khiển"
+                }
+                aria-expanded={isBulkPaymentCardVisible}
+              >
+                <TableInitialMark label="ANALYSIS" />
+              </button>
 
-          <div className="flex min-w-0 flex-col justify-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1190,9 +1191,9 @@ export function BulkPaymentAnalytics({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
+            </div>
             <p
-              className="truncate text-[9.5px] font-medium leading-tight text-muted-foreground"
+              className="app-table-title-meta truncate text-[9.5px] font-medium leading-tight text-muted-foreground"
               title="Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ"
             >
               Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod})

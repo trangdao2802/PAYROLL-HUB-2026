@@ -63,29 +63,29 @@ function RosterRawTableComponent({
         <div 
           className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[50px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
         >
-          <div className="flex items-center gap-0.5">
-            {onToggleSidebar ? (
-              <button
-                onClick={onToggleSidebar}
-                className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
-                title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-                aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-                aria-expanded={showSidebar}
-                type="button"
-              >
-                <TableInitialMark label="DATA TABLE FROM ROSTER FILES" />
-              </button>
-            ) : (
-              <TableInitialMark label="DATA TABLE FROM ROSTER FILES" className="text-primary" />
-            )}
-            <div className="flex flex-col min-w-0">
+          <div className="app-table-title-lockup min-w-0">
+            <div className="app-table-title-line">
+              {onToggleSidebar ? (
+                <button
+                  onClick={onToggleSidebar}
+                  className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
+                  title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                  aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                  aria-expanded={showSidebar}
+                  type="button"
+                >
+                  <TableInitialMark label="DATA TABLE FROM ROSTER FILES" />
+                </button>
+              ) : (
+                <TableInitialMark label="DATA TABLE FROM ROSTER FILES" className="text-primary" />
+              )}
               <h3 className="font-bold uppercase tracking-wider text-primary text-[12px] leading-snug">
                 <TableTitleRemainder label="DATA TABLE FROM ROSTER FILES" />
               </h3>
-              <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
-                Raw rows extracted directly from uploaded Roster timesheet files
-              </p>
             </div>
+            <p className="app-table-title-meta text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
+              Raw rows extracted directly from uploaded Roster timesheet files
+            </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">

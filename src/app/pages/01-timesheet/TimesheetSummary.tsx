@@ -1246,16 +1246,17 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                 <ArrowLeft className="h-4 w-4" />
               </button>
             )}
-            <TableInitialMark
-              label="Settings & Upload (Timesheet)"
-              className="shrink-0 text-primary"
-            />
-
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
-                <TableTitleRemainder label="Settings & Upload (Timesheet)" />
-              </h1>
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-muted-foreground mt-0.5">
+            <div className="app-table-title-lockup min-w-0 flex-1">
+              <div className="app-table-title-line">
+                <TableInitialMark
+                  label="Settings & Upload (Timesheet)"
+                  className="shrink-0 text-primary"
+                />
+                <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
+                  <TableTitleRemainder label="Settings & Upload (Timesheet)" />
+                </h1>
+              </div>
+              <div className="app-table-title-meta flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-muted-foreground">
                 <span className="inline-flex items-center gap-1 whitespace-nowrap">
                   <strong className="font-bold text-foreground">{inputRows.length || 0}</strong>
                   centers

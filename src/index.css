@@ -98,76 +98,78 @@
 }
 
 .app-table-initial-mark {
-  display: inline-flex;
-  width: 2.2rem;
-  height: 2.35rem;
+  display: inline-grid;
+  width: max-content;
+  height: 1.75rem;
   flex: 0 0 auto;
-  align-items: flex-end;
-  justify-content: center;
+  place-items: end center;
   overflow: visible;
   color: var(--primary, #8E4A49);
   line-height: 1;
   vertical-align: baseline;
-  transform: translateY(0.13em);
+  transform: translateY(0.035em);
   transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
 
 .app-table-initial-mark--modak {
-  width: 2.25rem;
+  width: max-content;
 }
 
 .app-table-initial-mark__glyph {
   position: relative;
-  isolation: isolate;
-  display: block;
-  color: var(--primary, #8E4A49);
+  display: inline-block;
+  color: inherit;
   font-family: "Modak", sans-serif;
-  font-size: 2.45rem;
+  font-size: 2rem;
   font-style: normal;
   font-weight: 400;
-  line-height: 0.72;
-  letter-spacing: -0.035em;
+  line-height: 0.78;
+  letter-spacing: -0.06em;
   text-transform: uppercase;
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--primary, #8E4A49) 28%, white) 0%,
-    color-mix(in srgb, var(--primary, #8E4A49) 58%, white) 20%,
-    var(--primary, #8E4A49) 47%,
-    color-mix(in srgb, var(--primary, #8E4A49) 74%, black) 72%,
-    color-mix(in srgb, var(--primary, #8E4A49) 42%, white) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.012em color-mix(in srgb, currentColor 88%, black);
+  paint-order: stroke fill;
   filter:
-    drop-shadow(0 1px 0 color-mix(in srgb, var(--primary, #8E4A49) 18%, white))
-    drop-shadow(0 2px 1px color-mix(in srgb, var(--primary, #8E4A49) 44%, transparent))
-    drop-shadow(0 5px 6px color-mix(in srgb, var(--primary, #8E4A49) 24%, transparent));
-}
-
-.app-table-initial-mark__glyph::after {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  content: attr(data-glyph);
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, white 90%, var(--primary, #8E4A49)) 0%,
-    color-mix(in srgb, white 30%, transparent) 31%,
-    transparent 58%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  opacity: 0.78;
+    drop-shadow(0 1px 0 color-mix(in srgb, currentColor 20%, white))
+    drop-shadow(0 3px 4px color-mix(in srgb, currentColor 20%, transparent));
 }
 
 .app-table-title-remainder {
   display: inline;
   color: var(--primary, #8E4A49) !important;
+  letter-spacing: -0.025em;
   line-height: inherit;
   vertical-align: baseline;
+}
+
+.app-table-title-lockup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  overflow: visible;
+}
+
+.app-table-title-line {
+  display: flex;
+  min-width: 0;
+  min-height: 1.75rem;
+  align-items: center;
+  gap: 0;
+  overflow: visible;
+}
+
+.app-table-title-meta {
+  min-width: 0;
+  margin-top: -0.12rem;
+  padding-inline-start: 0;
+}
+
+/* Cancel the layout gap and apply a tiny optical overlap. The initial now
+   reads as the opening stroke of the title instead of a detached badge. */
+.app-table-initial-mark + .app-table-title-remainder,
+.app-table-initial-mark + :where(h1, h2, h3, div, span):has(.app-table-title-remainder),
+.table-initial-toggle + :where(h1, h2, h3, div, span):has(.app-table-title-remainder) {
+  margin-inline-start: -0.16rem;
 }
 
 /* The sculptural initial and the rest of each title share one text baseline,
@@ -183,7 +185,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   :where(button, a):hover .app-table-initial-mark {
-    transform: translateY(0.09em) scale(1.035);
+    transform: translateY(0) scale(1.025);
   }
 }
 

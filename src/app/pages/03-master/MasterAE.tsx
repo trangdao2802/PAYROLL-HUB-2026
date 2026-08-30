@@ -935,12 +935,12 @@ export function MasterAE() {
                             className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none"
                             style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
                           >
-                            <div className="flex min-w-0 items-center gap-0.5">
-                              <TableInitialMark
-                                label={getMasterTableTitle(activeTab, currentPeriodVal)}
-                                className="shrink-0 text-primary"
-                              />
-                              <div className="min-w-0">
+                            <div className="app-table-title-lockup min-w-0">
+                              <div className="app-table-title-line">
+                                <TableInitialMark
+                                  label={getMasterTableTitle(activeTab, currentPeriodVal)}
+                                  className="shrink-0 text-primary"
+                                />
                                 <h3 
                                   className="truncate font-bold tracking-tight text-foreground"
                                   style={{ fontSize: "13px", lineHeight: "23px", height: "18.0012px" }}
@@ -949,13 +949,13 @@ export function MasterAE() {
                                     label={getMasterTableTitle(activeTab, currentPeriodVal)}
                                   />
                                 </h3>
-                                <p 
-                                  className="truncate font-medium text-muted-foreground"
-                                  style={{ fontSize: "10px", lineHeight: "14.375px" }}
-                                >
-                                  {currentTableSubtitle}
-                                </p>
                               </div>
+                              <p
+                                className="app-table-title-meta truncate font-medium text-muted-foreground"
+                                style={{ fontSize: "10px", lineHeight: "14.375px" }}
+                              >
+                                {currentTableSubtitle}
+                              </p>
                             </div>
 
                             <div className="flex shrink-0 items-center gap-3">

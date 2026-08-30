@@ -24,7 +24,7 @@ export function TableTitleRemainder({ label }: { label: string }) {
   );
 }
 
-/** A compact, theme-aware Modak first character used in table titles and toggles. */
+/** A compact, theme-aware bubble initial that flows into table titles and toggles. */
 export function TableInitialMark({
   label,
   className = "",
@@ -33,8 +33,8 @@ export function TableInitialMark({
   const classes = `app-table-initial-mark app-table-initial-mark--modak ${className}`.trim();
 
   return (
-    <span aria-hidden="true" className={classes}>
-      <span className="app-table-initial-mark__glyph" data-glyph={initial}>
+    <span aria-hidden="true" className={classes} data-glyph={initial}>
+      <span className="app-table-initial-mark__glyph">
         {initial}
       </span>
     </span>

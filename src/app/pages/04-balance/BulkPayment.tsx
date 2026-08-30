@@ -3139,26 +3139,27 @@ export function BulkPayment({
           }}
         >
           <div className="flex min-w-0 flex-1 items-center gap-0.5">
-            <button
-              type="button"
-              onClick={() => setShowLeftCard(!showLeftCard)}
-              className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-[0.98]"
-              title={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
-              aria-label={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
-              aria-expanded={showLeftCard}
-            >
-              <TableInitialMark
-                label={
-                  rightPanelTab === "table"
-                    ? "TRANSACTION"
-                    : rightPanelTab === "reconcile"
-                      ? "RECONCILIATION"
-                      : "ANALYSIS"
-                }
-              />
-            </button>
+            <div className="app-table-title-lockup min-w-0">
+              <div className="app-table-title-line">
+                <button
+                  type="button"
+                  onClick={() => setShowLeftCard(!showLeftCard)}
+                  className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-[0.98]"
+                  title={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
+                  aria-label={showLeftCard ? "Ẩn bảng điều khiển" : "Hiện bảng điều khiển"}
+                  aria-expanded={showLeftCard}
+                >
+                  <TableInitialMark
+                    label={
+                      rightPanelTab === "table"
+                        ? "TRANSACTION"
+                        : rightPanelTab === "reconcile"
+                          ? "RECONCILIATION"
+                          : "ANALYSIS"
+                    }
+                  />
+                </button>
 
-            <div className="min-w-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -3227,7 +3228,8 @@ export function BulkPayment({
                 </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <p className="max-w-[260px] truncate px-1.5 text-[10px] font-medium leading-3.5 text-muted-foreground">
+              </div>
+              <p className="app-table-title-meta max-w-[260px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
                 {rightPanelTab === "table"
                   ? `${displayBankExportData.length} giao dịch chuyển khoản`
                   : rightPanelTab === "reconcile"

@@ -1991,13 +1991,15 @@ export function PivotSheet() {
       <div 
         className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
       >
-        <div className="flex w-full min-w-0 items-center gap-0.5">
-          <TableInitialMark label="Pivot Master" className="shrink-0 text-primary" />
-          <div className="min-w-0">
+        <div className="flex w-full min-w-0 items-center">
+          <div className="app-table-title-lockup min-w-0">
+            <div className="app-table-title-line">
+              <TableInitialMark label="Pivot Master" className="shrink-0 text-primary" />
             <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
               <TableTitleRemainder label="Pivot Master" />
             </h3>
-            <p className="truncate text-[10px] font-medium leading-[14px] text-muted-foreground">
+            </div>
+            <p className="app-table-title-meta truncate text-[10px] font-medium leading-[14px] text-muted-foreground">
               Tổng hợp chi phí theo BU, L07 và loại · {totalCenters} trung tâm
             </p>
           </div>

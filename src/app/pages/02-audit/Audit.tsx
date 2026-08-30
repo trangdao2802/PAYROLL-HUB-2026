@@ -1525,24 +1525,25 @@ export function Audit() {
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
             <div className="flex min-w-0 items-center gap-0.5">
-              {activeTab !== "rules" ? (
-                <button
-                  onClick={() => setIsConfigHidden(!isConfigHidden)}
-                  className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
-                  title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-                  aria-label={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-                  aria-expanded={!isConfigHidden}
-                  type="button"
-                >
-                  <TableInitialMark label="AUDIT" />
-                </button>
-              ) : (
-                <TableInitialMark label="ALLOWED INTERN RULES" className="shrink-0 text-primary" />
-              )}
+              <div className="app-table-title-lockup min-w-0 select-none">
+                <div className="app-table-title-line">
+                  {activeTab !== "rules" ? (
+                    <button
+                      onClick={() => setIsConfigHidden(!isConfigHidden)}
+                      className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
+                      title={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                      aria-label={!isConfigHidden ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                      aria-expanded={!isConfigHidden}
+                      type="button"
+                    >
+                      <TableInitialMark label="AUDIT" />
+                    </button>
+                  ) : (
+                    <TableInitialMark label="ALLOWED INTERN RULES" className="shrink-0 text-primary" />
+                  )}
 
-              {/* Active table name & detailed description */}
-              <div className="flex flex-col min-w-0 py-0.5 select-none">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
+                  {/* Active table name */}
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
                   {activeTab === "main" ? (
                     <>
                       <span className="text-primary font-extrabold">
@@ -1575,8 +1576,9 @@ export function Audit() {
                       </span>
                     </>
                   )}
+                  </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight px-1 mt-0.5">
+                <p className="app-table-title-meta text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
                   {activeTab === "main"
                     ? "Monthly teacher hours and class days exceeding the Allowed TAs limit"
                     : activeTab === "detail"

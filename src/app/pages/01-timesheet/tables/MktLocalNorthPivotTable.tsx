@@ -164,30 +164,30 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
       <div 
         className="unified-table-frame-header table-header flex min-h-[50px] w-full shrink-0 items-center justify-between border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3.5 py-2"
       >
-        <div className="flex min-w-0 items-center gap-0.5">
-          {onToggleSidebar ? (
-            <button
-              onClick={onToggleSidebar}
-              className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
-              title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-              aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
-              aria-expanded={showSidebar}
-              type="button"
-            >
-              <TableInitialMark label="PIVOT TIMESHEET" />
-            </button>
-          ) : (
-            <TableInitialMark label="PIVOT TIMESHEET" className="shrink-0 text-primary" />
-          )}
-          <div className="flex flex-col min-w-0">
+        <div className="app-table-title-lockup min-w-0">
+          <div className="app-table-title-line">
+            {onToggleSidebar ? (
+              <button
+                onClick={onToggleSidebar}
+                className="table-initial-toggle shrink-0 cursor-pointer transition-all active:scale-95"
+                title={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                aria-label={showSidebar ? "Ẩn Panel Sidebar" : "Hiện Panel Sidebar"}
+                aria-expanded={showSidebar}
+                type="button"
+              >
+                <TableInitialMark label="PIVOT TIMESHEET" />
+              </button>
+            ) : (
+              <TableInitialMark label="PIVOT TIMESHEET" className="shrink-0 text-primary" />
+            )}
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
               <TableTitleRemainder label="PIVOT TIMESHEET" />
             </h3>
-            <p className="text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
-              MKT Local North cost allocation by task type and department
-              {onCellChange ? " · Double-click an L07 or amount to edit" : ""}
-            </p>
           </div>
+          <p className="app-table-title-meta text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
+            MKT Local North cost allocation by task type and department
+            {onCellChange ? " · Double-click an L07 or amount to edit" : ""}
+          </p>
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <div className="flex flex-col items-end">
