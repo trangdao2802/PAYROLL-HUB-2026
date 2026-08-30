@@ -135,17 +135,17 @@
 .app-table-title-remainder {
   display: inline;
   color: var(--primary, #8E4A49) !important;
+  font-weight: 400 !important;
   letter-spacing: -0.025em;
   line-height: inherit;
+  text-transform: lowercase !important;
   vertical-align: baseline;
 }
 
 .app-table-title-remainder--expanded {
   font-size: 0.9375rem !important;
-  font-weight: 700 !important;
   letter-spacing: -0.01em;
   line-height: 1.15;
-  text-transform: lowercase !important;
 }
 
 .app-table-title-lockup {

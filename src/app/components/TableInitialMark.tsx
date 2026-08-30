@@ -23,7 +23,7 @@ function getTitleCharacters(label: string): string[] {
 
 /** Returns the title copy that follows the branded first character. */
 function getTableTitleRemainder(label: string): string {
-  return getTitleCharacters(label).slice(1).join("");
+  return getTitleCharacters(label).slice(1).join("").toLocaleLowerCase("vi-VN");
 }
 
 /** Keeps the complete title for assistive technology while replacing its first visible character. */
