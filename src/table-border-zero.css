@@ -1,19 +1,20 @@
 /*
  * Table outer-border normalization.
  *
- * All table shells/cards must expose Border = 0. Internal grid dividers on
- * th/td/header/footer remain untouched so column/row readability is preserved.
+ * Nested table shells/cards expose Border = 0. The non-scrolling
+ * .unified-table-frame keeps the single outside border so the frame remains
+ * visible while its table-body-region scrolls horizontally. Internal grid
+ * dividers on th/td/header/footer remain untouched for readability.
  * The #root + :is(...) specificity intentionally outranks runtime UI-setting
  * rules (which are injected later with !important).
  */
 html body #root :is(
   #table-card,
-  .table-container,
+  .table-container:not(.unified-table-frame),
   .data-table-wrapper,
   .audit-data-table-wrapper,
   .pivot-table-container,
   .master-ae-table-wrapper,
-  .unified-table-frame,
   .pivot-master-frame,
   .analysis-table-frame,
   .analysis-data-table,
@@ -28,6 +29,17 @@ html body #root :is(
   border: 0 !important;
   border-width: 0 !important;
   border-style: none !important;
+}
+
+/*
+ * The viewport shell owns the only outside frame. It does not scroll with the
+ * wide table, so all four edges stay visible at every horizontal scroll offset.
+ */
+html body #root .unified-table-frame {
+  border: 1px solid var(--table-frame-border, var(--border, #cbd5e1)) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  box-sizing: border-box !important;
 }
 
 /* Native table elements never own an outside frame. */
