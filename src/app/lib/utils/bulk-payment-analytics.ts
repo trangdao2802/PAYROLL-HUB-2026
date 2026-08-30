@@ -619,6 +619,9 @@ export function buildBulkPaymentAnalytics({
       }
 
       const holdInPeriod = isCurrentMonthOccurrence ? initialHold : 0;
+      // Phần II chỉ phản ánh số dư đã tồn tại trước kỳ báo cáo. HOLD phát sinh
+      // đúng kỳ hiện tại phải nằm ở Phần III và không được cộng vào tổng đầu kỳ.
+      const totalPriorPeriodHold = isCurrentMonthOccurrence ? 0 : initialHold;
       
       const paymentMonths = Array.from(bucket.addPaymentPeriods.values())
         .sort(comparePeriods)
@@ -628,10 +631,8 @@ export function buildBulkPaymentAnalytics({
       if (paidInPeriod > 0) movements.push("Thanh toán HOLD");
       if (cancelInPeriod > 0) movements.push("CANCEL");
 
-      const totalInitialHold = initialHold;
-
       let status = "Chưa thanh toán";
-      if (totalInitialHold <= 0) {
+      if (initialHold <= 0) {
         status =
           cancelInPeriod > 0 || bucket.cancelBeforePeriod > 0
             ? "Đã hủy"
@@ -653,7 +654,7 @@ export function buildBulkPaymentAnalytics({
         "Tháng HOLD": formatPeriod(bucket.occurrencePeriod),
         "Kỳ báo cáo": reportLabel,
         BU: bucket.business,
-        "Tổng số dư HOLD": totalInitialHold,
+        "Tổng số dư HOLD": totalPriorPeriodHold,
         "HOLD phát sinh": holdInPeriod,
         "Số dư HOLD đầu kỳ": openingBalance,
         "Thanh toán HOLD tại kỳ": paidInPeriod,
