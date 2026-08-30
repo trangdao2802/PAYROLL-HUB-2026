@@ -27,11 +27,20 @@ function getTableTitleRemainder(label: string): string {
 }
 
 /** Keeps the complete title for assistive technology while replacing its first visible character. */
-export function TableTitleRemainder({ label }: { label: string }) {
+export function TableTitleRemainder({
+  label,
+  className = "",
+}: {
+  label: string;
+  className?: string;
+}) {
   return (
     <>
       <span className="sr-only">{label}</span>
-      <span aria-hidden="true" className="app-table-title-remainder">
+      <span
+        aria-hidden="true"
+        className={`app-table-title-remainder ${className}`.trim()}
+      >
         {getTableTitleRemainder(label)}
       </span>
     </>

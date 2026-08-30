@@ -1146,7 +1146,7 @@ export function BulkPaymentAnalytics({
                 }
                 aria-expanded={isBulkPaymentCardVisible}
               >
-                <TableInitialMark label="ANALYSIS" />
+                <TableInitialMark label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE" />
               </button>
 
             <DropdownMenu>
@@ -1157,7 +1157,10 @@ export function BulkPaymentAnalytics({
                   title="Chuyển bảng"
                 >
                   <span className="text-[12px] font-bold uppercase tracking-[0.16em] leading-tight flex items-center gap-1">
-                    <TableTitleRemainder label="ANALYSIS" />
+                    <TableTitleRemainder
+                      label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                      className="app-table-title-remainder--expanded"
+                    />
                   </span>
                 </button>
               </DropdownMenuTrigger>

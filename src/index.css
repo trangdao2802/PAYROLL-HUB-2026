@@ -140,6 +140,14 @@
   vertical-align: baseline;
 }
 
+.app-table-title-remainder--expanded {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-transform: lowercase !important;
+}
+
 .app-table-title-lockup {
   display: flex;
   min-width: 0;

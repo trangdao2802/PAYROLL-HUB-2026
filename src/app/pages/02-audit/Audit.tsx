@@ -1536,10 +1536,14 @@ export function Audit() {
                       aria-expanded={!isConfigHidden}
                       type="button"
                     >
-                      <TableInitialMark label="AUDIT" />
+                      <TableInitialMark
+                        label={activeTab === "main"
+                          ? "AUDIT TEACHER HOURS & CLASS COMPLIANCE OVERVIEW"
+                          : "AUDIT CLASS CAPACITY DISCREPANCY DETAILS"}
+                      />
                     </button>
                   ) : (
-                    <TableInitialMark label="ALLOWED INTERN RULES" className="shrink-0 text-primary" />
+                    <TableInitialMark label="ALLOWED INTERN CAPACITY RULES BY CLASS" className="shrink-0 text-primary" />
                   )}
 
                   {/* Active table name */}
@@ -1547,7 +1551,10 @@ export function Audit() {
                   {activeTab === "main" ? (
                     <>
                       <span className="text-primary font-extrabold">
-                        <TableTitleRemainder label="AUDIT OVERVIEW" />
+                        <TableTitleRemainder
+                          label="AUDIT TEACHER HOURS & CLASS COMPLIANCE OVERVIEW"
+                          className="app-table-title-remainder--expanded"
+                        />
                       </span>
                       {mainData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
@@ -1558,7 +1565,10 @@ export function Audit() {
                   ) : activeTab === "detail" ? (
                     <>
                       <span className="text-emerald-800 font-extrabold">
-                        <TableTitleRemainder label="AUDIT DISCREPANCY DETAILS" />
+                        <TableTitleRemainder
+                          label="AUDIT CLASS CAPACITY DISCREPANCY DETAILS"
+                          className="app-table-title-remainder--expanded"
+                        />
                       </span>
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
@@ -1569,7 +1579,10 @@ export function Audit() {
                   ) : (
                     <>
                       <span className="text-primary font-extrabold">
-                        <TableTitleRemainder label="ALLOWED INTERN RULES" />
+                        <TableTitleRemainder
+                          label="ALLOWED INTERN CAPACITY RULES BY CLASS"
+                          className="app-table-title-remainder--expanded"
+                        />
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}

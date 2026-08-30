@@ -166,6 +166,22 @@ function PayrollBowIcon({ className = "" }: { className?: string }) {
 
 const ALL_ANALYS_BUSINESS_UNITS = "__ALL_BUSINESS_UNITS__";
 
+// Reconcile exposes only comparison and action columns. The internal
+// sheet1Amount and holdAmount fields remain available to calculations, export,
+// and sync logic but are intentionally excluded from display/column selection.
+const RECONCILE_DISPLAY_COLUMN_KEYS = [
+  "serialNo",
+  "docId",
+  "name",
+  "accountNo",
+  "benefitsAccountNo",
+  "actualAmount",
+  "expectedAmount",
+  "variance",
+  "processSync",
+  "problems",
+] as const;
+
 const isIdColumnKey = (k: string): boolean => {
   if (!k) return false;
   const lower = String(k).trim().toLowerCase();
@@ -3155,7 +3171,7 @@ export function BulkPayment({
                         ? "TRANSACTION"
                         : rightPanelTab === "reconcile"
                           ? "RECONCILIATION"
-                          : "ANALYSIS"
+                          : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
                     }
                   />
                 </button>
@@ -3169,12 +3185,13 @@ export function BulkPayment({
                   >
                     <span className="text-[12px] font-black uppercase tracking-[0.18em]">
                       <TableTitleRemainder
+                        className="app-table-title-remainder--expanded"
                         label={
                           rightPanelTab === "table"
                             ? "TRANSACTION"
                             : rightPanelTab === "reconcile"
                               ? "RECONCILIATION"
-                              : "ANALYSIS"
+                              : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
                         }
                       />
                     </span>
@@ -3617,7 +3634,6 @@ export function BulkPayment({
                       >
                         <tr>
                           <th
-                            rowSpan={2}
                             className="group relative px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] w-12 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal cursor-pointer select-none"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
@@ -3637,87 +3653,58 @@ export function BulkPayment({
                             </div>
                           </th>
                           <th
-                            rowSpan={2}
                             className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             ID NUMBER
                           </th>
                           <th
-                            rowSpan={2}
                             className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             FULL NAME
                           </th>
                           <th
-                            rowSpan={2}
                             className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Bank Acc No. from AE
                           </th>
                           <th
-                            rowSpan={2}
                             className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                              Bank Acc No. from ACC
                           </th>
                           <th
-                            rowSpan={2}
                             className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             TOTAL BANK AE
                           </th>
                           <th
-                            colSpan={3}
-                            className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-900 whitespace-normal"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
-                          >
-                            FROM ACC
-                          </th>
-                          <th
-                            rowSpan={2}
                             className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
-                            Process Sync
+                            TOTAL BANK ACC
                           </th>
                           <th
-                            rowSpan={2}
                             className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Diff
                           </th>
                           <th
-                            rowSpan={2}
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            Process Sync
+                          </th>
+                          <th
                             className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-b border-[var(--table-border-color,#E7E5E4)] align-middle whitespace-normal"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Problems
-                          </th>
-                        </tr>
-                        <tr>
-                          <th 
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-800 whitespace-normal"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
-                          >
-                            SHEET 1
-                          </th>
-                          <th 
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-800 whitespace-normal"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
-                          >
-                            HOLD AE
-                          </th>
-                          <th
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] text-slate-800 whitespace-normal"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
-                          >
-                            TOTAL BANK ACC
                           </th>
                         </tr>
                       </thead>
@@ -3725,7 +3712,7 @@ export function BulkPayment({
                         {paginatedTransactionAudits.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={12}
+                              colSpan={RECONCILE_DISPLAY_COLUMN_KEYS.length}
                               className="p-8 text-center text-slate-400 italic border-b border-slate-200"
                             >
                               Không tìm thấy giao dịch nào phù hợp với điều kiện
@@ -3900,21 +3887,21 @@ export function BulkPayment({
                                     "",
                                   )}
                                 </td>
-                                <td className="p-2.5 text-right tabular-nums text-slate-600 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-slate-50/40">
-                                  {formatMoneyVND(item.sheet1Amount).replace(
-                                    " ₫",
-                                    "",
-                                  )}
-                                </td>
-                                <td className="p-2.5 text-right tabular-nums text-slate-600 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-slate-50/40">
-                                  {item.holdAmount >= 0 ? "+" : ""}
-                                  {formatMoneyVND(item.holdAmount).replace(
-                                    " ₫",
-                                    "",
-                                  )}
-                                </td>
                                 <td className="p-2.5 text-right tabular-nums font-black text-slate-900 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-amber-50/40">
                                   {formatMoneyVND(totalTargetBankAcc).replace(
+                                    " ₫",
+                                    "",
+                                  )}
+                                </td>
+                                <td
+                                  className={`p-2.5 text-right tabular-nums font-black border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${
+                                    Math.abs(item.variance) < 1
+                                      ? "text-emerald-600"
+                                      : "text-rose-600"
+                                  }`}
+                                >
+                                  {item.variance > 0 ? "+" : ""}
+                                  {formatMoneyVND(item.variance).replace(
                                     " ₫",
                                     "",
                                   )}
@@ -3938,19 +3925,6 @@ export function BulkPayment({
                                     <span className="inline-block px-2 py-0.5 bg-slate-200/70 text-slate-400 font-semibold text-[10px] rounded-md border border-slate-200/80 cursor-not-allowed">
                                       Không cần
                                     </span>
-                                  )}
-                                </td>
-                                <td
-                                  className={`p-2.5 text-right tabular-nums font-black border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${
-                                    Math.abs(item.variance) < 1
-                                      ? "text-emerald-600"
-                                      : "text-rose-600"
-                                  }`}
-                                >
-                                  {item.variance > 0 ? "+" : ""}
-                                  {formatMoneyVND(item.variance).replace(
-                                    " ₫",
-                                    "",
                                   )}
                                 </td>
                                 <td className="p-2.5 text-center border-b border-[var(--table-border-color,#E7E5E4)]">
@@ -3995,27 +3969,30 @@ export function BulkPayment({
                       </tbody>
                       <tfoot>
                         <tr className="total-row">
-                          {Array.from({ length: 12 }, (_, columnIndex) => (
+                          {Array.from(
+                            { length: RECONCILE_DISPLAY_COLUMN_KEYS.length },
+                            (_, columnIndex) => (
                             <td
                               key={`reconcile-total-${columnIndex}`}
-                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${columnIndex === 9 ? "text-right font-extrabold uppercase tracking-wider text-[12.5px] text-slate-800" : ""} ${columnIndex === 10 ? "text-right tabular-nums font-black text-rose-600 text-[13px]" : ""}`}
+                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${columnIndex === 6 ? "text-right font-extrabold uppercase tracking-wider text-[12.5px] text-slate-800" : ""} ${columnIndex === 7 ? "text-right tabular-nums font-black text-rose-600 text-[13px]" : ""}`}
                               style={{
                                 backgroundColor:
                                   "var(--table-column-header-bg, #F4ECD8)",
                               }}
                             >
-                              {columnIndex === 9
+                              {columnIndex === 6
                                 ? "TỔNG LỆCH:"
-                                : columnIndex === 10
+                                : columnIndex === 7
                                   ? formatMoneyVND(
                                       filteredTransactionAudits.reduce(
                                         (acc, item) => acc + item.variance,
                                         0,
                                       ),
                                     ).replace(" ₫", "")
-                                  : ""}
+                              : ""}
                             </td>
-                          ))}
+                            ),
+                          )}
                         </tr>
                       </tfoot>
                     </table>

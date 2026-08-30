@@ -1994,9 +1994,12 @@ export function PivotSheet() {
         <div className="flex w-full min-w-0 items-center">
           <div className="app-table-title-lockup min-w-0">
             <div className="app-table-title-line">
-              <TableInitialMark label="Pivot Master" className="shrink-0 text-primary" />
+              <TableInitialMark label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE" className="shrink-0 text-primary" />
             <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
-              <TableTitleRemainder label="Pivot Master" />
+              <TableTitleRemainder
+                label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
+                className="app-table-title-remainder--expanded"
+              />
             </h3>
             </div>
             <p className="app-table-title-meta truncate text-[10px] font-medium leading-[14px] text-muted-foreground">

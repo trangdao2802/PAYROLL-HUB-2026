@@ -175,13 +175,16 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
                 aria-expanded={showSidebar}
                 type="button"
               >
-                <TableInitialMark label="PIVOT TIMESHEET" />
+                <TableInitialMark label="PIVOT TIMESHEET MKT LOCAL NORTH COST BY DEPARTMENT & TASK TYPE" />
               </button>
             ) : (
-              <TableInitialMark label="PIVOT TIMESHEET" className="shrink-0 text-primary" />
+              <TableInitialMark label="PIVOT TIMESHEET MKT LOCAL NORTH COST BY DEPARTMENT & TASK TYPE" className="shrink-0 text-primary" />
             )}
             <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
-              <TableTitleRemainder label="PIVOT TIMESHEET" />
+              <TableTitleRemainder
+                label="PIVOT TIMESHEET MKT LOCAL NORTH COST BY DEPARTMENT & TASK TYPE"
+                className="app-table-title-remainder--expanded"
+              />
             </h3>
           </div>
           <p className="app-table-title-meta text-[10px] text-muted-foreground/80 font-medium font-sans leading-tight">
