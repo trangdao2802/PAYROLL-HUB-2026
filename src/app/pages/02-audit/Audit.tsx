@@ -13,6 +13,7 @@ import {
   Settings,
   Search,
   UploadCloud,
+  ArrowLeft,
   ChevronRight,
   ChevronDown,
   FileSpreadsheet,
@@ -663,6 +664,13 @@ export function Audit() {
     );
   }, [appData.AuditClearedTables?.main, auditResults.results]);
 
+  const reviewRequiredOverviewData = useMemo(
+    () => mainData.filter(
+      (row: any) => String(row.status || "").trim().toLocaleLowerCase("en-US") === "review required",
+    ),
+    [mainData],
+  );
+
   const mainColumns: Column[] = useMemo(() => [
     {
       key: "bu",
@@ -853,6 +861,16 @@ export function Audit() {
 
   // ----- DETAIL DATA -----
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
+
+  const handleBackToAuditOverview = useCallback(() => {
+    startTransition(() => {
+      setActiveTab("main");
+      setSearchTerm("");
+      setDetailManualFilter("");
+      setSelectedDetailRow(null);
+      setIsConfigHidden(false);
+    });
+  }, []);
 
   const detailData = useMemo(() => {
     // Flatten session details before retaining discrepancy groups below.
@@ -1284,7 +1302,7 @@ export function Audit() {
       render: (val: string) => (
         <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
           <span
-            className={`px-2 py-0.5 rounded-full text-[0.6rem] font-black tracking-widest border uppercase ${
+            className={`px-1.5 py-0.5 rounded-full text-[0.5rem] font-bold tracking-[0.08em] border uppercase ${
               val?.includes("Khớp")
                 ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                 : "bg-rose-50 text-rose-600 border-rose-100"
@@ -1524,7 +1542,19 @@ export function Audit() {
             className="unified-table-frame-header relative z-[200] flex min-h-[52px] shrink-0 items-center justify-between gap-3 rounded-t-none border-b border-slate-200 px-3 py-2 bg-[var(--table-header-bg,#FAF3E8)]"
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
-            <div className="flex min-w-0 items-center gap-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              {activeTab === "detail" && (
+                <button
+                  type="button"
+                  onClick={handleBackToAuditOverview}
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-white px-2.5 text-[0.625rem] font-semibold text-primary shadow-xs transition-colors hover:bg-primary/5 active:scale-[0.98]"
+                  title="Quay trở về bảng Audit Overview"
+                  aria-label="Quay trở về bảng Audit Overview"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="whitespace-nowrap">Audit Overview</span>
+                </button>
+              )}
               <div className="app-table-title-lockup min-w-0 select-none">
                 <div className="app-table-title-line">
                   {activeTab !== "rules" ? (
@@ -1556,9 +1586,9 @@ export function Audit() {
                           className="app-table-title-remainder--expanded"
                         />
                       </span>
-                      {mainData.length > 0 && (
+                      {reviewRequiredOverviewData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
-                          {mainData.length}
+                          {reviewRequiredOverviewData.length}
                         </span>
                       )}
                     </>
@@ -1775,7 +1805,7 @@ export function Audit() {
             <DataTable
               key="main-table"
               columns={mainColumns}
-              data={mainData}
+              data={reviewRequiredOverviewData}
               isEditable={false}
               showRowNumber={true}
               hideSearch={false}
