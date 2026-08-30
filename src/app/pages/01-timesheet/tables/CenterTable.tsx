@@ -89,11 +89,44 @@ function CenterTableComponent({
       return { ...row, ...additions };
     });
 
-    return { centerColumns: columns, centerRows: rows };
+    const rowsByBusiness = new Map<string, any[]>();
+    rows.forEach((row) => {
+      const business = String(row.business || row.bu || row.BU || "CHƯA XÁC ĐỊNH").trim();
+      const groupedRows = rowsByBusiness.get(business) || [];
+      groupedRows.push({ ...row, _subtotalGroup: business });
+      rowsByBusiness.set(business, groupedRows);
+    });
+
+    const rowsWithBusinessSubtotals = Array.from(rowsByBusiness.entries()).flatMap(
+      ([business, businessRows], groupIndex) => {
+        const subtotal: Record<string, unknown> = {
+          id: `center-subtotal-${groupIndex}-${business}`,
+          business,
+          l07: `TỔNG PHỤ · ${business} (${businessRows.length} CENTER)`,
+          _isSubtotal: true,
+          _subtotalGroup: business,
+        };
+
+        columns.forEach((column) => {
+          if (!["number", "currency", "money"].includes(String(column.type))) return;
+          subtotal[column.key] = businessRows.reduce(
+            (sum, row) => sum + (Number(row[column.key]) || 0),
+            0,
+          );
+        });
+
+        return [...businessRows, subtotal];
+      },
+    );
+
+    return { centerColumns: columns, centerRows: rowsWithBusinessSubtotals };
   }, [data, mktLocalNorthData]);
 
   const totalPayment = useMemo(() => {
-    return centerRows.reduce((sum, row) => sum + (Number(row.totalSalary) || 0), 0);
+    return centerRows.reduce(
+      (sum, row) => row._isSubtotal ? sum : sum + (Number(row.totalSalary) || 0),
+      0,
+    );
   }, [centerRows]);
 
   return (
@@ -155,7 +188,9 @@ function CenterTableComponent({
           
           footerClassName="bg-[var(--secondary)] text-foreground font-black border-t border-border"
           showFooter={true}
-          onFilteredDataChange={onFilteredDataChange}
+          onFilteredDataChange={(rows) =>
+            onFilteredDataChange?.(rows.filter((row) => !row._isSubtotal))
+          }
           onColumnFiltersChange={onColumnFiltersChange}
           autoHideZeroSumColumns={true}
         />

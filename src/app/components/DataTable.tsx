@@ -74,6 +74,8 @@ import {
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { SaveStatusCard } from "./shared/SaveStatusCard";
+import { CustomSortDialog } from "./CustomSortDialog";
+import { normalizeSortRules, type SortRule } from "./sort-utils";
 
 const AUTO_FIT_SAMPLE_LIMIT = 320;
 
@@ -399,6 +401,10 @@ const ColumnFilter = ({
   const currentFilters = filterState[column.key];
   const isAllSelected = !currentFilters;
   const isFiltered = currentFilters instanceof Set && currentFilters.size !== uniqueValues.length;
+  const currentSortIndex = Array.isArray(sortConfig)
+    ? sortConfig.findIndex((rule: SortRule) => rule.key === column.key)
+    : -1;
+  const currentSort = currentSortIndex >= 0 ? sortConfig[currentSortIndex] : undefined;
 
   const handleToggleValue = (val: any, checked: boolean) => {
     let next: Set<any>;
@@ -481,28 +487,28 @@ const ColumnFilter = ({
         </div>
         <div className="flex flex-col p-1.5 border-b bg-muted/10">
           <button
-            className={`flex items-center justify-between px-2 py-1 text-xs hover:bg-muted rounded text-left font-bold transition-colors ${sortConfig?.key === column.key && sortConfig?.direction === "asc" ? "bg-accent/10 text-accent font-extrabold" : "text-foreground"}`}
+            className={`flex items-center justify-between px-2 py-1 text-xs hover:bg-muted rounded text-left font-bold transition-colors ${currentSort?.direction === "asc" ? "bg-accent/10 text-accent font-extrabold" : "text-foreground"}`}
             onClick={() => onSort(column.key, "asc")}
           >
             <span className="flex items-center gap-2">
               <ChevronUp className="w-3.5 h-3.5" /> Sắp xếp A-Z (Tăng dần)
             </span>
-            {sortConfig?.key === column.key && sortConfig?.direction === "asc" && (
-              <span className="text-[10px] font-bold text-accent">Đang chọn</span>
+            {currentSort?.direction === "asc" && (
+              <span className="text-[10px] font-bold text-accent">Ưu tiên {currentSortIndex + 1}</span>
             )}
           </button>
           <button
-            className={`flex items-center justify-between px-2 py-1 text-xs hover:bg-muted rounded text-left font-bold transition-colors ${sortConfig?.key === column.key && sortConfig?.direction === "desc" ? "bg-accent/10 text-accent font-extrabold" : "text-foreground"}`}
+            className={`flex items-center justify-between px-2 py-1 text-xs hover:bg-muted rounded text-left font-bold transition-colors ${currentSort?.direction === "desc" ? "bg-accent/10 text-accent font-extrabold" : "text-foreground"}`}
             onClick={() => onSort(column.key, "desc")}
           >
             <span className="flex items-center gap-2">
               <ChevronDown className="w-3.5 h-3.5" /> Sắp xếp Z-A (Giảm dần)
             </span>
-            {sortConfig?.key === column.key && sortConfig?.direction === "desc" && (
-              <span className="text-[10px] font-bold text-accent">Đang chọn</span>
+            {currentSort?.direction === "desc" && (
+              <span className="text-[10px] font-bold text-accent">Ưu tiên {currentSortIndex + 1}</span>
             )}
           </button>
-          {sortConfig?.key === column.key && (
+          {currentSort && (
             <button
               className="flex items-center gap-2 px-2 py-1 text-xs hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded text-left font-bold text-rose-600 dark:text-rose-400 transition-colors mt-0.5"
               onClick={() => onSort(column.key, null)}
@@ -651,7 +657,7 @@ const DataRow = React.memo(
       <tr
         onClick={() => onRowClick?.(row)}
         data-overlap-group={row.overlap_group || undefined}
-        className={`group ${selectable || onRowClick ? "cursor-pointer" : "cursor-default"} ${row._dimmed ? "opacity-35" : ""} ${row._isTotalRow ? "bg-primary/[0.06] font-black border-t-2 border-primary/20" : String(row.overlap_check || "").startsWith("Trùng lịch") ? "bg-rose-100/70 text-rose-950 dark:bg-rose-950/40 dark:text-rose-100" : String(row.overlap_check || "").startsWith("Trùng dòng") ? "bg-amber-100/70 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" : isSelected ? "bg-primary/[0.05]" : isRowInRange ? "bg-primary/[0.015]" : "bg-[var(--card,#fff)]"} relative`}
+        className={`group ${selectable || onRowClick ? "cursor-pointer" : "cursor-default"} ${row._dimmed ? "opacity-35" : ""} ${row._isSubtotal ? "bg-[var(--table-footer-bg,#E9D9DF)] font-black text-primary border-t-2 border-primary/25" : row._isTotalRow ? "bg-primary/[0.06] font-black border-t-2 border-primary/20" : String(row.overlap_check || "").startsWith("Trùng lịch") ? "bg-rose-100/70 text-rose-950 dark:bg-rose-950/40 dark:text-rose-100" : String(row.overlap_check || "").startsWith("Trùng dòng") ? "bg-amber-100/70 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" : isSelected ? "bg-primary/[0.05]" : isRowInRange ? "bg-primary/[0.015]" : "bg-[var(--card,#fff)]"} relative`}
         style={{ height: rowHeight ? `${rowHeight}px` : undefined }}
       >
         {selectable && (
@@ -687,7 +693,7 @@ const DataRow = React.memo(
               ...(stickyFirstColumn ? { left: selectable ? 40 : 0 } : {})
             }}
           >
-            <div className="font-bold text-foreground/60 text-xs">{rIdx + 1}</div>
+            <div className="font-bold text-foreground/60 text-xs">{row._isSubtotal ? "Σ" : rIdx + 1}</div>
           </td>
         )}
         {visibleColumns.map((col: any, cIdx: number) => {
@@ -939,10 +945,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       }, 2000);
     }, []);
 
-    const [sortConfig, setSortConfig] = useState<{
-      key: string;
-      direction: "asc" | "desc";
-    } | null>(null);
+    const [sortConfig, setSortConfig] = useState<SortRule[]>([]);
     const [columnFilters, setColumnFilters] = useState<
       Record<string, Set<any> | undefined>
     >({});
@@ -1063,6 +1066,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       isOpen: boolean;
       colKey: string;
     } | null>(null);
+    const [customSortOpen, setCustomSortOpen] = useState(false);
     const [selectedRowIds, setSelectedRowIds] = useState<Set<string | number>>(
       new Set(),
     );
@@ -1284,7 +1288,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           string,
           { alignment?: "left" | "center" | "right" }
         >,
-        sortConfig: null as { key: string; direction: "asc" | "desc" } | null,
+        sortConfig: [] as SortRule[],
         rowDensity: "normal" as "compact" | "normal" | "relaxed",
         itemsPerPage: (defaultItemsPerPage ?? 50) as number | typeof Infinity,
       };
@@ -1359,7 +1363,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       try {
         const savedSort = localStorage.getItem(`dt_sort_${storageKey}`);
         if (savedSort) {
-          initStates.sortConfig = JSON.parse(savedSort);
+          initStates.sortConfig = normalizeSortRules(JSON.parse(savedSort));
           hasUpdates = true;
         }
       } catch (e) {
@@ -1598,44 +1602,53 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         }
       });
 
-      // Apply sorting
-      if (sortConfig) {
-        const col = columns.find((c) => c.key === sortConfig.key);
-        const type = columnTypes[sortConfig.key] || col?.type || "text";
-
+      // Apply Excel-style multi-level sorting. Earlier rules always have
+      // higher priority; empty values stay at the bottom at every level.
+      if (sortConfig.length > 0 || result.some((row) => row._subtotalGroup != null)) {
         result.sort((a, b) => {
-          const aVal = a[sortConfig.key];
-          const bVal = b[sortConfig.key];
-
-          const isANull = aVal === null || aVal === undefined || aVal === "";
-          const isBNull = bVal === null || bVal === undefined || bVal === "";
-
-          if (isANull && isBNull) return 0;
-          if (isANull) return 1; // Always push empty values to the bottom
-          if (isBNull) return -1;
-
-          if (type === "number" || type === "currency" || type === "money") {
-            const aNum = parseMoneyToNumber(aVal) || 0;
-            const bNum = parseMoneyToNumber(bVal) || 0;
-            return sortConfig.direction === "asc" ? aNum - bNum : bNum - aNum;
+          // Roster Center subtotal rows remain attached to their BU while the
+          // rows inside each BU still follow all selected sort levels.
+          if (a._subtotalGroup != null && b._subtotalGroup != null) {
+            const groupDirection = sortConfig.find((rule) => rule.key === "business")?.direction || "asc";
+            const groupCompare = String(a._subtotalGroup).localeCompare(
+              String(b._subtotalGroup),
+              "vi",
+              { numeric: true, sensitivity: "base" },
+            );
+            if (groupCompare !== 0) return groupDirection === "asc" ? groupCompare : -groupCompare;
+            if (!!a._isSubtotal !== !!b._isSubtotal) return a._isSubtotal ? 1 : -1;
           }
 
-          if (type === "date" || isDateColumn(sortConfig.key, col?.label, type)) {
-            const aDate = parseAnyDate(aVal);
-            const bDate = parseAnyDate(bVal);
-            if (aDate && bDate) {
-              return sortConfig.direction === "asc"
-                ? aDate.getTime() - bDate.getTime()
-                : bDate.getTime() - aDate.getTime();
+          for (const rule of sortConfig) {
+            const col = columns.find((column) => column.key === rule.key);
+            const type = columnTypes[rule.key] || col?.type || "text";
+            const aVal = a[rule.key];
+            const bVal = b[rule.key];
+            const isANull = aVal === null || aVal === undefined || aVal === "";
+            const isBNull = bVal === null || bVal === undefined || bVal === "";
+
+            if (isANull && isBNull) continue;
+            if (isANull) return 1;
+            if (isBNull) return -1;
+
+            let comparison = 0;
+            if (type === "number" || type === "currency" || type === "money") {
+              comparison = (parseMoneyToNumber(aVal) || 0) - (parseMoneyToNumber(bVal) || 0);
+            } else if (type === "date" || isDateColumn(rule.key, col?.label, type)) {
+              const aDate = parseAnyDate(aVal);
+              const bDate = parseAnyDate(bVal);
+              if (aDate && bDate) comparison = aDate.getTime() - bDate.getTime();
             }
+
+            if (comparison === 0) {
+              comparison = String(aVal).localeCompare(String(bVal), "vi", {
+                numeric: true,
+                sensitivity: "base",
+              });
+            }
+            if (comparison !== 0) return rule.direction === "asc" ? comparison : -comparison;
           }
-
-          const aStr = String(aVal).toLowerCase();
-          const bStr = String(bVal).toLowerCase();
-
-          return sortConfig.direction === "asc"
-            ? aStr.localeCompare(bStr, undefined, { numeric: true })
-            : bStr.localeCompare(aStr, undefined, { numeric: true });
+          return 0;
         });
       }
 
@@ -1740,7 +1753,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         const colIsNumeric = colIsNumericList[cIdx];
         if (colIsNumeric) {
           totals[col.key] = filteredAndSortedData.reduce((sum, row) => {
-            if (row?._isTotalRow) return sum;
+            if (row?._isTotalRow || row?._isSubtotal) return sum;
             if (totalCalculationOverride) {
               const override = totalCalculationOverride(row, col.key);
               if (typeof override === "number" && Number.isFinite(override)) {
@@ -2109,21 +2122,26 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     }, []);
 
     const handleSort = (key: string, direction?: "asc" | "desc" | null) => {
-      if (direction === null) {
-        setSortConfig(null);
-        showStatus("Đã xóa sắp xếp cột");
-        return;
-      }
       setSortConfig((prev) => {
-        if (direction) return { key, direction };
-        if (prev?.key === key) {
-          if (prev.direction === "asc") {
-            return { key, direction: "desc" };
-          }
+        const currentIndex = prev.findIndex((rule) => rule.key === key);
+        if (direction === null) {
           showStatus("Đã xóa sắp xếp cột");
-          return null;
+          return prev.filter((rule) => rule.key !== key);
         }
-        return { key, direction: "asc" };
+        if (direction) {
+          if (currentIndex < 0) return [...prev, { key, direction }];
+          return prev.map((rule, index) =>
+            index === currentIndex ? { ...rule, direction } : rule,
+          );
+        }
+        if (currentIndex < 0) return [...prev, { key, direction: "asc" }];
+        if (prev[currentIndex].direction === "asc") {
+          return prev.map((rule, index) =>
+            index === currentIndex ? { ...rule, direction: "desc" } : rule,
+          );
+        }
+        showStatus("Đã xóa sắp xếp cột");
+        return prev.filter((_, index) => index !== currentIndex);
       });
     };
 
@@ -2153,7 +2171,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         setHiddenColumns(defaultHidden);
         setShownAutoHiddenColumns(new Set());
         setColumnWidths({});
-        setSortConfig(null);
+        setSortConfig([]);
         setItemsPerPage(50);
         setCurrentPage(1);
         showStatus("Đã khôi phục cấu hình bảng mặc định");
@@ -2304,7 +2322,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
     const handleContextMenu = useCallback(
       (e: React.MouseEvent, r: number, c: number) => {
-        if (!isEditable) return;
         e.preventDefault();
         if (r !== -1) {
           // If there's a selection range and the right-click is inside it, don't change the active cell
@@ -2964,6 +2981,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       ].filter(Boolean).join(" ");
 
       const colAlign = getAlignment(col);
+      const activeSortIndex = sortConfig.findIndex((rule) => rule.key === col.key);
+      const activeSort = activeSortIndex >= 0 ? sortConfig[activeSortIndex] : undefined;
       // Table column headers are centered by default as requested
       const headerFlexJustify = "justify-center";
       const headerTextAlign = "text-center";
@@ -3000,19 +3019,22 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   handleSort(col.key);
                 }
               }}
-              title={col.sortable !== false ? "Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)" : undefined}
+              title={col.sortable !== false ? "Nhấp để thêm cấp sort (Tăng dần → Giảm dần → Hủy); cột bấm trước được ưu tiên trước" : undefined}
             >
               <span className={`whitespace-normal break-words leading-tight ${headerTextAlign} max-w-full min-w-0 block font-bold`}>
                 {col.label}
               </span>
-              {col.sortable !== false && sortConfig?.key === col.key && (
+              {col.sortable !== false && activeSort && (
                 <div className="inline-flex items-center gap-0.5 ml-0.5 shrink-0">
                   <span className="text-accent flex items-center justify-center font-bold">
-                    {sortConfig.direction === "asc" ? (
+                    {activeSort.direction === "asc" ? (
                       <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" />
                     ) : (
                       <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />
                     )}
+                  </span>
+                  <span className="grid h-3.5 min-w-3.5 place-items-center rounded-full bg-accent px-1 text-[8px] font-black leading-none text-white">
+                    {activeSortIndex + 1}
                   </span>
                   <button
                     type="button"
@@ -3077,49 +3099,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
     return (
       <>
-        {(hasActiveFilters || sortConfig) && (
-          <div className="flex items-center justify-between px-5 py-2.5 bg-[#FEF3C7] dark:bg-amber-950/20 border-b-2 border-amber-300 dark:border-amber-800 shrink-0 text-amber-900 dark:text-amber-100 shadow-sm relative z-50 flex-wrap gap-2">
-            <div className="flex items-center gap-3 text-xs font-extrabold uppercase tracking-wider flex-wrap">
-              {hasActiveFilters && (
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                  <span>LỌC: {activeFilters.map(f => `"${f.label.toUpperCase()}"`).join(", ")}</span>
-                </div>
-              )}
-              {sortConfig && (
-                <div className="flex items-center gap-1.5 bg-amber-200/80 dark:bg-amber-900/50 px-2.5 py-1 rounded text-amber-950 dark:text-amber-100 border border-amber-300">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-accent" />
-                  <span>
-                    SẮP XẾP: "{columns.find(c => c.key === sortConfig.key)?.label?.toUpperCase() || sortConfig.key}" ({sortConfig.direction === "asc" ? "TĂNG DẦN ↑" : "GIẢM DẦN ↓"})
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {sortConfig && (
-                <button
-                  onClick={() => {
-                    setSortConfig(null);
-                    showStatus("Đã xóa sắp xếp cột");
-                  }}
-                  className="text-[10px] font-black uppercase tracking-wider bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900/70 dark:text-rose-200 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm active:scale-95 border border-rose-300 flex items-center gap-1"
-                >
-                  <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                  Xóa sắp xếp
-                </button>
-              )}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-[10px] font-black uppercase tracking-wider bg-amber-200/60 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm active:scale-95 border border-amber-300/50 flex items-center gap-1"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Xóa tất cả bộ lọc
-                </button>
-              )}
-            </div>
-          </div>
-        )}
         <div
           id="table-card"
           ref={tableRef}
@@ -4102,10 +4081,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <DropdownMenuSeparator className="bg-primary/10 mx-1" />
             <button
                   onClick={() => {
-                setSortConfig({
-                  key: visibleColumns[contextMenu.c].key,
-                  direction: "asc",
-                });
+                handleSort(visibleColumns[contextMenu.c].key, "asc");
                 closeContextMenu();
               }}
               className="w-full px-3 py-2 text-left text-[0.625rem] font-black uppercase tracking-wider hover:bg-primary/5 flex items-center gap-2.5 transition-colors group"
@@ -4115,10 +4091,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             </button>
             <button
               onClick={() => {
-                setSortConfig({
-                  key: visibleColumns[contextMenu.c].key,
-                  direction: "desc",
-                });
+                handleSort(visibleColumns[contextMenu.c].key, "desc");
                 closeContextMenu();
               }}
               className="w-full px-3 py-2 text-left text-[0.625rem] font-black uppercase tracking-wider hover:bg-primary/5 flex items-center gap-2.5 transition-colors group"
@@ -4126,20 +4099,42 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               <ChevronDown className="w-3.5 h-3.5 text-primary/40 group-hover:text-primary transition-colors" />
               <span>Sắp xếp Z-A</span>
             </button>
-            {sortConfig && (
+            <button
+              onClick={() => {
+                setCustomSortOpen(true);
+                closeContextMenu();
+              }}
+              className="w-full px-3 py-2 text-left text-[0.625rem] font-black uppercase tracking-wider hover:bg-accent/10 flex items-center gap-2.5 transition-colors group text-accent"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-accent/60 group-hover:text-accent transition-colors" />
+              <span>Sắp xếp tùy chỉnh (Excel)</span>
+            </button>
+            {sortConfig.length > 0 && (
               <button
                 onClick={() => {
-                  setSortConfig(null);
+                  setSortConfig([]);
                   closeContextMenu();
-                  showStatus("Đã xóa sắp xếp cột");
+                  showStatus("Đã xóa tất cả cấp sắp xếp");
                 }}
                 className="w-full px-3 py-2 text-left text-[0.625rem] font-black uppercase tracking-wider hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2.5 transition-colors group text-rose-600 hover:text-rose-700"
               >
                 <X className="w-3.5 h-3.5 text-rose-500 stroke-[2.5]" />
-                <span>Xóa sắp xếp</span>
+                <span>Xóa tất cả sắp xếp</span>
               </button>
             )}
           </div>
+        )}
+        {customSortOpen && (
+          <CustomSortDialog
+            open={customSortOpen}
+            columns={visibleColumns}
+            value={sortConfig}
+            onOpenChange={setCustomSortOpen}
+            onApply={(rules) => {
+              setSortConfig(rules);
+              showStatus(rules.length > 0 ? `Đã áp dụng ${rules.length} cấp sắp xếp` : "Đã xóa tất cả cấp sắp xếp");
+            }}
+          />
         )}
         {/* Column Format Dialog */}
         {formatModal && (

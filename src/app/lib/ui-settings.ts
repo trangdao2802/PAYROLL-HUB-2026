@@ -159,6 +159,23 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableDataBg: "#FDFBF7",
     tableFont: "var(--font-nunito)",
     tableRadius: "16px",
+  },
+  flowbutter: {
+    id: "flowbutter",
+    name: "Flowbutter Pantone (Vintage)",
+    bg: "#F5EFC6",
+    accent: "#4D0E12",
+    text: "#231815",
+    border: "#A5BCD6",
+    stripeColor1: "#FFF8D9",
+    stripeColor2: "#EDF3F9",
+    gridLineColor: "rgba(74, 46, 39, 0.13)",
+    tableHeaderBg: "#A5BCD6",
+    tableFooterBg: "#E8DDB3",
+    tableColumnHeaderBg: "#D4E0EC",
+    tableDataBg: "#FFF8D9",
+    tableFont: "var(--font-main)",
+    tableRadius: "14px",
   }
 };
 

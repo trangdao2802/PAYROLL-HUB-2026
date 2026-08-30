@@ -205,22 +205,6 @@ export function UiSettingsModal({
   const [isCompactInspector, setIsCompactInspector] = useState(false);
   const [compactPanel, setCompactPanel] = useState<"type" | "spacing" | "paint" | null>(null);
 
-  // Dynamic selector values helper for padding/margin
-  const getCombinedPadding = useCallback(() => {
-    const t = padTop.trim();
-    const r = padRight.trim();
-    const b = padBottom.trim();
-    const l = padLeft.trim();
-    
-    if (!t && !r && !b && !l) return "";
-    const toPx = (v: string) => {
-      if (!v) return "0px";
-      if (/^\d+(\.\d+)?$/.test(v)) return `${v}px`;
-      return v;
-    };
-    return `${toPx(t)} ${toPx(r)} ${toPx(b)} ${toPx(l)}`;
-  }, [padTop, padRight, padBottom, padLeft]);
-
   const getCombinedMargin = useCallback(() => {
     const t = marTop.trim();
     const r = marRight.trim();
@@ -444,6 +428,10 @@ export function UiSettingsModal({
       setNewColor(existingRule.color || "");
       setNewBorder(existingRule.border || "");
       updatePaddingStates(existingRule.padding || "");
+      setPadTop(cleanUnit(existingRule.paddingTop || existingPadding.top));
+      setPadRight(cleanUnit(existingRule.paddingRight || existingPadding.right));
+      setPadBottom(cleanUnit(existingRule.paddingBottom || existingPadding.bottom));
+      setPadLeft(cleanUnit(existingRule.paddingLeft || existingPadding.left));
       updateMarginStates(existingRule.margin || "");
       setNewWidth(existingRule.width || "");
       setNewHeight(existingRule.height || "");
@@ -459,10 +447,10 @@ export function UiSettingsModal({
         bg: existingRule.bg || "",
         color: existingRule.color || "",
         border: existingRule.border || "",
-        padTop: cleanUnit(existingPadding.top),
-        padRight: cleanUnit(existingPadding.right),
-        padBottom: cleanUnit(existingPadding.bottom),
-        padLeft: cleanUnit(existingPadding.left),
+        padTop: cleanUnit(existingRule.paddingTop || existingPadding.top),
+        padRight: cleanUnit(existingRule.paddingRight || existingPadding.right),
+        padBottom: cleanUnit(existingRule.paddingBottom || existingPadding.bottom),
+        padLeft: cleanUnit(existingRule.paddingLeft || existingPadding.left),
         marTop: cleanUnit(existingMargin.top),
         marRight: cleanUnit(existingMargin.right),
         marBottom: cleanUnit(existingMargin.bottom),
@@ -736,7 +724,10 @@ export function UiSettingsModal({
     const normalizedHeight = normalizeCssLength(newHeight);
     const normalizedFontSize = normalizeCssLength(newFontSize);
     const normalizedLineHeight = normalizeCssLength(newLineHeight);
-    const padding = getCombinedPadding() || undefined;
+    const normalizedPaddingTop = normalizeCssLength(padTop);
+    const normalizedPaddingRight = normalizeCssLength(padRight);
+    const normalizedPaddingBottom = normalizeCssLength(padBottom);
+    const normalizedPaddingLeft = normalizeCssLength(padLeft);
     const margin = getCombinedMargin() || undefined;
     const baseline = editorBaselineRef.current;
     const changed = (key: string, value: string) => (baseline[key] || "") !== value;
@@ -769,7 +760,10 @@ export function UiSettingsModal({
       !supports("background-color", newBg.trim()) ||
       !supports("color", newColor.trim()) ||
       !supports("border", newBorder.trim()) ||
-      !supports("padding", padding) ||
+      !supports("padding-top", normalizedPaddingTop) ||
+      !supports("padding-right", normalizedPaddingRight) ||
+      !supports("padding-bottom", normalizedPaddingBottom) ||
+      !supports("padding-left", normalizedPaddingLeft) ||
       !supports("margin", margin) ||
       !supports("width", normalizedWidth) ||
       !supports("height", normalizedHeight) ||
@@ -793,7 +787,13 @@ export function UiSettingsModal({
       ...(changed("bg", newBg) ? { bg: newBg.trim() || undefined } : {}),
       ...(changed("color", newColor) ? { color: newColor.trim() || undefined } : {}),
       ...(changed("border", newBorder) ? { border: newBorder.trim() || undefined } : {}),
-      ...(paddingChanged ? { padding } : {}),
+      ...(paddingChanged ? {
+        padding: undefined,
+        paddingTop: normalizedPaddingTop,
+        paddingRight: normalizedPaddingRight,
+        paddingBottom: normalizedPaddingBottom,
+        paddingLeft: normalizedPaddingLeft,
+      } : {}),
       ...(marginChanged ? { margin } : {}),
       ...(changed("width", newWidth) ? { width: normalizedWidth } : {}),
       ...(changed("height", newHeight) ? { height: normalizedHeight } : {}),
@@ -938,7 +938,10 @@ export function UiSettingsModal({
         bg: changed("bg", newBg) ? newBg : undefined,
         color: changed("color", newColor) ? newColor : undefined,
         border: changed("border", newBorder) ? newBorder : undefined,
-        padding: paddingChanged ? getCombinedPadding() : undefined,
+        paddingTop: paddingChanged ? normalizeCssLength(padTop) : undefined,
+        paddingRight: paddingChanged ? normalizeCssLength(padRight) : undefined,
+        paddingBottom: paddingChanged ? normalizeCssLength(padBottom) : undefined,
+        paddingLeft: paddingChanged ? normalizeCssLength(padLeft) : undefined,
         margin: marginChanged ? getCombinedMargin() : undefined,
         width: changed("width", newWidth) ? newWidth : undefined,
         height: changed("height", newHeight) ? newHeight : undefined,
@@ -952,7 +955,7 @@ export function UiSettingsModal({
       };
       applyUiSettings(settings, previewRule);
     }
-  }, [settings, isOpen, newSelector, newRadius, newBg, newColor, newBorder, getCombinedPadding, getCombinedMargin, padTop, padRight, padBottom, padLeft, marTop, marRight, marBottom, marLeft, newWidth, newHeight, newFontSize, newFontFamily, newFontWeight, newFontStyle, newTextDecoration, newTextAlign, newLineHeight]);
+  }, [settings, isOpen, newSelector, newRadius, newBg, newColor, newBorder, getCombinedMargin, padTop, padRight, padBottom, padLeft, marTop, marRight, marBottom, marLeft, newWidth, newHeight, newFontSize, newFontFamily, newFontWeight, newFontStyle, newTextDecoration, newTextAlign, newLineHeight]);
 
   const saveSettings = async () => {
     let settingsToPersist = settings;

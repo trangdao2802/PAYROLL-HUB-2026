@@ -14,7 +14,8 @@ const REFERENCE_GLYPHS = {
 
 type ReferenceGlyph = keyof typeof REFERENCE_GLYPHS;
 const REFERENCE_CELL_HEIGHT = 106;
-const DISPLAY_GLYPH_HEIGHT_REM = 1.75;
+// 31px at the 16px root size: three pixels larger than the previous mark.
+const DISPLAY_GLYPH_HEIGHT_REM = 1.9375;
 
 function getTitleCharacters(label: string): string[] {
   return Array.from(label.trim());
@@ -50,7 +51,7 @@ export function TableInitialMark({
   const glyphKey = (normalizedInitial in REFERENCE_GLYPHS ? normalizedInitial : "A") as ReferenceGlyph;
   const [assetName, sourceWidth] = REFERENCE_GLYPHS[glyphKey];
   const glyphStyle = {
-    "--table-initial-mask": `url(\"/fonts/rare-alphabet/${assetName}.png\")`,
+    "--table-initial-mask": `url("/fonts/rare-alphabet/${assetName}.png")`,
     "--table-initial-glyph-width": `${((sourceWidth / REFERENCE_CELL_HEIGHT) * DISPLAY_GLYPH_HEIGHT_REM).toFixed(3)}rem`,
   } as CSSProperties;
   const classes = `app-table-initial-mark app-table-initial-mark--reference ${className}`.trim();
