@@ -99,33 +99,92 @@
 
 .app-table-initial-mark {
   display: inline-flex;
-  width: 1.5rem;
-  height: 1.72rem;
+  width: 2.2rem;
+  height: 2.35rem;
   flex: 0 0 auto;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   overflow: visible;
-  color: currentColor;
+  color: var(--primary, #8E4A49);
   line-height: 1;
-  transform: translateY(0.03em);
+  vertical-align: baseline;
+  transform: translateY(0.13em);
   transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
 }
 
 .app-table-initial-mark--modak {
-  width: 1.55rem;
+  width: 2.25rem;
 }
 
 .app-table-initial-mark__glyph {
+  position: relative;
+  isolation: isolate;
   display: block;
-  color: currentColor;
+  color: var(--primary, #8E4A49);
   font-family: "Modak", sans-serif;
-  font-size: 1.72rem;
+  font-size: 2.45rem;
   font-style: normal;
   font-weight: 400;
-  line-height: 0.86;
-  letter-spacing: 0;
+  line-height: 0.72;
+  letter-spacing: -0.035em;
   text-transform: uppercase;
-  transform: translateY(-0.01em);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--primary, #8E4A49) 28%, white) 0%,
+    color-mix(in srgb, var(--primary, #8E4A49) 58%, white) 20%,
+    var(--primary, #8E4A49) 47%,
+    color-mix(in srgb, var(--primary, #8E4A49) 74%, black) 72%,
+    color-mix(in srgb, var(--primary, #8E4A49) 42%, white) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter:
+    drop-shadow(0 1px 0 color-mix(in srgb, var(--primary, #8E4A49) 18%, white))
+    drop-shadow(0 2px 1px color-mix(in srgb, var(--primary, #8E4A49) 44%, transparent))
+    drop-shadow(0 5px 6px color-mix(in srgb, var(--primary, #8E4A49) 24%, transparent));
+}
+
+.app-table-initial-mark__glyph::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: attr(data-glyph);
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 90%, var(--primary, #8E4A49)) 0%,
+    color-mix(in srgb, white 30%, transparent) 31%,
+    transparent 58%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0.78;
+}
+
+.app-table-title-remainder {
+  display: inline;
+  color: var(--primary, #8E4A49) !important;
+  line-height: inherit;
+  vertical-align: baseline;
+}
+
+/* The sculptural initial and the rest of each title share one text baseline,
+   while any subtitle remains on its own line below. */
+:where(.unified-table-frame-header, .trial-balance-header)
+  :where(.flex, .inline-flex):has(> .app-table-initial-mark)
+  > :where(.app-table-initial-mark, :has(.app-table-title-remainder)),
+:where(.unified-table-frame-header, .trial-balance-header)
+  :where(.flex, .inline-flex):has(> .table-initial-toggle)
+  > :where(.table-initial-toggle, :has(.app-table-title-remainder)) {
+  align-self: baseline;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, a):hover .app-table-initial-mark {
+    transform: translateY(0.09em) scale(1.035);
+  }
 }
 
 .app-brand-lockup {

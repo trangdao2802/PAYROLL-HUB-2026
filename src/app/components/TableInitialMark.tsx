@@ -17,7 +17,9 @@ export function TableTitleRemainder({ label }: { label: string }) {
   return (
     <>
       <span className="sr-only">{label}</span>
-      <span aria-hidden="true">{getTableTitleRemainder(label)}</span>
+      <span aria-hidden="true" className="app-table-title-remainder">
+        {getTableTitleRemainder(label)}
+      </span>
     </>
   );
 }
@@ -32,7 +34,9 @@ export function TableInitialMark({
 
   return (
     <span aria-hidden="true" className={classes}>
-      <span className="app-table-initial-mark__glyph">{initial}</span>
+      <span className="app-table-initial-mark__glyph" data-glyph={initial}>
+        {initial}
+      </span>
     </span>
   );
 }
