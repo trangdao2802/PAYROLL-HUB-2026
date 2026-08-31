@@ -135,15 +135,15 @@
 .app-table-title-remainder {
   display: inline;
   color: var(--primary, #8E4A49) !important;
+  font-size: 1rem !important;
   font-weight: 400 !important;
   letter-spacing: -0.025em;
-  line-height: inherit;
+  line-height: 1.1;
   text-transform: lowercase !important;
   vertical-align: baseline;
 }
 
 .app-table-title-remainder--expanded {
-  font-size: 0.9375rem !important;
   letter-spacing: -0.01em;
   line-height: 1.15;
 }
@@ -3043,7 +3043,12 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
 }
 
 .table-initial-toggle[aria-expanded="false"] .app-table-initial-mark {
-  opacity: 0.55;
+  color: var(--primary, #8E4A49) !important;
+  opacity: 1;
+}
+
+.table-initial-toggle[aria-expanded="false"] .app-table-initial-mark__glyph {
+  background-color: var(--primary, #8E4A49) !important;
 }
 
 .table-initial-toggle:focus-visible {
