@@ -2190,7 +2190,7 @@ header.table-header,
 /* Unified table frame: title, grid and pagination share one outer border. */
 div.unified-table-frame,
 section.unified-table-frame {
-  --table-frame-border: var(--grid-line-color, var(--border, #cbd5e1));
+  --table-frame-border: var(--table-border-color, var(--border, #cbd5e1));
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
@@ -2205,6 +2205,49 @@ section.unified-table-frame {
   background: var(--card, #ffffff) !important;
   overflow: hidden !important;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Keep the outside frame above horizontally scrolling table content. The
+   overlay belongs to the viewport shell, so it stays fixed while the grid,
+   sticky columns and scrollbars move underneath it. */
+:where(
+  .unified-table-frame,
+  .data-table-wrapper,
+  .audit-data-table-wrapper,
+  .pivot-table-container,
+  .master-ae-table-wrapper,
+  #table-card
+) {
+  position: relative !important;
+}
+
+:where(
+  .unified-table-frame,
+  .data-table-wrapper,
+  .audit-data-table-wrapper,
+  .pivot-table-container,
+  .master-ae-table-wrapper,
+  #table-card
+)::after {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  box-sizing: border-box;
+  border: 1px solid var(--table-frame-border, var(--table-border-color, var(--border, #cbd5e1)));
+  content: "";
+  pointer-events: none;
+}
+
+/* A titled unified shell owns the only outside outline. Nested grid wrappers
+   keep their internal separators without drawing a duplicate frame. */
+.unified-table-frame :where(
+  .data-table-wrapper,
+  .audit-data-table-wrapper,
+  .pivot-table-container,
+  .master-ae-table-wrapper,
+  #table-card
+)::after {
+  content: none;
 }
 
 .unified-table-frame-header,
