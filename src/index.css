@@ -135,6 +135,7 @@
 .app-table-title-remainder {
   display: inline;
   color: var(--primary, #8E4A49) !important;
+  font-family: "Port Lligat Slab", "Newsreader", Georgia, serif !important;
   font-size: 1rem !important;
   font-weight: 400 !important;
   letter-spacing: -0.025em;
