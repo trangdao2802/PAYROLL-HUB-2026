@@ -1585,14 +1585,14 @@ export function TimesheetHub() {
           >
             {/* Inner Content Area holding Sidebar and Table */}
             <div 
-              className={`flex-1 grid min-h-0 relative overflow-hidden ${
-                showSidebar ? "grid-cols-[260px_1fr]" : "grid-cols-1"
+              className={`timesheet-workspace-grid flex-1 grid min-h-0 relative overflow-hidden ${
+                showSidebar ? "timesheet-workspace-grid--with-sidebar grid-cols-[260px_1fr]" : "grid-cols-1"
               } grid-rows-1 w-full h-full`}
             >
               {/* Left Panel: Sidebar Controls */}
               {showSidebar && (
                 <div 
-                  className="w-full shrink-0 flex flex-col h-full select-none animate-in fade-in slide-in-from-left duration-500 bg-card border-r border-border p-3.5"
+                  className="timesheet-control-panel w-full shrink-0 flex flex-col h-full select-none animate-in fade-in slide-in-from-left duration-500 bg-card border-r border-border p-3.5"
                 >
                   <div className="flex flex-col h-full overflow-hidden w-full side-panel">
 
@@ -1918,7 +1918,7 @@ export function TimesheetHub() {
 
             {/* Right Panel: Content Grid */}
             <div 
-              className="flex-1 flex flex-col min-h-0 h-full overflow-hidden relative animate-in fade-in slide-in-from-right duration-500 content-area"
+              className="timesheet-data-panel flex-1 flex flex-col min-h-0 h-full overflow-hidden relative animate-in fade-in slide-in-from-right duration-500 content-area"
               style={{ 
                 paddingTop: "0px", 
                 paddingBottom: "0px", 

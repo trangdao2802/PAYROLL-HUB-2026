@@ -73,11 +73,10 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
 };
 
 interface NavbarProps {
-  onToggleMobileMenu: () => void;
   onOpenSettings: () => void;
 }
 
-export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
+export function Navbar({ onOpenSettings }: NavbarProps) {
   const location = useLocation();
   const { appData, updateAppData } = useAppData();
   const [timesheetActiveTabId, setTimesheetActiveTabId] = useState("employee");
@@ -176,7 +175,7 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
   return (
     <header 
       id="app-navbar"
-      className="navbar-header px-6 flex justify-between items-center relative z-40 shrink-0 w-full max-w-full overflow-visible h-[35.4924px] backdrop-blur-md transition-all duration-300 bg-transparent"
+      className={`navbar-header ${showMonthCard ? "navbar-header--with-month" : ""} px-6 flex justify-between items-center relative z-40 shrink-0 w-full max-w-full overflow-visible h-[35.4924px] backdrop-blur-md transition-all duration-300 bg-transparent`}
       style={{
         background: "transparent",
         height: "35.4924px",
@@ -190,7 +189,7 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
           filter: "blur(24px)",
         }}
       />
-        <div className="flex items-center gap-3">
+        <div className="navbar-brand-area flex min-w-0 items-center gap-3">
           <Link
             to="/"
             className="app-brand-lockup select-none border-0 bg-transparent p-0 shadow-none no-underline outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -202,14 +201,15 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
             <span className="app-brand-wordmark" aria-hidden="true" />
           </Link>
           {location.pathname !== "/" && pageTabs[lookupPath] && (
-            <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-300">
+            <div className="navbar-current-view flex min-w-0 items-center animate-in fade-in slide-in-from-left-4 duration-300">
               <span className="text-muted-foreground/60 text-xs mr-2 tabular-nums select-none">/</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-1 h-7 text-accent hover:text-foreground transition-all group font-bold text-xs tracking-tight cursor-pointer active:scale-95 px-1 bg-transparent border-none shadow-none outline-none focus:outline-none focus-visible:outline-none"
+                    className="navbar-view-trigger flex min-w-0 items-center gap-1 h-7 text-accent hover:text-foreground transition-all group font-bold text-xs tracking-tight cursor-pointer active:scale-95 px-1 bg-transparent border-none shadow-none outline-none focus:outline-none focus-visible:outline-none"
+                    aria-label={`Chuyển bảng, hiện tại: ${currentPageLabel}`}
                   >
-                    <span style={{ fontFamily: "'Gentium Book Plus', serif", fontSize: "10.75px" }}>
+                    <span className="navbar-current-label truncate">
                       {currentPageLabel}
                     </span>
                     <ChevronDown className="w-3 h-3 opacity-60" />
@@ -242,7 +242,7 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
           )}
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="navbar-actions flex shrink-0 items-center gap-6">
           <nav className="hidden md:flex gap-6 items-center">
               {navigationItems.filter((item) => item.id !== "dashboard").map((item) => {
                 const isActive = location.pathname === item.path;
@@ -275,6 +275,43 @@ export function Navbar({ onToggleMobileMenu, onOpenSettings }: NavbarProps) {
                 </div>
               )}
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="mobile-navigation-trigger hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 bg-card text-primary shadow-xs transition-colors hover:bg-primary/5 active:scale-[0.98] max-md:flex"
+                aria-label="Mở điều hướng chính"
+              >
+                <Menu className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="mobile-navigation-menu w-56">
+              <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                Điều hướng
+              </DropdownMenuLabel>
+              {navigationItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <DropdownMenuItem key={item.id} asChild>
+                    <Link
+                      to={item.path}
+                      className={isActive ? "bg-primary/10 text-primary" : "text-foreground"}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
+                      <span className="capitalize">{item.label}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                );
+              })}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onOpenSettings}>
+                <Settings2 className="h-4 w-4" aria-hidden="true" />
+                <span>Cài đặt giao diện</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
     </header>
   );

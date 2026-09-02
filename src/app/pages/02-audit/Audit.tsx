@@ -1405,7 +1405,7 @@ export function Audit() {
       <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-emerald-500/5 rounded-full blur-[100px] -z-10" />
 
-      <div className="flex flex-col md:flex-row gap-2 w-full flex-1 min-h-0 min-w-0 relative z-10">
+      <div className="audit-workspace-layout flex flex-col md:flex-row gap-2 w-full flex-1 min-h-0 min-w-0 relative z-10">
         {/* Left Panel - Source Selection (Swapped back to left) */}
         {!isConfigHidden && activeTab !== "rules" && (
           <motion.div

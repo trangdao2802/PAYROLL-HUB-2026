@@ -519,8 +519,12 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
       `2px 2px 0px ${settings.border}`,
     );
   }
-  if (settings.fontSize)
-    root.style.setProperty("--font-size", settings.fontSize);
+  if (settings.fontSize) {
+    // Keep the user's chosen size as the baseline; CSS adds only the
+    // device-specific adjustment so the preference remains authoritative.
+    root.style.removeProperty("--font-size");
+    root.style.setProperty("--user-font-size", settings.fontSize);
+  }
   if (settings.tableFont) {
     root.style.setProperty("--font-table", settings.tableFont);
     root.style.setProperty("--tabular-nums", settings.tableFont);
@@ -597,7 +601,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .pivot-master-table,
     .master-ae-table-wrapper table {
       border-color: ${effectiveGrid} !important;
-      font-size: ${settings.fontSize || "13px"} !important;
+      font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
     }
 
@@ -623,7 +627,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
       border-right: 1px solid ${effectiveGrid} !important;
       border-left: none !important;
       padding: ${settings.tablePadding || "10px 14px"} !important;
-      font-size: ${settings.fontSize || "13px"} !important;
+      font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
     }
 
@@ -632,7 +636,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .pivot-master-table th :where(span, div, button, input, select, option, label, p),
     .pivot-master-table td :where(span, div, button, input, select, option, label, p) {
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
-      font-size: ${settings.fontSize || "13px"} !important;
+      font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
     }
 
     table th, 
@@ -741,7 +745,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .unified-table-frame-footer,
     .unified-table-frame-footer * {
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
-      font-size: ${settings.fontSize || "13px"} !important;
+      font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
     }
 
     button:not(.rounded-full):not(.rounded-none):not(.search-btn-exception),
@@ -841,7 +845,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .master-ae-table-wrapper td,
     .master-ae-table-wrapper input {
       font-family: var(--font-table, var(--font-main)) !important;
-      font-size: ${settings.fontSize || "12px"} !important;
+      font-size: var(--responsive-table-font-size, ${settings.fontSize || "12px"}) !important;
     }
 
     .pivot-table-container thead,
