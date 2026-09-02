@@ -71,6 +71,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
 import { ROSTER_RAW_COLUMNS } from "../../constants/columns/roster-raw";
+import { downloadHierarchicalWorkbook } from "../../lib/utils/excel-export";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -91,6 +92,114 @@ function getRosterSourceKey(row: any): string {
       row?.id ||
       "",
   );
+}
+
+function isMktLocalNorthRosterRow(row: any): boolean {
+  const values = [
+    row?.center,
+    row?.l07,
+    row?.bank,
+    row?.bankName,
+    row?.chargeToCenterMkt,
+    row?.charge_to_center_mkt,
+    row?._sourceFile,
+  ].map((value) => String(value || "").toUpperCase());
+  return (
+    values.some(
+      (value) =>
+        value === "MKT LOCAL NORTH" ||
+        value.startsWith("MKT LOCAL NORTH_") ||
+        value.includes("MKT_LOCAL_NORTH"),
+    ) && !String(row?.overlap_check || "").startsWith("Trùng lịch")
+  );
+}
+
+function buildTimesheetMktPivotExportRows(rows: any[]): any[] {
+  const grouped = new Map<
+    string,
+    {
+      business: string;
+      l07: string;
+      values: Record<string, number>;
+      total: number;
+    }
+  >();
+  const types = new Set<string>();
+
+  rows.filter(isMktLocalNorthRosterRow).forEach((row) => {
+    const type = String(row.taskType || row.type || row.sourceType || "")
+      .trim()
+      .toUpperCase();
+    if (!type) return;
+    types.add(type);
+
+    const rawL07 = String(
+      row.chargeToCenterMkt ||
+        row.charge_to_center_mkt ||
+        row.center ||
+        row.l07 ||
+        "",
+    ).trim();
+    const l07 = mapL07(rawL07) || rawL07;
+    const business =
+      getCenterInfoByL07(l07)?.bus ||
+      String(row.business || "").trim() ||
+      getBusinessFromL07(l07);
+    const key = `${business}||${l07}`;
+    const current = grouped.get(key) || {
+      business,
+      l07,
+      values: {},
+      total: 0,
+    };
+    const hours = Number(row.workingHours ?? row.duration) || 0;
+    const override = row._mktPivotValueOverride;
+    const amount =
+      override !== undefined &&
+      override !== null &&
+      override !== "" &&
+      Number.isFinite(Number(override))
+        ? Number(override)
+        : hours * 20000;
+    current.values[type] = (current.values[type] || 0) + amount;
+    current.total += amount;
+    grouped.set(key, current);
+  });
+
+  const sortedTypes = Array.from(types).sort();
+  const exportRows: Array<Record<string, unknown>> = Array.from(grouped.values())
+    .sort(
+      (left, right) =>
+        left.business.localeCompare(right.business) ||
+        left.l07.localeCompare(right.l07),
+    )
+    .map((row, index) => ({
+      "No.": index + 1,
+      Business: row.business,
+      "Charge To Center MKT": row.l07,
+      ...Object.fromEntries(
+        sortedTypes.map((type) => [type, row.values[type] || 0]),
+      ),
+      "Grand Total": row.total,
+    }));
+
+  const totals = Object.fromEntries(
+    sortedTypes.map((type) => [
+      type,
+      exportRows.reduce((sum, row) => sum + Number(row[type] || 0), 0),
+    ]),
+  );
+  exportRows.push({
+    "No.": "",
+    Business: "TỔNG CỘNG",
+    "Charge To Center MKT": "",
+    ...totals,
+    "Grand Total": exportRows.reduce(
+      (sum, row) => sum + Number(row["Grand Total"] || 0),
+      0,
+    ),
+  });
+  return exportRows;
 }
 
 function DebouncedSearchInput({
@@ -1190,6 +1299,153 @@ export function TimesheetHub() {
     XLSX.utils.book_append_sheet(wb, ws, activeTab);
     XLSX.writeFile(wb, `Timesheet_Hub_${activeTab}.xlsx`);
   };
+
+  const handleExportAllExcel = useCallback(() => {
+    const exportRoster = isCalculating
+      ? calculatedRosterData
+      : processedRosterData;
+    const rawRows = exportRoster.map((row: any) => {
+      const mappedRow: Record<string, unknown> = {};
+      ROSTER_RAW_COLUMNS.forEach((column) => {
+        if (!column.hidden) mappedRow[column.label] = row[column.key];
+      });
+      return mappedRow;
+    });
+    const pivotRows = buildTimesheetMktPivotExportRows(exportRoster);
+    const pivotTotal = Number(
+      pivotRows[pivotRows.length - 1]?.["Grand Total"] || 0,
+    );
+    const sumByKeys = (rows: any[], keys: string[]) =>
+      rows.reduce((total, row) => {
+        const key = keys.find(
+          (candidate) =>
+            row?.[candidate] !== undefined && row?.[candidate] !== "",
+        );
+        return total + (key ? parseMoneyToNumber(row[key]) : 0);
+      }, 0);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+
+    void downloadHierarchicalWorkbook({
+      title: "TIMESHEET",
+      fileName: `Payroll_Hub_Timesheet_${dateStamp}.xlsx`,
+      pages: [
+        {
+          title: "Total Paid Hours",
+          children: [
+            {
+              title: "Employee Paid Hours",
+              sheetName: "Total Paid Hours",
+              table: {
+                rows: employeeSummary,
+                cards: [
+                  { label: "Employees", value: employeeSummary.length },
+                  {
+                    label: "Total Paid Hours",
+                    value: sumByKeys(employeeSummary, [
+                      "totalPaidHours",
+                      "paidHours",
+                      "workingHours",
+                      "Total Hours",
+                      "Tổng giờ",
+                    ]),
+                  },
+                  { label: "From Date", value: fromDate || "Tất cả" },
+                  { label: "To Date", value: toDate || "Tất cả" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          title: "Roster Center",
+          children: [
+            {
+              title: "Center Summary",
+              sheetName: "Roster Center",
+              table: {
+                rows: centerSummary,
+                cards: [
+                  { label: "Centers", value: centerSummary.length },
+                  {
+                    label: "Total Hours",
+                    value: sumByKeys(centerSummary, [
+                      "totalHours",
+                      "workingHours",
+                      "Total Hours",
+                      "Tổng giờ",
+                    ]),
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          title: "Pivot Timesheet",
+          children: [
+            {
+              title: "MKT Local North Cost Allocation",
+              sheetName: "Pivot Timesheet",
+              table: {
+                rows: pivotRows,
+                cards: [
+                  {
+                    label: "Allocation Rows",
+                    value: Math.max(pivotRows.length - 1, 0),
+                  },
+                  { label: "Grand Total", value: pivotTotal },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          title: "Raw Data",
+          children: [
+            {
+              title: "Roster Raw Data",
+              sheetName: "Raw Data",
+              table: {
+                rows: rawRows,
+                cards: [
+                  { label: "Rows", value: rawRows.length },
+                  { label: "Total Duration", value: rosterMetrics.totalDuration },
+                  { label: "Unpaid Rows", value: rosterMetrics.unpaidRows },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    })
+      .then(() =>
+        toast.success("Đã xuất toàn bộ 4 trang Timesheet và dữ liệu card."),
+      )
+      .catch((error) => {
+        console.error("Timesheet workbook export failed:", error);
+        toast.error("Không thể xuất workbook Timesheet.");
+      });
+  }, [
+    calculatedRosterData,
+    centerSummary,
+    employeeSummary,
+    fromDate,
+    isCalculating,
+    processedRosterData,
+    rosterMetrics.totalDuration,
+    rosterMetrics.unpaidRows,
+    toDate,
+  ]);
+
+  useEffect(() => {
+    const handleSectionExport = () => handleExportAllExcel();
+    window.addEventListener("app-export-section-excel", handleSectionExport);
+    return () =>
+      window.removeEventListener(
+        "app-export-section-excel",
+        handleSectionExport,
+      );
+  }, [handleExportAllExcel]);
 
   const handleSyncToSupabase = useCallback(async () => {
     if (!isSupabaseConfigured()) {

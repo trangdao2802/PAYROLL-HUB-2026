@@ -47,6 +47,17 @@ test("Master upload settings keeps a 12px inset with an 18px left gutter", () =>
   );
 });
 
+test("Trial Balance keeps a 12px inset inside the viewport", () => {
+  const trialBalancePage = readSource(
+    "src/app/pages/04-balance/HoldDashboardPage.tsx",
+  );
+
+  assert.match(
+    trialBalancePage,
+    /key="hold-dashboard-main"[\s\S]*?style=\{\{\s*padding:\s*"12px"\s*\}\}/,
+  );
+});
+
 test("mobile navigation remains available when desktop navigation is hidden", () => {
   const navbar = readSource("src/app/components/layouts/Navbar.tsx");
 

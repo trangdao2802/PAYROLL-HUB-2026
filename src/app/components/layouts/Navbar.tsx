@@ -22,6 +22,7 @@ import {
   UploadCloud,
   RefreshCw,
   FileText,
+  FileSpreadsheet,
   AlertCircle,
   ChevronDown,
   LayoutDashboard,
@@ -154,6 +155,12 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
   );
 
   const showMonthCard = location.pathname === "/master-ae" || location.pathname === "/hold-dashboard" || location.pathname === "/payment" || location.pathname === "/pivot";
+  const canExportSection = [
+    "/centers",
+    "/audit",
+    "/master-ae",
+    "/hold-dashboard",
+  ].includes(location.pathname);
   const shouldAutoSyncReconciliation = location.pathname === "/master-ae" || location.pathname === "/payment" || location.pathname === "/pivot";
   const currentMonth = appData.globalMonth || "03.2026";
   const bankSourceRowCount = appData.Bank_North_AE?.data?.length || 0;
@@ -261,6 +268,20 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
           </nav>
    
           <div className="text-right text-xs text-foreground flex items-center justify-end gap-3" style={{ fontFamily: "var(--font-main)" }}>
+              {canExportSection && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(new Event("app-export-section-excel"))
+                  }
+                  className="hidden h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-primary/20 bg-card px-2 text-[10px] font-bold uppercase tracking-wider text-primary shadow-xs transition-all hover:bg-primary/5 active:scale-[0.98] md:flex 2xl:px-3"
+                  title="Tải một file Excel gồm toàn bộ bảng và card của khu vực này"
+                  aria-label="Xuất toàn bộ bảng và card ra Excel"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="hidden 2xl:inline">Excel toàn bộ</span>
+                </button>
+              )}
               {showMonthCard && (
                 <div className="origin-right">
                   <MonthPicker
@@ -306,6 +327,16 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
                 );
               })}
               <DropdownMenuSeparator />
+              {canExportSection && (
+                <DropdownMenuItem
+                  onSelect={() =>
+                    window.dispatchEvent(new Event("app-export-section-excel"))
+                  }
+                >
+                  <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+                  <span>Xuất Excel toàn bộ</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={onOpenSettings}>
                 <Settings2 className="h-4 w-4" aria-hidden="true" />
                 <span>Cài đặt giao diện</span>

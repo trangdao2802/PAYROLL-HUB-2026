@@ -56,6 +56,11 @@ import {
   resolveDeductionsSheetSource,
   sortMissingDeductionsSourceNotesFirst,
 } from "../../../lib/utils/deductions-sheet-source";
+import { TransactionReferenceCell } from "../../../components/TransactionReferenceCell";
+import {
+  getTransactionReferenceField,
+  type TransactionReferenceAuditEntry,
+} from "../../../lib/utils/transaction-reference-sync";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -79,10 +84,21 @@ interface HoldAETableProps {
   onAddRow?: (idx?: number) => void;
   cameFromBulkPayment?: boolean;
   onBackToBulkPayment?: () => void;
+  onOpenTransactionReference?: (
+    audit: TransactionReferenceAuditEntry,
+    row: Record<string, unknown>,
+  ) => void;
 }
 
 export const HoldAETable = forwardRef<any, HoldAETableProps>(
-  ({ searchTerm, onSearchTermChange, onAddRow, cameFromBulkPayment, onBackToBulkPayment }, ref) => {
+  ({
+    searchTerm,
+    onSearchTermChange,
+    onAddRow,
+    cameFromBulkPayment,
+    onBackToBulkPayment,
+    onOpenTransactionReference,
+  }, ref) => {
     const { appData, updateAppData } = useAppData();
     const [showSearch, setShowSearch] = React.useState(false);
     const [showClearConfirm, setShowClearConfirm] = React.useState(false);
@@ -669,6 +685,19 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
             };
           }
 
+          const transactionReferenceField =
+            getTransactionReferenceField(header);
+          if (transactionReferenceField) {
+            renderOption = (value: any, row: any) => (
+              <TransactionReferenceCell
+                value={value}
+                row={row}
+                field={transactionReferenceField}
+                onOpenTransaction={onOpenTransactionReference}
+              />
+            );
+          }
+
           return {
             key: header,
             label: h === "STT" ? "No." : header,
@@ -691,6 +720,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       appData.globalMonth,
       currentReportMonth,
       isCurrentMonthLocked,
+      onOpenTransactionReference,
     ]);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);

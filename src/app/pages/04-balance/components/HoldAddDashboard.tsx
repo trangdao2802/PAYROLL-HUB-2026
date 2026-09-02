@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useCallback } from "react";
-import * as XLSX from "xlsx";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { buildBulkPaymentAnalytics } from "../../../lib/utils/bulk-payment-analytics";
 import {
@@ -12,7 +11,6 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Trash2,
-  Scale,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { toast } from "sonner";
@@ -42,6 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+import { downloadHierarchicalWorkbook } from "../../../lib/utils/excel-export";
+import { calculateTrialBalanceHeaderTotals } from "../../../lib/utils/trial-balance-header-totals";
 
 const fmt = (n: number) => {
   const rounded = Math.round(n);
@@ -1997,7 +1997,6 @@ export function HoldAddDashboard() {
         openBal = Math.max(openBal, Object.values(openBalByMonth).reduce((s, v) => s + v, 0));
 
         const buThu = rowsForBu.reduce((s, r) => s + (r.thu || 0), 0);
-        const buChi = rowsForBu.reduce((s, r) => s + (r.chi || 0), 0);
 
         // SDCK = Lương TA của tháng - Số dư ĐK - Lương Hold của tháng
         // IMPORTANT: Khoản HOLD/CANCEL có tháng phát sinh < tháng báo cáo (quá khứ) thì không trừ vào SDCK,
@@ -2112,7 +2111,6 @@ export function HoldAddDashboard() {
     grandBal,
     filteredData,
     rowRCloseBalances,
-    buCloseBalances,
     monthCloseBalances,
   } = useMemo(() => {
     let open = 0;
@@ -2121,7 +2119,6 @@ export function HoldAddDashboard() {
     let add = 0;
     let hold = 0;
     let cancel = 0;
-    let totalCloseBal = 0;
 
     monthKeys.forEach((mk) => {
       const t = computedMonthTotals[mk];
@@ -2132,7 +2129,6 @@ export function HoldAddDashboard() {
         add += t.addAmt;
         hold += t.holdAmt;
         cancel += t.cancelAmt;
-        totalCloseBal += t.closeBal;
       }
     });
 
@@ -2232,72 +2228,17 @@ export function HoldAddDashboard() {
     ).size;
   }, []);
 
-  const grandAddPillValue = useMemo(() => {
-    return currentPeriodRows
-      .filter((e) => {
-        const idLower = String(e.id).toLowerCase();
-        const display = String(
-          e.customMonthDisplay || e.month || "",
-        ).toUpperCase();
-        return (
-          idLower.includes("_add") ||
-          idLower.includes("add") ||
-          display.includes("ADD")
-        );
-      })
-      .reduce((s, e) => s + e.thu + (e.add || 0), 0);
-  }, [currentPeriodRows]);
-
-  const chiPhiLuongTaPillValue = useMemo(() => {
-    return currentPeriodRows
-      .filter(
-        (e) =>
-          !e.id.includes("_hold") &&
-          !e.id.includes("_add") &&
-          !e.id.includes("_cancel") &&
-          !e.id.includes("_past_"),
-      )
-      .reduce((s, e) => s + e.thu, 0);
-  }, [currentPeriodRows]);
-
-  const holdPillValue = useMemo(() => {
-    return currentPeriodRows
-      .filter((e) => {
-        const idLower = String(e.id).toLowerCase();
-        const display = String(
-          e.customMonthDisplay || e.month || "",
-        ).toUpperCase();
-        return (
-          idLower.includes("_hold") ||
-          idLower.includes("hold") ||
-          display.includes("HOLD")
-        );
-      })
-      .reduce((s, e) => s + e.chi + (e.hold || 0), 0);
-  }, [currentPeriodRows]);
-
-  const cancelPillValue = useMemo(() => {
-    return currentPeriodRows
-      .filter((e) => {
-        const idLower = String(e.id).toLowerCase();
-        const display = String(
-          e.customMonthDisplay || e.month || "",
-        ).toUpperCase();
-        return (
-          idLower.includes("_cancel") ||
-          idLower.includes("cancel") ||
-          display.includes("CANCEL")
-        );
-      })
-      .reduce((s, e) => s + Math.abs(e.chi) + (e.cancel || 0), 0);
-  }, [currentPeriodRows]);
+  const trialBalanceHeaderTotals = useMemo(
+    () => calculateTrialBalanceHeaderTotals(currentPeriodRows),
+    [currentPeriodRows],
+  );
+  const chiPhiLuongTaPillValue = trialBalanceHeaderTotals.payrollCost;
+  const holdPillValue = trialBalanceHeaderTotals.hold;
+  const grandAddPillValue = trialBalanceHeaderTotals.add;
+  const cancelPillValue = trialBalanceHeaderTotals.cancel;
 
   const handleExportExcel = useCallback(() => {
-    if (!data || data.length === 0) {
-      return;
-    }
-
-    const exportRows = data.map((row: any, idx: number) => ({
+    const exportRows = (data || []).map((row: any, idx: number) => ({
       "STT": idx + 1,
       "Tháng": row.month || "",
       "Business": row.bu || "",
@@ -2312,11 +2253,63 @@ export function HoldAddDashboard() {
       "Ghi chú": row.note || "",
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Trial Balance");
-    XLSX.writeFile(wb, `Trial_Balance_${new Date().toISOString().split("T")[0]}.xlsx`);
-  }, [data, rowRCloseBalances]);
+    void downloadHierarchicalWorkbook({
+      title: `BALANCE · ${currentPeriodVal}`,
+      fileName: `Trial_Balance_${new Date().toISOString().split("T")[0]}.xlsx`,
+      pages: [
+        {
+          title: "Trial Balance",
+          children: [
+            {
+              title: "Payroll Trial Balance",
+              sheetName: "Trial Balance",
+              table: {
+                rows: exportRows,
+                cards: [
+                  { label: "Period", value: currentPeriodVal },
+                  {
+                    label: "Payroll Cost",
+                    value: chiPhiLuongTaPillValue,
+                  },
+                  { label: "HOLD", value: holdPillValue },
+                  { label: "ADD", value: grandAddPillValue },
+                  { label: "CANCEL", value: cancelPillValue },
+                  { label: "Business Units", value: countBusinesses(currentPeriodRows) },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    })
+      .then(() =>
+        toast.success("Đã xuất Trial Balance kèm toàn bộ dữ liệu card."),
+      )
+      .catch((error) => {
+        console.error("Trial Balance workbook export failed:", error);
+        toast.error("Không thể xuất workbook Trial Balance.");
+      });
+  }, [
+    cancelPillValue,
+    chiPhiLuongTaPillValue,
+    countBusinesses,
+    currentPeriodRows,
+    currentPeriodVal,
+    data,
+    grandAddPillValue,
+    holdPillValue,
+    rowRCloseBalances,
+  ]);
+
+  useEffect(() => {
+    const handleSectionExport = () => handleExportExcel();
+    window.addEventListener("app-export-section-excel", handleSectionExport);
+    return () =>
+      window.removeEventListener(
+        "app-export-section-excel",
+        handleSectionExport,
+      );
+  }, [handleExportExcel]);
 
   return (
     <div className="trial-balance-frame unified-table-frame h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent w-full" style={{ borderRadius: "0px" }}>
@@ -2605,7 +2598,6 @@ export function HoldAddDashboard() {
                       openBal,
                       psThu,
                       psChi,
-                      closeBal,
                       addAmt,
                       holdAmt,
                       cancelAmt,
@@ -2907,7 +2899,6 @@ export function HoldAddDashboard() {
                               );
                             });
                             
-                            const buBalInfo = buBalancesByMonth[mk]?.[bu];
                             const finalCloseBal = (() => {
                               let adjustedSumChi = 0;
                               buRows.forEach(r => {

@@ -71,6 +71,17 @@ import { PivotSheet } from "../04-balance/PivotSheet";
 import { Table2 } from "lucide-react";
 import { useUiSettings, UI_SETTINGS_KEY } from "../../lib/ui-settings";
 import * as localforage from "localforage";
+import {
+  BANK_TRANSACTION_EXPORT_HEADERS,
+  downloadHierarchicalWorkbook,
+  prepareTransactionBankExportRows,
+} from "../../lib/utils/excel-export";
+import { createMasterExportDefinition } from "../../lib/utils/master-excel-export";
+import { TransactionReferenceCell } from "../../components/TransactionReferenceCell";
+import {
+  getTransactionReferenceField,
+  type TransactionReferenceAuditEntry,
+} from "../../lib/utils/transaction-reference-sync";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -139,6 +150,46 @@ export function MasterAE() {
   } = useMasterAELogic();
 
   const [cameFromBulkPayment, setCameFromBulkPayment] = useState(false);
+
+  const handleOpenTransactionReference = useCallback(
+    (
+      audit: TransactionReferenceAuditEntry,
+      row: Record<string, unknown>,
+    ) => {
+      const sourceSearch = String(
+        audit.transactionId ||
+          row["ID Number"] ||
+          row["Mã AE"] ||
+          audit.newValue ||
+          "",
+      ).trim();
+      const transactionSearch = String(
+        audit.transactionId ||
+          audit.transactionAccount ||
+          audit.transactionName ||
+          "",
+      ).trim();
+      sessionStorage.setItem(
+        "transaction_reference_return",
+        JSON.stringify({
+          targetTable: audit.targetTable,
+          targetLabel:
+            audit.targetTable === "Sheet1_AE" ? "Gross Pay" : "Deductions",
+          sourceSearch,
+          transactionSearch,
+          transactionKey: audit.transactionKey,
+        }),
+      );
+      localStorage.setItem("bulk_payment_right_tab", "table");
+      localStorage.setItem("master_ae_active_tab", "BulkPayment");
+      setSearchTerm(transactionSearch);
+      setShowSearch(true);
+      setCameFromBulkPayment(false);
+      setActiveTab("BulkPayment");
+      toast.info("Đã mở giao dịch tham chiếu trong bảng Transaction.");
+    },
+    [setActiveTab, setSearchTerm, setShowSearch],
+  );
 
   useEffect(() => {
     const handleFilter = (e: any) => {
@@ -766,6 +817,21 @@ export function MasterAE() {
           };
         }
 
+        const transactionReferenceField =
+          activeTab === "Sheet1_AE"
+            ? getTransactionReferenceField(header)
+            : null;
+        if (transactionReferenceField) {
+          renderOption = (value: any, row: any) => (
+            <TransactionReferenceCell
+              value={value}
+              row={row}
+              field={transactionReferenceField}
+              onOpenTransaction={handleOpenTransactionReference}
+            />
+          );
+        }
+
         let label = header;
         if (activeTab === "Mkt_Local_North") {
           const u = header.trim().toUpperCase();
@@ -788,33 +854,23 @@ export function MasterAE() {
             (isChargeAmount || type === "currency" || type === "number"),
         };
       });
-  }, [currentData.headers, currentData.data, activeTab, handleCellChange, appData.globalMonth]);
+  }, [
+    currentData.headers,
+    currentData.data,
+    activeTab,
+    handleCellChange,
+    handleOpenTransactionReference,
+    appData.globalMonth,
+  ]);
 
   const handleExportExcel = useCallback(() => {
     if (currentData.data.length === 0) return;
 
     if (activeTab === "BulkPayment") {
-      const headers = [
-        "Payment Serial Number",
-        "Tháng báo cáo",
-        "Transaction Type Code",
-        "Payment Type",
-        "Customer Reference No",
-        "Beneficiary Account No.",
-        "Beneficiary Name",
-        "Document ID",
-        "Place of Issue",
-        "ID Issuance Date",
-        "Beneficiary Bank Swift Code / IFSC Code",
-        "Transaction Currency",
-        "Payment Amount",
-        "Charge Type",
-        "Payment details",
-        "Beneficiary - Nick Name",
-        "Beneficiary Addr. Line 1",
-        "Beneficiary Addr. Line 2",
-      ];
-      const ws = XLSX.utils.json_to_sheet(appData.BankExport.data, { header: headers });
+      const exportRows = prepareTransactionBankExportRows(appData.BankExport.data);
+      const ws = XLSX.utils.json_to_sheet(exportRows, {
+        header: [...BANK_TRANSACTION_EXPORT_HEADERS],
+      });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Bank Export");
       XLSX.writeFile(
@@ -830,6 +886,17 @@ export function MasterAE() {
     XLSX.writeFile(wb, `Master_AE_${activeTab}.xlsx`);
   }, [currentData.data, activeTab, appData.BankExport.data]);
 
+  const handleExportAllExcel = useCallback(() => {
+    void downloadHierarchicalWorkbook(createMasterExportDefinition(appData))
+      .then(() =>
+        toast.success("Đã xuất toàn bộ 4 trang Master và các bảng phụ."),
+      )
+      .catch((error) => {
+        console.error("Master workbook export failed:", error);
+        toast.error("Không thể xuất workbook Master.");
+      });
+  }, [appData]);
+
   const tableRef = useRef<any>(null);
 
   useEffect(() => {
@@ -841,20 +908,23 @@ export function MasterAE() {
     const handleUploadRequest = () => setView("upload");
     const handleRefreshRequest = () => handleRefreshData();
     const handleExportRequest = () => handleExportExcel();
+    const handleSectionExportRequest = () => handleExportAllExcel();
     const handleClearRequest = () => setShowClearDialog(true);
 
     window.addEventListener("master-ae-request-upload", handleUploadRequest);
     window.addEventListener("master-ae-request-refresh", handleRefreshRequest);
     window.addEventListener("master-ae-request-export", handleExportRequest);
+    window.addEventListener("app-export-section-excel", handleSectionExportRequest);
     window.addEventListener("master-ae-request-clear", handleClearRequest);
 
     return () => {
       window.removeEventListener("master-ae-request-upload", handleUploadRequest);
       window.removeEventListener("master-ae-request-refresh", handleRefreshRequest);
       window.removeEventListener("master-ae-request-export", handleExportRequest);
+      window.removeEventListener("app-export-section-excel", handleSectionExportRequest);
       window.removeEventListener("master-ae-request-clear", handleClearRequest);
     };
-  }, [setActiveTab, handleRefreshData, handleExportExcel]);
+  }, [setActiveTab, handleRefreshData, handleExportExcel, handleExportAllExcel]);
 
   return (
     <div className="page-master-ae flex-1 flex flex-col min-h-0 relative overflow-hidden bg-transparent">
@@ -885,6 +955,10 @@ export function MasterAE() {
                       searchTerm={searchTerm}
                       onSearchTermChange={setSearchTerm}
                       onTabChange={(target) => {
+                        if (target === "upload") {
+                          setView("upload");
+                          return;
+                        }
                         setActiveTab(target);
                         localStorage.setItem("master_ae_active_tab", target);
                         window.dispatchEvent(new CustomEvent("master-ae-tab-changed", { detail: { tab: target } }));
@@ -913,6 +987,7 @@ export function MasterAE() {
                             setCameFromBulkPayment(false);
                             window.dispatchEvent(new CustomEvent("bulk-payment-set-right-tab", { detail: { tab: "reconcile" } }));
                           }}
+                          onOpenTransactionReference={handleOpenTransactionReference}
                         />
                       ) : currentData.data.length === 0 ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-primary/10 p-12 relative z-10">

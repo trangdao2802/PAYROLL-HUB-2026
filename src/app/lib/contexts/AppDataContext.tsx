@@ -19,6 +19,7 @@ import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
 import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
 import { reconcileHoldTransactionRows } from "../utils/hold-carryover";
+import { hasRequiredDeductionsFields } from "../utils/deductions-row-validation";
 
 // Configure localforage
 localforage.config({
@@ -366,7 +367,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             if (Array.isArray(saved.Hold_AE.data)) {
               saved.Hold_AE = {
                 ...saved.Hold_AE,
-                data: reconcileHoldTransactionRows(saved.Hold_AE.data),
+                data: reconcileHoldTransactionRows(
+                  saved.Hold_AE.data.filter(hasRequiredDeductionsFields),
+                ),
               };
             }
           }
@@ -735,7 +738,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       if (acc) accToSheet1[acc] = biz;
     });
 
-    const holdRows = (Hold_AE?.data || []).filter(Boolean);
+    const holdRows = (Hold_AE?.data || []).filter(
+      hasRequiredDeductionsFields,
+    );
     holdRows.forEach((row, index) => {
       if (!row) return;
       const id = formatIdNumber(row["ID Number"]);

@@ -37,7 +37,6 @@ import {
   getVal,
   isAuditInClassType,
   formatIdNumber,
-  prepareDataForExport,
   normalizeDateFilterValue,
 } from "../../lib/utils/data-utils";
 import { parseMr07SessionDate } from "../../lib/utils/mr07-date-utils";
@@ -64,7 +63,7 @@ import {
 } from "../../components/TableInitialMark";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import * as XLSX from "xlsx";
+import { downloadHierarchicalWorkbook } from "../../lib/utils/excel-export";
 import {
   evaluateAllowedTAs,
   sanitizeAllowedTaRules,
@@ -1349,12 +1348,7 @@ export function Audit() {
     }));
   }, [handleDetailRowClick, taGroupLabel]);
 
-  const handleExportExcel = () => {
-    if (!auditResults.results || auditResults.results.length === 0) {
-      toast.error("Không có dữ liệu để xuất!");
-      return;
-    }
-
+  const handleExportExcel = useCallback(() => {
     // Main Report Export
     const exportData = mainData.map((row: any) => ({
       "BU": row.bu || "",
@@ -1385,14 +1379,111 @@ export function Audit() {
       "Trạng Thái Lớp": row.variance,
     }));
 
-    const wb = XLSX.utils.book_new();
-    const ws1 = XLSX.utils.json_to_sheet(prepareDataForExport(exportData));
-    const ws2 = XLSX.utils.json_to_sheet(prepareDataForExport(exportDetails));
+    const exportRules = allowedTaRules.map((rule, index) => ({
+      "No.": index + 1,
+      "Class Name Contains": rule.classNameContains,
+      "Student Condition": rule.studentCondition,
+      "Allowed Interns": rule.result,
+    }));
+    const dateStamp = new Date().toISOString().slice(0, 10);
 
-    XLSX.utils.book_append_sheet(wb, ws1, "Báo_Cáo_Tong_Hop");
-    XLSX.utils.book_append_sheet(wb, ws2, "Chi_Tiet_Đoi_Soat");
-    XLSX.writeFile(wb, `Audit_Report.xlsx`);
-  };
+    void downloadHierarchicalWorkbook({
+      title: "AUDIT",
+      fileName: `Payroll_Hub_Audit_${dateStamp}.xlsx`,
+      pages: [
+        {
+          title: "Audit Overview",
+          children: [
+            {
+              title: "Class Capacity Overview",
+              sheetName: "Audit Overview",
+              table: {
+                rows: exportData,
+                cards: [
+                  { label: "Classes", value: exportData.length },
+                  {
+                    label: "Review Required",
+                    value: reviewRequiredOverviewData.length,
+                  },
+                  { label: "Teacher Source", value: fileNameA || "Chưa có" },
+                  {
+                    label: "Timesheet Roster Source",
+                    value: appData.Timesheet_RosterFileName || "Chưa có",
+                  },
+                  {
+                    label: "Class Hour Source",
+                    value: fileNameConfig || "Chưa có",
+                  },
+                  { label: "Teacher Date Range", value: teacherDateRange || "" },
+                  { label: "Common Date Range", value: commonDateRange || "" },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          title: "Audit Discrepancy Details",
+          children: [
+            {
+              title: "Class Capacity Discrepancy Details",
+              sheetName: "Audit Details",
+              table: {
+                rows: exportDetails,
+                cards: [
+                  { label: "Detail Rows", value: exportDetails.length },
+                  {
+                    label: "Filtered Rows",
+                    value: tableFilteredCount ?? exportDetails.length,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          title: "Allowed Intern Rules",
+          children: [
+            {
+              title: "Allowed Intern Rules Table",
+              sheetName: "Allowed Intern Rules",
+              table: {
+                rows: exportRules,
+                cards: [{ label: "Rules", value: exportRules.length }],
+              },
+            },
+          ],
+        },
+      ],
+    })
+      .then(() =>
+        toast.success("Đã xuất toàn bộ 3 trang Audit và dữ liệu card."),
+      )
+      .catch((error) => {
+        console.error("Audit workbook export failed:", error);
+        toast.error("Không thể xuất workbook Audit.");
+      });
+  }, [
+    allowedTaRules,
+    appData.Timesheet_RosterFileName,
+    commonDateRange,
+    detailData,
+    fileNameA,
+    fileNameConfig,
+    mainData,
+    reviewRequiredOverviewData.length,
+    tableFilteredCount,
+    teacherDateRange,
+  ]);
+
+  useEffect(() => {
+    const handleSectionExport = () => handleExportExcel();
+    window.addEventListener("app-export-section-excel", handleSectionExport);
+    return () =>
+      window.removeEventListener(
+        "app-export-section-excel",
+        handleSectionExport,
+      );
+  }, [handleExportExcel]);
 
   return (
     <motion.div

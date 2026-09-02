@@ -55,6 +55,7 @@ import {
   reconcileHoldTransactionRows,
 } from "../../lib/utils/hold-carryover";
 import { resolveDeductionsSheetSource } from "../../lib/utils/deductions-sheet-source";
+import { hasRequiredDeductionsFields } from "../../lib/utils/deductions-row-validation";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
@@ -2094,16 +2095,17 @@ export function AEDataConfig({
         const hasAcc = r["Bank Account Number"] && String(r["Bank Account Number"]).trim() !== "";
         return tp !== 0 || hasAcc;
       });
-      const verifiedHoldData = finalHoldData;
-
       // Cập nhật map BU, L07 từ Sheet 1 cho Hold Data
-      verifiedHoldData.filter(Boolean).forEach((row) => {
+      finalHoldData.filter(Boolean).forEach((row) => {
         const id = row["ID Number"];
         if (id && sheet1Map[id] && sheet1Map[id].length > 0) {
           row["L07"] = row["L07"] || sheet1Map[id][0]["L07"];
           row["BU"] = row["BU"] || sheet1Map[id][0]["Business"] || sheet1Map[id][0]["BU"];
         }
       });
+      const verifiedHoldData = finalHoldData.filter(
+        hasRequiredDeductionsFields,
+      );
 
       updateAppData((prev) => {
         const currentMonth = prev.globalMonth || "03.2026";
@@ -2161,7 +2163,7 @@ export function AEDataConfig({
           return incomingTime >= existingTime ? incoming : existing;
         };
 
-        existingHoldData.forEach((row) => {
+        existingHoldData.filter(hasRequiredDeductionsFields).forEach((row) => {
           const key = holdKeyFn(row);
           row.id = row.id || generateUUID();
           row._recordId = row._recordId || key;

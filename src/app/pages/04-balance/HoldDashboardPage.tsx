@@ -13,6 +13,7 @@ export function HoldDashboardPage(): React.ReactElement {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.14, ease: "easeOut" }}
           className="absolute inset-0 flex flex-col min-h-0 bg-transparent items-center overflow-hidden"
+          style={{ padding: "12px" }}
         >
           <HoldAddDashboard />
         </motion.div>

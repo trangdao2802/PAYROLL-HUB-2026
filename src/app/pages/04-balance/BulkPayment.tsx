@@ -28,6 +28,7 @@ import {
   Menu,
   Filter,
   Check,
+  ArrowLeft,
   ArrowRight,
   Coins,
   TrendingDown,
@@ -54,7 +55,6 @@ import {
   parseMoneyToNumber,
   getHoldRowAmount,
   formatMoneyVND,
-  removeVietnameseTones,
   formatIdNumber,
 } from "../../lib/utils/data-utils";
 import {
@@ -103,6 +103,11 @@ import { DataTable } from "../../components/DataTable";
 import { BulkPaymentAnalytics } from "./components/BulkPaymentAnalytics";
 import { buildBulkPaymentAnalytics } from "../../lib/utils/bulk-payment-analytics";
 import { markTransactionSaved } from "../../lib/utils/transaction-activity";
+import {
+  applyTransactionReferenceSync,
+  buildTransactionReferenceSyncPlan,
+  type TransactionReferenceCorrection,
+} from "../../lib/utils/transaction-reference-sync";
 import { motion, AnimatePresence } from "motion/react";
 import {
   DropdownMenu,
@@ -165,6 +170,28 @@ function PayrollBowIcon({ className = "" }: { className?: string }) {
 }
 
 const ALL_ANALYS_BUSINESS_UNITS = "__ALL_BUSINESS_UNITS__";
+
+interface TransactionReferenceReturnContext {
+  targetTable: "Sheet1_AE" | "Hold_AE";
+  targetLabel: "Gross Pay" | "Deductions";
+  sourceSearch: string;
+  transactionSearch: string;
+  transactionKey: string;
+}
+
+function readTransactionReferenceReturn(): TransactionReferenceReturnContext | null {
+  try {
+    const raw = sessionStorage.getItem("transaction_reference_return");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as TransactionReferenceReturnContext;
+    if (parsed.targetTable !== "Sheet1_AE" && parsed.targetTable !== "Hold_AE") {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 // Reconcile exposes only comparison and action columns. The internal
 // sheet1Amount and holdAmount fields remain available to calculations, export,
@@ -285,9 +312,14 @@ export function BulkPayment({
   const [activeLeftTab, setActiveLeftTab] = useState<
     "summary" | "adjustments" | "reconcile"
   >("summary");
+  const [transactionReferenceReturn, setTransactionReferenceReturn] =
+    useState<TransactionReferenceReturnContext | null>(() =>
+      readTransactionReferenceReturn(),
+    );
   const [rightPanelTab, setRightPanelTab] = useState<
     "table" | "reconcile" | "visuals"
   >(() => {
+    if (readTransactionReferenceReturn()) return "table";
     const saved = localStorage.getItem("bulk_payment_right_tab");
     return saved === "reconcile" || saved === "table" || saved === "visuals"
       ? saved
@@ -313,6 +345,25 @@ export function BulkPayment({
         handleSetRightTab,
       );
   }, []);
+
+  const handleBackFromTransactionReference = useCallback(() => {
+    if (!transactionReferenceReturn || !onTabChange) return;
+    const context = transactionReferenceReturn;
+    sessionStorage.removeItem("transaction_reference_return");
+    localStorage.setItem("master_ae_active_tab", context.targetTable);
+    localStorage.setItem("master_ae_search", context.sourceSearch);
+    setTransactionReferenceReturn(null);
+    onTabChange(context.targetTable);
+    window.dispatchEvent(
+      new CustomEvent("master-ae-filter", {
+        detail: {
+          search: context.sourceSearch,
+          from: "TransactionReference",
+        },
+      }),
+    );
+    toast.info(`Đã quay lại ${context.targetLabel} tại dòng vừa đồng bộ.`);
+  }, [onTabChange, transactionReferenceReturn]);
   const [reconcileFilterStatus, setReconcileFilterStatus] = useState<
     "ALL" | "MATCHED" | "VARIANCE" | "MISSING_INFO" | "DUPLICATE" | ""
   >("");
@@ -601,80 +652,38 @@ export function BulkPayment({
 
   const handleAutoFillMissingAccount = useCallback(
     (item: any) => {
-      const idToSync = item.grossPlusBenefitsId || item.docId || "";
-      const accToSync = item.benefitsAccountNo || item.accountNo || "";
-
-      if (!accToSync) {
-        toast.error("Không tìm thấy số tài khoản hợp lệ để điền!");
+      if (!item.referenceTransactionKey) {
+        toast.error("Không xác định được giao dịch tham chiếu duy nhất.");
         return;
       }
 
       updateAppData((prev) => {
-        const cleanId = idToSync.toLowerCase();
-
-        const newSheet1 = [...prev.Sheet1_AE.data];
-        let updatedSheet1 = false;
-        const s1Index = newSheet1.findIndex((r) => {
-          const rId = String(r["ID Number"] || r["Mã AE"] || "")
-            .trim()
-            .toLowerCase();
-          return rId && cleanId && rId === cleanId;
+        const transactionRows =
+          prev.BankExport?.data?.length > 0
+            ? prev.BankExport.data
+            : prev.Bank_North_AE?.data || [];
+        const result = applyTransactionReferenceSync({
+          grossRows: prev.Sheet1_AE?.data || [],
+          deductionRows: prev.Hold_AE?.data || [],
+          transactionRows,
+          reportMonth: prev.globalMonth,
+          transactionKeys: [item.referenceTransactionKey],
         });
-        if (s1Index !== -1) {
-          const currentAcc = newSheet1[s1Index]["Bank Account Number"];
-          if (!currentAcc || String(currentAcc).trim() === "") {
-            newSheet1[s1Index] = {
-              ...newSheet1[s1Index],
-              "Bank Account Number": accToSync,
-              "ID Number": idToSync || newSheet1[s1Index]["ID Number"],
-            };
-            updatedSheet1 = true;
-          }
+
+        if (result.correctedCells === 0) {
+          toast.info("Các trường tham chiếu đã khớp Transaction, không cần sửa.");
+          return prev;
         }
 
-        const newHold = [...prev.Hold_AE.data];
-        let updatedHold = false;
-        const hIndex = newHold.findIndex((r) => {
-          const rId = String(r["ID Number"] || r["Mã AE"] || "")
-            .trim()
-            .toLowerCase();
-          return rId && cleanId && rId === cleanId;
-        });
-        if (hIndex !== -1) {
-          const currentAcc = newHold[hIndex]["Bank Account Number"];
-          if (!currentAcc || String(currentAcc).trim() === "") {
-            newHold[hIndex] = {
-              ...newHold[hIndex],
-              "Bank Account Number": accToSync,
-              "ID Number": idToSync || newHold[hIndex]["ID Number"],
-            };
-            updatedHold = true;
-          }
-        }
-
-        if (updatedSheet1 || updatedHold) {
-          toast.success(
-            `Đã đồng bộ STK [${accToSync}] cho ID [${idToSync}] vào ${updatedSheet1 ? "Sheet1" : ""}${updatedSheet1 && updatedHold ? " & " : ""}${updatedHold ? "Hold" : ""} AE!`,
-          );
-        } else {
-          if (s1Index !== -1 || hIndex !== -1) {
-            toast.info(
-              `ID [${idToSync}] đã có số tài khoản trong dữ liệu gốc. Không cần đồng bộ.`,
-            );
-          } else {
-            toast.warning(
-              `Không tìm thấy ID [${idToSync}] trong Sheet1 hoặc Hold AE để cập nhật.`,
-            );
-          }
-        }
+        toast.success(
+          `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
+        );
 
         return {
           ...prev,
-          Sheet1_AE: { ...prev.Sheet1_AE, data: newSheet1 },
-          Hold_AE: { ...prev.Hold_AE, data: newHold },
-          ...(updatedSheet1 || updatedHold
-            ? { TransactionActivity: markTransactionSaved(prev) }
-            : {}),
+          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+          Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
+          TransactionActivity: markTransactionSaved(prev),
         };
       });
     },
@@ -704,8 +713,8 @@ export function BulkPayment({
     appData.BankExport?.data,
     appData.Bank_North_AE?.data,
     appData.Hold_AE?.data,
-    appData.Sheet1_AE?.data,
     appData.globalMonth,
+    appData.Sheet1_AE?.data,
     displayBankExportData.length,
     rightPanelTab,
   ]);
@@ -762,6 +771,12 @@ export function BulkPayment({
         : appData.Bank_North_AE?.data || [];
     const sheet1Rows = appData.Sheet1_AE?.data || [];
     const holdRows = appData.Hold_AE?.data || [];
+    const transactionReferencePlan = buildTransactionReferenceSyncPlan({
+      grossRows: sheet1Rows,
+      deductionRows: holdRows,
+      transactionRows: bankExportRows,
+      reportMonth: appData.globalMonth,
+    });
     const accountById = buildBankAccountIndex([
       { source: "Gross Pay", rows: sheet1Rows },
       { source: "Transaction", rows: appData.BankExport?.data || [] },
@@ -773,11 +788,6 @@ export function BulkPayment({
     const activeHoldRowsList: any[] = [];
     const matchedSheet1Rows = new Set<any>();
     const matchedHoldRows = new Set<any>();
-
-    // Grouping lists of Sheet1 (Gross Pay) rows by ID, Bank Account Number, and Name
-    const sheet1RowsById = new Map<string, any[]>();
-    const sheet1RowsByAcc = new Map<string, any[]>();
-    const sheet1RowsByName = new Map<string, any[]>();
 
     sheet1Rows.forEach((r: any) => {
       const rowMonthStr = String(
@@ -801,46 +811,8 @@ export function BulkPayment({
       if (!id) return; // BỎ QUA NẾU TRỐNG ID NUMBER
 
       activeSheet1RowsList.push(r);
-      const acc = String(
-        r["Bank Account Number"] ||
-          r["Beneficiary Account No."] ||
-          r["STK"] ||
-          r["Số tài khoản"] ||
-          "",
-      )
-        .replace(/\s+/g, "")
-        .trim()
-        .toLowerCase();
-      const name = removeVietnameseTones(
-        r["Full name"] || r["Beneficiary Name"] || "",
-      )
-        .trim()
-        .toUpperCase();
-
-      if (id) {
-        const formattedId = formatIdNumber(id).toLowerCase();
-        if (!sheet1RowsById.has(id)) sheet1RowsById.set(id, []);
-        sheet1RowsById.get(id)!.push(r);
-        if (formattedId && formattedId !== id) {
-          if (!sheet1RowsById.has(formattedId))
-            sheet1RowsById.set(formattedId, []);
-          sheet1RowsById.get(formattedId)!.push(r);
-        }
-      }
-      if (acc) {
-        if (!sheet1RowsByAcc.has(acc)) sheet1RowsByAcc.set(acc, []);
-        sheet1RowsByAcc.get(acc)!.push(r);
-      }
-      if (name) {
-        if (!sheet1RowsByName.has(name)) sheet1RowsByName.set(name, []);
-        sheet1RowsByName.get(name)!.push(r);
-      }
     });
 
-    // Grouping lists of Hold AE rows by ID, Bank Account Number, and Name
-    const holdRowsById = new Map<string, any[]>();
-    const holdRowsByAcc = new Map<string, any[]>();
-    const holdRowsByName = new Map<string, any[]>();
     const holdNetByBU = new Map<string, number>();
 
     holdRows.forEach((r: any) => {
@@ -862,27 +834,6 @@ export function BulkPayment({
       if (r._dimmed) return;
 
       activeHoldRowsList.push(r);
-
-      const id = String(
-        r["ID Number"] || r["Mã AE"] || r["Mã ae"] || r["CCCD"] || "",
-      )
-        .trim()
-        .toLowerCase();
-      const acc = String(
-        r["Bank Account Number"] ||
-          r["Beneficiary Account No."] ||
-          r["STK"] ||
-          r["Số tài khoản"] ||
-          "",
-      )
-        .replace(/\s+/g, "")
-        .trim()
-        .toLowerCase();
-      const name = removeVietnameseTones(
-        r["Full name"] || r["Beneficiary Name"] || "",
-      )
-        .trim()
-        .toUpperCase();
 
       let amount = getHoldRowAmount(r);
 
@@ -947,24 +898,6 @@ export function BulkPayment({
 
       const finalSign = isCancel || isHold ? -1 : 1;
       const signedAmount = finalSign * Math.abs(amount);
-
-      if (id) {
-        const formattedId = formatIdNumber(id).toLowerCase();
-        if (!holdRowsById.has(id)) holdRowsById.set(id, []);
-        holdRowsById.get(id)!.push(r);
-        if (formattedId && formattedId !== id) {
-          if (!holdRowsById.has(formattedId)) holdRowsById.set(formattedId, []);
-          holdRowsById.get(formattedId)!.push(r);
-        }
-      }
-      if (acc) {
-        if (!holdRowsByAcc.has(acc)) holdRowsByAcc.set(acc, []);
-        holdRowsByAcc.get(acc)!.push(r);
-      }
-      if (name) {
-        if (!holdRowsByName.has(name)) holdRowsByName.set(name, []);
-        holdRowsByName.get(name)!.push(r);
-      }
 
       let bu = r["BU"] || r["Business"] || "";
       if (bu) bu = String(bu).trim().toUpperCase();
@@ -1041,6 +974,9 @@ export function BulkPayment({
       benefitsAccountNo: string;
       grossPlusBenefitsId: string;
       targetTabForAccLink: "Sheet1_AE" | "Hold_AE";
+      referenceTransactionKey: string;
+      referenceCorrections: TransactionReferenceCorrection[];
+      referenceSyncReason: string;
     }> = [];
 
     let totalActualSum = 0;
@@ -1050,51 +986,6 @@ export function BulkPayment({
     let missingInfoCount = 0;
     let duplicateCount = 0;
     let notInSheet1Count = 0;
-
-    const findMatchingRows = (
-      byDocIdMap: Map<string, any[]>,
-      byAccMap: Map<string, any[]>,
-      byNameMap: Map<string, any[]>,
-      cDocId: string,
-      cAcc: string,
-      cName: string,
-    ) => {
-      const searchDocId = cDocId;
-      const formattedSearchDocId = formatIdNumber(cDocId).toLowerCase();
-
-      // 1. Match primarily by Document ID / CCCD / ID Number
-      if (searchDocId && byDocIdMap.has(searchDocId)) {
-        const list = byDocIdMap.get(searchDocId) || [];
-        if (list.length > 0) return list;
-      }
-      if (formattedSearchDocId && byDocIdMap.has(formattedSearchDocId)) {
-        const list = byDocIdMap.get(formattedSearchDocId) || [];
-        if (list.length > 0) return list;
-      }
-
-      // 2. Match by Name (Fallback if no ID match)
-      if (cName && byNameMap.has(cName)) {
-        const list = byNameMap.get(cName) || [];
-        const filtered = list.filter((r) => {
-          const rId = String(
-            r["ID Number"] ||
-              r["Mã AE"] ||
-              r["Mã ae"] ||
-              r["Document ID"] ||
-              r["CCCD"] ||
-              "",
-          )
-            .trim()
-            .toLowerCase();
-          // Reject if candidate row has an ID number that conflicts with Bank Export's searchDocId
-          if (searchDocId && rId && rId !== searchDocId) return false;
-          return true;
-        });
-        if (filtered.length > 0) return filtered;
-      }
-
-      return [];
-    };
 
     bankExportRows.forEach((row: any, index: number) => {
       const serialNo = String(row["Payment Serial Number"] || index + 1);
@@ -1137,33 +1028,19 @@ export function BulkPayment({
       totalActualSum += actualAmount;
 
       const cleanDocId = rawDocId.toLowerCase();
-      const cleanAcc = accountNo.replace(/\s+/g, "").toLowerCase();
-      const cleanName = removeVietnameseTones(name).trim().toUpperCase();
-
-      // Priority matching: ID -> Name
-      const matchedSheet1RowsList = findMatchingRows(
-        sheet1RowsById,
-        sheet1RowsByAcc,
-        sheet1RowsByName,
-        cleanDocId,
-        cleanAcc,
-        cleanName,
-      );
-
-      const matchedHoldRowsList = findMatchingRows(
-        holdRowsById,
-        holdRowsByAcc,
-        holdRowsByName,
-        cleanDocId,
-        cleanAcc,
-        cleanName,
-      );
+      const referenceMatch = transactionReferencePlan.byTransactionIndex.get(index);
+      const matchedSheet1RowsList = (referenceMatch?.grossRowIndexes || [])
+        .map((rowIndex) => sheet1Rows[rowIndex])
+        .filter(Boolean);
+      const matchedHoldRowsList = (referenceMatch?.deductionRowIndexes || [])
+        .map((rowIndex) => holdRows[rowIndex])
+        .filter(Boolean);
 
       // Extract true ID Number from matched Sheet1 / Hold row if rawDocId is missing or equal to bank account
       let displayDocId = formatIdNumber(rawDocId);
       const primaryMatchedRow =
         matchedSheet1RowsList[0] || matchedHoldRowsList[0];
-      if (primaryMatchedRow) {
+      if (!displayDocId && primaryMatchedRow) {
         const realIdFromSheet = formatIdNumber(
           primaryMatchedRow["ID Number"] ||
             primaryMatchedRow["Mã AE"] ||
@@ -1183,6 +1060,21 @@ export function BulkPayment({
 
       let sheet1Amount = 0;
       const issues: string[] = [];
+
+      if ((referenceMatch?.corrections.length || 0) > 0) {
+        const fields = Array.from(
+          new Set(
+            referenceMatch!.corrections.map((correction) =>
+              correction.field === "idNumber"
+                ? "ID Number"
+                : correction.field === "fullName"
+                  ? "Full Name"
+                  : "Bank Account Number",
+            ),
+          ),
+        );
+        issues.push(`Cần đồng bộ ${fields.join(", ")} theo Transaction`);
+      }
 
       if (matchedSheet1RowsList.length > 0) {
         matchedSheet1RowsList.forEach((r) => {
@@ -1307,6 +1199,9 @@ export function BulkPayment({
           );
         }
         varianceCount++;
+      } else if ((referenceMatch?.corrections.length || 0) > 0) {
+        status = "MISSING_INFO";
+        missingInfoCount++;
       } else {
         status = "MATCHED";
         matchedCount++;
@@ -1322,9 +1217,9 @@ export function BulkPayment({
         accountById.get(accountLookupId)?.accountNumber ||
         getBankAccount(row);
       const grossPlusBenefitsId = formatIdNumber(
-        primaryMatchedRow?.["ID Number"] ||
+        displayDocId ||
+          primaryMatchedRow?.["ID Number"] ||
           primaryMatchedRow?.["Mã AE"] ||
-          displayDocId ||
           "",
       );
 
@@ -1354,7 +1249,12 @@ export function BulkPayment({
 
       let targetTabForAccLink: "Sheet1_AE" | "Hold_AE" = "Sheet1_AE";
 
-      if (s1AccIsRight) {
+      const firstReferenceCorrection = referenceMatch?.corrections[0];
+      if (firstReferenceCorrection) {
+        targetTabForAccLink = firstReferenceCorrection.table;
+      }
+
+      if (!firstReferenceCorrection && s1AccIsRight) {
         // Sheet 1 AE có ID Number và Bank Acc No giống với bảng Transaction rồi -> Bỏ qua
         if (holdAccIsRight) {
           // Nếu cả 2 bảng đều đúng thì mặc định đến bảng Sheet 1 AE
@@ -1363,7 +1263,7 @@ export function BulkPayment({
           // Đi đến bảng Hold AE để tìm xem có khác giá trị về Bank Acc No hay chưa có -> Đến Hold AE lọc ID Number
           targetTabForAccLink = "Hold_AE";
         }
-      } else {
+      } else if (!firstReferenceCorrection) {
         // Sheet 1 AE chưa đúng hoặc chưa có
         if (holdAccIsRight) {
           // Hold AE đúng nhưng Sheet 1 AE chưa đúng -> đến Sheet 1 AE
@@ -1397,6 +1297,9 @@ export function BulkPayment({
         benefitsAccountNo,
         grossPlusBenefitsId,
         targetTabForAccLink,
+        referenceTransactionKey: referenceMatch?.transactionKey || "",
+        referenceCorrections: referenceMatch?.corrections || [],
+        referenceSyncReason: referenceMatch?.reason || "unmatched",
       });
     });
 
@@ -1698,6 +1601,7 @@ export function BulkPayment({
     appData.Bank_North_AE?.data,
     appData.Sheet1_AE?.data,
     appData.Hold_AE?.data,
+    appData.globalMonth,
     dynamicReportStats,
     calculationSummary,
     currentMonthNumComp,
@@ -1816,9 +1720,8 @@ export function BulkPayment({
   const handleAutoFillMissingAccountBulk = useCallback(() => {
     const itemsToSync = filteredTransactionAudits.filter(
       (item) =>
-        item.status === "MISSING_INFO" ||
-        item.status === "VARIANCE" ||
-        item.status === "MATCHED",
+        item.referenceTransactionKey &&
+        (item.referenceCorrections?.length || 0) > 0,
     );
 
     if (itemsToSync.length === 0) {
@@ -1827,73 +1730,33 @@ export function BulkPayment({
     }
 
     updateAppData((prev) => {
-      const newSheet1 = [...prev.Sheet1_AE.data];
-      const newHold = [...prev.Hold_AE.data];
-      let syncCount = 0;
-
-      itemsToSync.forEach((item: any) => {
-        const idToSync = item.grossPlusBenefitsId || item.docId || "";
-        const accToSync = item.benefitsAccountNo || item.accountNo || "";
-
-        if (!accToSync || !idToSync) return;
-        const cleanId = idToSync.toLowerCase();
-
-        let rowUpdated = false;
-
-        const s1Index = newSheet1.findIndex((r) => {
-          const rId = String(r["ID Number"] || r["Mã AE"] || "")
-            .trim()
-            .toLowerCase();
-          return rId && cleanId && rId === cleanId;
-        });
-        if (s1Index !== -1) {
-          const currentAcc = newSheet1[s1Index]["Bank Account Number"];
-          if (!currentAcc || String(currentAcc).trim() === "") {
-            newSheet1[s1Index] = {
-              ...newSheet1[s1Index],
-              "Bank Account Number": accToSync,
-              "ID Number": idToSync || newSheet1[s1Index]["ID Number"],
-            };
-            rowUpdated = true;
-          }
-        }
-
-        const hIndex = newHold.findIndex((r) => {
-          const rId = String(r["ID Number"] || r["Mã AE"] || "")
-            .trim()
-            .toLowerCase();
-          return rId && cleanId && rId === cleanId;
-        });
-        if (hIndex !== -1) {
-          const currentAcc = newHold[hIndex]["Bank Account Number"];
-          if (!currentAcc || String(currentAcc).trim() === "") {
-            newHold[hIndex] = {
-              ...newHold[hIndex],
-              "Bank Account Number": accToSync,
-              "ID Number": idToSync || newHold[hIndex]["ID Number"],
-            };
-            rowUpdated = true;
-          }
-        }
-
-        if (rowUpdated) syncCount++;
+      const transactionRows =
+        prev.BankExport?.data?.length > 0
+          ? prev.BankExport.data
+          : prev.Bank_North_AE?.data || [];
+      const result = applyTransactionReferenceSync({
+        grossRows: prev.Sheet1_AE?.data || [],
+        deductionRows: prev.Hold_AE?.data || [],
+        transactionRows,
+        reportMonth: prev.globalMonth,
+        transactionKeys: itemsToSync.map(
+          (item) => item.referenceTransactionKey,
+        ),
       });
 
-      if (syncCount > 0) {
-        toast.success(`Đã đồng bộ hàng loạt STK cho ${syncCount} bản ghi!`);
-      } else {
-        toast.info(
-          `Các dòng hiện tại đã có STK hoặc không đủ thông tin để đồng bộ.`,
-        );
+      if (result.correctedCells === 0) {
+        toast.info("Các trường tham chiếu hiện tại đã khớp Transaction.");
+        return prev;
       }
+      toast.success(
+        `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
+      );
 
       return {
         ...prev,
-        Sheet1_AE: { ...prev.Sheet1_AE, data: newSheet1 },
-        Hold_AE: { ...prev.Hold_AE, data: newHold },
-        ...(syncCount > 0
-          ? { TransactionActivity: markTransactionSaved(prev) }
-          : {}),
+        Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+        Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
+        TransactionActivity: markTransactionSaved(prev),
       };
     });
   }, [filteredTransactionAudits, updateAppData]);
@@ -2050,24 +1913,9 @@ export function BulkPayment({
 
       return {
         key: header,
-        label: header,
+        label: isDocumentIdCol ? "ID NUMBER" : header,
         type,
         align: type === "currency" ? ("right" as const) : ("left" as const),
-        render: isDocumentIdCol
-          ? (val: any, row: any) => {
-              if (val && !row._virtual_docId) {
-                row._virtual_docId = val;
-              }
-              return (
-                <span
-                  className="text-slate-300 italic select-none"
-                  title="Để trống trên form ngân hàng (lưu ảo ẩn)"
-                >
-                  -
-                </span>
-              );
-            }
-          : undefined,
       };
     });
   }, [appData.BankExport?.headers, displayBankExportData]);
@@ -2711,11 +2559,11 @@ export function BulkPayment({
 
                     const describeAdjustment = (rawKey) => {
                       const cleanKey = String(rawKey || "")
-                        .replace(/[\[\]]/g, "")
+                        .replace(/[[\]]/g, "")
                         .trim()
                         .toUpperCase();
                       const match = cleanKey.match(
-                        /^([A-Z]+)(?:_T?(\d{1,2})[.\/-](\d{2,4}))?$/,
+                        /^([A-Z]+)(?:_T?(\d{1,2})[./-](\d{2,4}))?$/,
                       );
                       const type = match?.[1] || cleanKey;
                       const month = match?.[2]?.padStart(2, "0");
@@ -3255,6 +3103,18 @@ export function BulkPayment({
               </p>
             </div>
 
+            {rightPanelTab === "table" && transactionReferenceReturn && (
+              <button
+                type="button"
+                onClick={handleBackFromTransactionReference}
+                className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 text-[10px] font-bold uppercase tracking-wider text-indigo-700 shadow-3xs transition-colors hover:bg-indigo-100"
+                title={`Quay lại ${transactionReferenceReturn.targetLabel}`}
+              >
+                <ArrowLeft className="h-3 w-3" />
+                Về {transactionReferenceReturn.targetLabel}
+              </button>
+            )}
+
             {/* General Summary Stats - Compacted */}
             {displayBankExportData.length > 0 && rightPanelTab === "table" && (
               <div
@@ -3565,7 +3425,7 @@ export function BulkPayment({
                         },
                         {
                           id: "MISSING_INFO",
-                          label: `🔴 Thiếu STK/ID (${reconciliationAudit.missingInfoCount})`,
+                          label: `🔴 Sai/thiếu thông tin (${reconciliationAudit.missingInfoCount})`,
                         },
                         {
                           id: "DUPLICATE",
@@ -3730,12 +3590,13 @@ export function BulkPayment({
                               item.accountNo === item.benefitsAccountNo;
                             const canSync =
                               !isUnmatched &&
-                              !isMatched &&
-                              !isAlreadySynced &&
-                              (item.status === "MISSING_INFO" ||
-                                item.status === "VARIANCE" ||
-                                !item.accountNo ||
-                                !item.benefitsAccountNo);
+                              ((item.referenceCorrections?.length || 0) > 0 ||
+                                (!isMatched &&
+                                  !isAlreadySynced &&
+                                  (item.status === "MISSING_INFO" ||
+                                    item.status === "VARIANCE" ||
+                                    !item.accountNo ||
+                                    !item.benefitsAccountNo)));
                             const totalTargetBankAcc =
                               item.sheet1Amount + item.holdAmount;
 
@@ -3916,7 +3777,7 @@ export function BulkPayment({
                                         handleAutoFillMissingAccount(item)
                                       }
                                       className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition-all text-[10px] cursor-pointer shadow-xs flex items-center gap-1 mx-auto active:scale-95"
-                                      title="Tự động điền STK & ID vào bảng đích"
+                                      title="Đồng bộ ID Number, Full Name và Bank Account Number theo Transaction"
                                     >
                                       <Zap className="w-3 h-3 fill-current shrink-0" />
                                       <span>Đồng bộ</span>
@@ -3947,7 +3808,7 @@ export function BulkPayment({
                                         : item.status === "VARIANCE"
                                           ? "CHÊNH LỆCH"
                                           : item.status === "MISSING_INFO"
-                                            ? "THIẾU STK"
+                                            ? "SAI/THIẾU THÔNG TIN"
                                             : item.status === "DUPLICATE"
                                               ? "TRÙNG ID"
                                               : "KHÔNG CÓ TRONG SHEET1"}

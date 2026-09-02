@@ -15,6 +15,10 @@ import {
   markTransactionSaved,
 } from "../lib/utils/transaction-activity";
 import { calculateReconciliationTotals } from "../lib/utils/reconciliation-sync";
+import {
+  BANK_TRANSACTION_EXPORT_HEADERS,
+  prepareTransactionBankExportRows,
+} from "../lib/utils/excel-export";
 
 // ==========================================
 // PURE UTILITY & LOGIC HELPER FUNCTIONS
@@ -1224,28 +1228,12 @@ export function useBulkPaymentLogic() {
   const handleExportExcel = useCallback(() => {
     if (appData.BankExport.data.length === 0) return;
 
-    const headers = [
-      "Payment Serial Number",
-      "Tháng báo cáo",
-      "Transaction Type Code",
-      "Payment Type",
-      "Customer Reference No",
-      "Beneficiary Account No.",
-      "Beneficiary Name",
-      "Document ID",
-      "Place of Issue",
-      "ID Issuance Date",
-      "Beneficiary Bank Swift Code / IFSC Code",
-      "Transaction Currency",
-      "Payment Amount",
-      "Charge Type",
-      "Payment details",
-      "Beneficiary - Nick Name",
-      "Beneficiary Addr. Line 1",
-      "Beneficiary Addr. Line 2",
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(appData.BankExport.data, { header: headers });
+    // ID Number/Document ID remains available in the Transaction UI for
+    // reconciliation, but the bank import form requires that column blank.
+    const exportRows = prepareTransactionBankExportRows(appData.BankExport.data);
+    const ws = XLSX.utils.json_to_sheet(exportRows, {
+      header: [...BANK_TRANSACTION_EXPORT_HEADERS],
+    });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Bank Export");
     XLSX.writeFile(
