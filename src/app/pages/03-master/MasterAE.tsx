@@ -1185,7 +1185,13 @@ export function MasterAE() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-0 flex flex-col"
+            className="absolute inset-0 flex w-full flex-col p-0"
+            style={{
+              paddingLeft: "18px",
+              paddingRight: "12px",
+              paddingTop: "12px",
+              paddingBottom: "12px",
+            }}
           >
             <AEDataConfig onSwitchToFinal={() => { setActiveTab("Sheet1_AE"); setView("list"); }} />
           </motion.div>

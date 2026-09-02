@@ -38,6 +38,15 @@ test("Timesheet upload settings keeps its requested top and left inset", () => {
   );
 });
 
+test("Master upload settings keeps a 12px inset with an 18px left gutter", () => {
+  const master = readSource("src/app/pages/03-master/MasterAE.tsx");
+
+  assert.match(
+    master,
+    /key="upload"[\s\S]*?paddingLeft:\s*"18px"[\s\S]*?paddingRight:\s*"12px"[\s\S]*?paddingTop:\s*"12px"[\s\S]*?paddingBottom:\s*"12px"/,
+  );
+});
+
 test("mobile navigation remains available when desktop navigation is hidden", () => {
   const navbar = readSource("src/app/components/layouts/Navbar.tsx");
 
