@@ -237,6 +237,7 @@ export function Audit() {
     const savedTab = sessionStorage.getItem("audit_active_tab");
     return savedTab === "detail" || savedTab === "rules" ? savedTab : "main";
   });
+  const [showAuditOverviewBackButton, setShowAuditOverviewBackButton] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [clearScope, setClearScope] = useState<"table" | "page">("table");
   const [searchTerm, setSearchTerm] = useState("");
@@ -262,6 +263,8 @@ export function Audit() {
   useEffect(() => {
     const handleRequestTabChange = (e: any) => {
       if (e.detail && e.detail.tab) {
+        // Navbar/direct tab navigation has no Overview history to return to.
+        setShowAuditOverviewBackButton(false);
         setActiveTab(e.detail.tab as any);
       }
     };
@@ -299,6 +302,7 @@ export function Audit() {
       startTransition(() => {
         setSearchTerm(row.className);
         setDetailManualFilter(row.className);
+        setShowAuditOverviewBackButton(true);
         setActiveTab("detail");
         setIsConfigHidden(true);
       });
@@ -598,6 +602,7 @@ export function Audit() {
   useEffect(() => {
     if (location.state?.activeTab) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowAuditOverviewBackButton(false);
       setActiveTab(location.state.activeTab);
       if (location.state.activeTab === "detail") {
         setIsConfigHidden(true);
@@ -695,6 +700,7 @@ export function Audit() {
             e.stopPropagation();
             startTransition(() => {
               setDetailManualFilter(val);
+              setShowAuditOverviewBackButton(true);
               setActiveTab("detail");
               setIsConfigHidden(true);
             });
@@ -717,6 +723,7 @@ export function Audit() {
             e.stopPropagation();
             startTransition(() => {
               setDetailManualFilter(val);
+              setShowAuditOverviewBackButton(true);
               setActiveTab("detail");
               setIsConfigHidden(true);
             });
@@ -829,6 +836,7 @@ export function Audit() {
               e.stopPropagation();
               startTransition(() => {
                 setDetailManualFilter(row.className || row.displayCenter);
+                setShowAuditOverviewBackButton(true);
                 setActiveTab("detail");
                 setIsConfigHidden(true);
               });
@@ -864,6 +872,7 @@ export function Audit() {
 
   const handleBackToAuditOverview = useCallback(() => {
     startTransition(() => {
+      setShowAuditOverviewBackButton(false);
       setActiveTab("main");
       setSearchTerm("");
       setDetailManualFilter("");
@@ -1543,7 +1552,7 @@ export function Audit() {
             style={{ borderColor: "#cbd5e1", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
           >
             <div className="flex min-w-0 items-center gap-2">
-              {activeTab === "detail" && (
+              {activeTab === "detail" && showAuditOverviewBackButton && (
                 <button
                   type="button"
                   onClick={handleBackToAuditOverview}
@@ -1716,7 +1725,10 @@ export function Audit() {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTab("rules")}
+                    onClick={() => {
+                      setShowAuditOverviewBackButton(false);
+                      setActiveTab("rules");
+                    }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   >
                     <ListOrdered className="w-4 h-4 text-primary" />
