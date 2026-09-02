@@ -1956,16 +1956,13 @@ body, #root, .bg-background {
   box-sizing: border-box !important;
 }
 
-/* Focus Mode Adjustment */
-div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-left: 12px !important;
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
-  padding-right: 12px !important;
-}
-
-div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-top: 12px !important;
+/* Every routed page keeps its table frame safely inside the viewport. The
+   semantic selector remains stable when navigation siblings change. */
+main > div.min-h-0 > div.min-h-0 {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 12px !important;
 }
 
 /* Compact Grand Total Row & Table Headers Styling */
@@ -3378,6 +3375,17 @@ body {
 
 .data-table-row--dimmed > td > * {
   opacity: 0.35;
+}
+
+/* A multi-month HOLD source without a usable salary-month Note is an input
+   exception. Keep the original values visible, flag the entire row softly,
+   and preserve the normal opaque table grid. */
+.data-table-row--needs-source-note > td {
+  background-color: color-mix(
+    in srgb,
+    #fecdd3 42%,
+    var(--card, #fff)
+  ) !important;
 }
 
 @media (min-width: 1600px) {

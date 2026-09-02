@@ -52,6 +52,10 @@ import {
   removeSelectedHoldSourceRows,
 } from "../../../lib/utils/hold-carryover";
 import { calculateReconciliationTotals } from "../../../lib/utils/reconciliation-sync";
+import {
+  resolveDeductionsSheetSource,
+  sortMissingDeductionsSourceNotesFirst,
+} from "../../../lib/utils/deductions-sheet-source";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -176,9 +180,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         const rowLimit = parseToMonthIndex(rowMonth);
         return rowLimit === currentLimit;
       }).map((row: any) => {
+        const sourceResolution = resolveDeductionsSheetSource(
+          row["Sheet Source"],
+          row.Note,
+        );
         const normalizedRow = {
           ...row,
           "ID Number": formatIdNumber(row["ID Number"]),
+          "Sheet Source": sourceResolution.sheetSource,
+          _needsSheetSourceNote: sourceResolution.needsSourceMonthNote,
         };
 
         // The operation controls the sign in every report month. A carried
@@ -199,7 +209,12 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         return normalizedRow;
       });
 
-      return { ...raw, data: mergeDuplicateHoldRows(normalizedRows) };
+      return {
+        ...raw,
+        data: sortMissingDeductionsSourceNotesFirst(
+          mergeDuplicateHoldRows(normalizedRows),
+        ),
+      };
     }, [appData.Hold_AE, appData.globalMonth, parseToMonthIndex]);
 
     const [tableSummaryState, setTableSummaryState] = React.useState<{

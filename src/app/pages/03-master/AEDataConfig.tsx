@@ -54,6 +54,7 @@ import {
   mergeDuplicateHoldRows,
   reconcileHoldTransactionRows,
 } from "../../lib/utils/hold-carryover";
+import { resolveDeductionsSheetSource } from "../../lib/utils/deductions-sheet-source";
 import MasterImportWorker from "../../workers/masterImport.worker?worker";
 import type { MasterWorkbookPayload } from "../../workers/masterImport.worker";
 import { clearMasterPageData } from "../../lib/utils/data-clear-scopes";
@@ -1280,13 +1281,17 @@ export function AEDataConfig({
                   }
                 }
 
-                const getRowShouldNegate = (_noteValue: string) => {
-                  void _noteValue;
+                const getRowShouldNegate = (noteValue: string) => {
                   let rowShouldNegate = false;
-                  const sheetSource = sheetName;
+                  const sourceResolution = resolveDeductionsSheetSource(
+                    sheetName,
+                    noteValue,
+                  );
+                  const sheetSource = sourceResolution.sheetSource;
                   
-                  // Determine negation ONLY from the sheetName itself, never from the adjacent Note column.
-                  // The Note column has absolutely zero impact on the Sheet Source or whether the Total Payment is negated.
+                  // Keep the existing amount/sign rule tied to the original
+                  // sheet name. Note only resolves the displayed source month
+                  // when a HOLD sheet combines multiple months.
                   if (isHoldSheet && fileMonthNum !== -1) {
                     const ssMatch = normalizedSheetName.match(
                       /(?:T|THANG|HOLD T|HOLD THANG|HOLD)\s*(\d{1,2})/,
@@ -1305,7 +1310,12 @@ export function AEDataConfig({
                       }
                     }
                   }
-                  return { rowShouldNegate, sheetSource };
+                  return {
+                    rowShouldNegate,
+                    sheetSource,
+                    needsSheetSourceNote:
+                      sourceResolution.needsSourceMonthNote,
+                  };
                 };
 
                 if (headerRowIndex !== -1) {
@@ -1431,7 +1441,11 @@ export function AEDataConfig({
                         ? String(row[iNghiepVu]).trim()
                         : "";
 
-                    const { rowShouldNegate, sheetSource } = getRowShouldNegate(note);
+                    const {
+                      rowShouldNegate,
+                      sheetSource,
+                      needsSheetSourceNote,
+                    } = getRowShouldNegate(note);
 
                     let numTP = parseMoneyToNumber(rawTP);
                     if (rowShouldNegate) {
@@ -1455,6 +1469,7 @@ export function AEDataConfig({
                       "TOTAL PAYMENT": numTP,
                       "Mã ae": centerNote,
                       "Sheet Source": sheetSource,
+                      _needsSheetSourceNote: needsSheetSourceNote,
                       "Nghiệp vụ": sheetSource.toUpperCase().includes("ADD") ? "ADD" : "Hold",
                       Note: note,
                       "TÊN FILE": item.name || "",
@@ -1516,7 +1531,11 @@ export function AEDataConfig({
                     const centerNote = String(row[7] || "").trim();
                     const note = String(row[8] || "").trim();
 
-                    const { rowShouldNegate, sheetSource } = getRowShouldNegate(note);
+                    const {
+                      rowShouldNegate,
+                      sheetSource,
+                      needsSheetSourceNote,
+                    } = getRowShouldNegate(note);
                     const nghiepVu = sheetSource.toUpperCase().includes("ADD") ? "ADD" : "Hold";
 
                     const rawTP = row[6] !== undefined ? row[6] : "";
@@ -1546,6 +1565,7 @@ export function AEDataConfig({
                       "TOTAL PAYMENT": numTP,
                       "Mã ae": centerNote,
                       "Sheet Source": sheetSource,
+                      _needsSheetSourceNote: needsSheetSourceNote,
                       "Nghiệp vụ": nghiepVu,
                       Note: note,
                       "TÊN FILE": item.name || "",

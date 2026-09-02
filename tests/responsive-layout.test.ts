@@ -18,6 +18,15 @@ test("document and application shell use the device viewport safely", () => {
   assert.match(styles, /-webkit-text-size-adjust: 100%/);
 });
 
+test("every routed page keeps a 12px inset from the viewport edges", () => {
+  const styles = readSource("src/index.css");
+
+  assert.match(
+    styles,
+    /main\s*>\s*div\.min-h-0\s*>\s*div\.min-h-0\s*\{[\s\S]*?padding:\s*12px\s*!important/,
+  );
+});
+
 test("mobile navigation remains available when desktop navigation is hidden", () => {
   const navbar = readSource("src/app/components/layouts/Navbar.tsx");
 
