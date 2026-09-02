@@ -2070,9 +2070,9 @@ export function TimesheetHub() {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="absolute inset-0 flex flex-col p-0 w-full"
             style={{
-              paddingLeft: "12px",
+              paddingLeft: "18px",
               paddingRight: "12px",
-              paddingTop: "0px",
+              paddingTop: "12px",
               paddingBottom: "12px",
             }}
           >

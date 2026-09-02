@@ -26,6 +26,10 @@ import {
   mapL07,
   getCenterInfoByAECode
 } from "../../../lib/utils/center-utils";
+import {
+  getTimesheetSyncDateInfo,
+  type TimesheetSyncDateStatus,
+} from "../../../lib/utils/timesheet-sync-date";
 
 export interface TimesheetInputRow {
   id: string;
@@ -42,99 +46,40 @@ export interface TimesheetInputRow {
   legacyRowIds?: string[];
 }
 
+const syncDateStyles: Record<
+  TimesheetSyncDateStatus,
+  { badgeClass: string; dotClass: string }
+> = {
+  none: {
+    badgeClass: "bg-slate-100 text-slate-500 border-slate-200/80",
+    dotClass: "bg-slate-400",
+  },
+  unknown: {
+    badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
+    dotClass: "bg-slate-400",
+  },
+  fresh: {
+    badgeClass:
+      "bg-emerald-50 text-emerald-700 border-emerald-300/80 font-bold",
+    dotClass: "bg-emerald-500",
+  },
+  recent: {
+    badgeClass: "bg-sky-50 text-sky-700 border-sky-300/80 font-semibold",
+    dotClass: "bg-sky-500",
+  },
+  warning: {
+    badgeClass: "bg-amber-50 text-amber-800 border-amber-300/90 font-bold",
+    dotClass: "bg-amber-500",
+  },
+  outdated: {
+    badgeClass: "bg-rose-50 text-rose-700 border-rose-300/90 font-bold",
+    dotClass: "bg-rose-500",
+  },
+};
+
 function getSyncDateInfo(dateStr?: string) {
-  if (!dateStr || dateStr === "---" || !dateStr.trim()) {
-    return {
-      status: "none",
-      label: "Chưa đồng bộ",
-      badgeClass: "bg-slate-100 text-slate-500 border-slate-200/80",
-      dotClass: "bg-slate-400",
-      isOutdated: false,
-      diffDays: null,
-    };
-  }
-
-  try {
-    let dateObj: Date | null = null;
-    const cleanStr = dateStr.trim();
-
-    // Match DD/MM/YYYY or DD/MM/YYYY, HH:mm
-    const matchVi = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-    if (matchVi) {
-      const day = parseInt(matchVi[1], 10);
-      const month = parseInt(matchVi[2], 10) - 1;
-      const year = parseInt(matchVi[3], 10);
-      const hour = matchVi[4] ? parseInt(matchVi[4], 10) : 0;
-      const min = matchVi[5] ? parseInt(matchVi[5], 10) : 0;
-      dateObj = new Date(year, month, day, hour, min);
-    } else {
-      dateObj = new Date(cleanStr);
-    }
-
-    if (!dateObj || isNaN(dateObj.getTime())) {
-      return {
-        status: "unknown",
-        label: dateStr,
-        badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
-        dotClass: "bg-slate-400",
-        isOutdated: false,
-        diffDays: null,
-      };
-    }
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-    const diffTime = today.getTime() - targetDay.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-
-    if (diffDays <= 0) {
-      return {
-        status: "fresh",
-        label: "Mới (Hôm nay)",
-        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-300/80 font-bold",
-        dotClass: "bg-emerald-500",
-        isOutdated: false,
-        diffDays: 0,
-      };
-    } else if (diffDays === 1) {
-      return {
-        status: "recent",
-        label: "Hôm qua (1 ngày)",
-        badgeClass: "bg-sky-50 text-sky-700 border-sky-300/80 font-semibold",
-        dotClass: "bg-sky-500",
-        isOutdated: false,
-        diffDays: 1,
-      };
-    } else if (diffDays <= 3) {
-      return {
-        status: "warning",
-        label: `${diffDays} ngày trước (Cũ)`,
-        badgeClass: "bg-amber-50 text-amber-800 border-amber-300/90 font-bold",
-        dotClass: "bg-amber-500",
-        isOutdated: true,
-        diffDays,
-      };
-    } else {
-      return {
-        status: "outdated",
-        label: `Cũ (${diffDays} ngày trước)`,
-        badgeClass: "bg-rose-50 text-rose-700 border-rose-300/90 font-bold",
-        dotClass: "bg-rose-500",
-        isOutdated: true,
-        diffDays,
-      };
-    }
-  } catch (e) {
-    return {
-      status: "unknown",
-      label: dateStr,
-      badgeClass: "bg-slate-100 text-slate-600 border-slate-200",
-      dotClass: "bg-slate-400",
-      isOutdated: false,
-      diffDays: null,
-    };
-  }
+  const info = getTimesheetSyncDateInfo(dateStr);
+  return { ...info, ...syncDateStyles[info.status] };
 }
 
 interface TimesheetInputTableProps {
@@ -307,7 +252,7 @@ export function TimesheetInputTable({
             </div>
           </div>
           <div className="text-[10px] text-muted-foreground font-medium hidden sm:block">
-            So sánh ngày upload với hiện tại (Hệ thống tự động ghi đè dữ liệu mới)
+            Google Sheet: ngày cập nhật file nguồn • File tải lên: ngày nạp lên web
           </div>
         </div>
 
@@ -684,8 +629,8 @@ export function TimesheetInputTable({
                               className={`inline-flex items-center gap-1 text-[9.5px] px-2 py-0.5 rounded-full border shadow-2xs ${syncInfo.badgeClass}`}
                               title={
                                 syncInfo.isOutdated
-                                  ? `Cảnh báo: Dữ liệu này được upload ${syncInfo.diffDays} ngày trước, đã cũ so với hiện tại. Hãy nhấn 'Đồng bộ' để tự động cập nhật dữ liệu mới đè lên dữ liệu cũ.`
-                                  : `Đồng bộ gần nhất: ${syncInfo.label}`
+                                  ? `Cảnh báo: Mốc cập nhật nguồn/nạp dữ liệu là ${syncInfo.diffDays} ngày trước. Hãy nhấn 'Đồng bộ' để lấy lại dữ liệu mới nhất.`
+                                  : `Độ mới của nguồn dữ liệu: ${syncInfo.label}`
                               }
                             >
                               {syncInfo.isOutdated ? (

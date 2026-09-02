@@ -37,6 +37,7 @@ import {
 import {
   replaceTimesheetRosterRows,
 } from "../../lib/utils/timesheet-roster-utils";
+import { formatTimesheetSyncDate } from "../../lib/utils/timesheet-sync-date";
 import { 
   generateUUID, 
   prepareDataForExport,
@@ -245,13 +246,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
           const fileObj = new File([blob], name, { type: 'application/json' });
           const modifiedAt = Date.parse(String(f.modifiedTime || f.createdTime || "")) || 0;
           const modifiedDate = modifiedAt ? new Date(modifiedAt) : new Date();
-          const uploadDate = modifiedDate.toLocaleString("vi-VN", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const uploadDate = formatTimesheetSyncDate(modifiedDate);
           const queued = queuedByRowId.get(rowId);
           if (!queued || modifiedAt >= queued.modifiedAt) {
             if (queued) skipCount++;
@@ -707,13 +702,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       const fileDateObj = fileTime ? new Date(fileTime) : new Date();
       const now = new Date();
 
-      const formattedUploadDate = fileDateObj.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      const formattedUploadDate = formatTimesheetSyncDate(fileDateObj);
 
       const isEarlierThanNow = fileDateObj.getTime() <= now.getTime();
 
@@ -791,13 +780,8 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
               },
             );
             
-            const displayDate = customUploadDate || row.date || new Date().toLocaleString("vi-VN", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            });
+            const displayDate =
+              customUploadDate || row.date || formatTimesheetSyncDate(new Date());
 
             const newList = (prev.Timesheet_InputList || []).map(r => 
               r.id === id ? { 
@@ -953,8 +937,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
         }
       });
 
-      const now = new Date();
-      const dateLabel = `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")} ${now.getDate()}/${now.getMonth() + 1}`;
+      const dateLabel = formatTimesheetSyncDate(new Date());
       const nextInputs = updatedInputs.map((input) => {
         const result = statusById.get(input.id);
         if (!result) return input;
@@ -1088,8 +1071,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                   fileName: file.name,
                   url: sourceMetadata?.url || input.url,
                   date:
-                    sourceMetadata?.uploadDate ||
-                    `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")} ${d.getDate()}/${d.getMonth() + 1}`,
+                    sourceMetadata?.uploadDate || formatTimesheetSyncDate(d),
                   legacyRowIds: [],
                 }
               : input

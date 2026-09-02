@@ -27,6 +27,17 @@ test("every routed page keeps a 12px inset from the viewport edges", () => {
   );
 });
 
+test("Timesheet upload settings keeps its requested top and left inset", () => {
+  const timesheetHub = readSource(
+    "src/app/pages/01-timesheet/TimesheetHub.tsx",
+  );
+
+  assert.match(
+    timesheetHub,
+    /key="upload"[\s\S]*?paddingLeft:\s*"18px"[\s\S]*?paddingTop:\s*"12px"/,
+  );
+});
+
 test("mobile navigation remains available when desktop navigation is hidden", () => {
   const navbar = readSource("src/app/components/layouts/Navbar.tsx");
 
