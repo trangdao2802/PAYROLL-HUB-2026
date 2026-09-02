@@ -19,7 +19,10 @@ import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
 import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
 import { reconcileHoldTransactionRows } from "../utils/hold-carryover";
-import { hasRequiredDeductionsFields } from "../utils/deductions-row-validation";
+import {
+  hasRequiredDeductionsFields,
+  selectValidDeductionsRowsWithSourceIndexes,
+} from "../utils/deductions-row-validation";
 
 // Configure localforage
 localforage.config({
@@ -738,8 +741,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       if (acc) accToSheet1[acc] = biz;
     });
 
-    const holdRows = (Hold_AE?.data || []).filter(
-      hasRequiredDeductionsFields,
+    const holdRows = selectValidDeductionsRowsWithSourceIndexes(
+      Hold_AE?.data || [],
     );
     holdRows.forEach((row, index) => {
       if (!row) return;
@@ -822,7 +825,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     // Now construct computed rows with "Tháng báo cáo", "Trạng thái", "Nghiệp vụ"
 
-    const computedData = holdRows.map((row, index) => {
+    const computedData = holdRows.map((row) => {
       if (!row) return null as any;
       const id = formatIdNumber(row["ID Number"]);
       const name = String(row["Full name"] || "").trim();
@@ -953,7 +956,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         ...row,
         "L07": l07,
         "BU": bu,
-        _originalIndex: index,
+        _originalIndex: row._originalIndex,
         _originalTinhTrangThanhToan: row["Tình trạng thanh toán"] !== undefined ? String(row["Tình trạng thanh toán"]) : "",
         "Tháng báo cáo": finalReportingMonthStr,
         "Tháng phát sinh": computedThangPhatSinh,

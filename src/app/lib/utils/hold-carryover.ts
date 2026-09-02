@@ -469,9 +469,9 @@ export function mergeDuplicateHoldRows(
 
 /**
  * Reconciles the full multi-month transaction history. Rows are first merged
- * inside each report month. Once a HOLD is resolved as CANCEL/ADD, any later
- * copies of that exact transaction are removed and therefore cannot be saved
- * or carried again.
+ * inside each report month. Once a HOLD is resolved as CANCEL/ADD, only later
+ * stale HOLD copies of that exact transaction are removed. Resolved ADD and
+ * CANCEL rows remain as report-month history and must stay visible.
  */
 export function reconcileHoldTransactionRows(
   rows: HoldCarryRow[],
@@ -498,12 +498,17 @@ export function reconcileHoldTransactionRows(
 
   return mergedRows.filter((row) => {
     if (!row || !isHoldMergeCandidate(row)) return true;
+    const operation = getHoldOperation(row);
     const reportMonth = getReportMonth(row);
     const identity = getHoldSemanticIdentity(row);
     if (!reportMonth || !identity) return true;
 
     const resolvedMonth = resolvedMonthByIdentity.get(identity);
-    return resolvedMonth === undefined || reportMonth.index <= resolvedMonth;
+    return (
+      operation !== "Hold" ||
+      resolvedMonth === undefined ||
+      reportMonth.index <= resolvedMonth
+    );
   });
 }
 

@@ -1,4 +1,8 @@
-type DeductionsRow = Record<string, unknown>;
+export type DeductionsRow = Record<string, unknown>;
+
+export type IndexedDeductionsRow = DeductionsRow & {
+  _originalIndex: number;
+};
 
 const ID_KEYS = ["ID Number", "ID NUMBER", "id_number"];
 const NAME_KEYS = ["Full name", "Full Name", "FULL NAME"];
@@ -28,4 +32,26 @@ export function hasRequiredDeductionsFields(row: unknown): boolean {
       firstNonEmpty(record, BUSINESS_KEYS) &&
       firstNonEmpty(record, L07_KEYS),
   );
+}
+
+/**
+ * Removes non-transaction rows while retaining the index of every accepted
+ * row in the unfiltered storage collection. Deductions edit/delete actions
+ * use this index to update the canonical row, so it must not be recalculated
+ * after subtotal rows have been filtered out.
+ */
+export function selectValidDeductionsRowsWithSourceIndexes(
+  rows: unknown[],
+): IndexedDeductionsRow[] {
+  const selected: IndexedDeductionsRow[] = [];
+
+  rows.forEach((row, sourceIndex) => {
+    if (!hasRequiredDeductionsFields(row)) return;
+    selected.push({
+      ...(row as DeductionsRow),
+      _originalIndex: sourceIndex,
+    });
+  });
+
+  return selected;
 }

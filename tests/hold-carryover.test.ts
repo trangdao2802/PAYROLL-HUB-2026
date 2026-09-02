@@ -268,3 +268,34 @@ test("a resolved HOLD suppresses a later workbook copy despite source metadata c
     [["02.2026", "Cancel"]],
   );
 });
+
+test("resolved ADD and CANCEL history rows are never discarded as stale HOLD copies", () => {
+  const januaryHold = row("01.2026", "Hold", { id: "jan-hold" });
+  const februaryAdd = row("02.2026", "Add", {
+    id: "feb-add",
+    _holdStatusBeforeSave: "Hold",
+    _holdOperationUpdatedAt: "2026-02-20T00:00:00.000Z",
+  });
+  const marchCancel = row("03.2026", "Cancel", {
+    id: "mar-cancel",
+    _holdStatusBeforeSave: "Hold",
+    _holdOperationUpdatedAt: "2026-03-20T00:00:00.000Z",
+  });
+  const aprilStaleHold = row("04.2026", "Hold", { id: "apr-stale" });
+
+  const reconciled = reconcileHoldTransactionRows([
+    januaryHold,
+    februaryAdd,
+    marchCancel,
+    aprilStaleHold,
+  ]);
+
+  assert.deepEqual(
+    reconciled.map((item) => [item["Tháng báo cáo"], item["Nghiệp vụ"]]),
+    [
+      ["01.2026", "Hold"],
+      ["02.2026", "Add"],
+      ["03.2026", "Cancel"],
+    ],
+  );
+});

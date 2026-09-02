@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { hasRequiredDeductionsFields } from "../src/app/lib/utils/deductions-row-validation";
+import {
+  hasRequiredDeductionsFields,
+  selectValidDeductionsRowsWithSourceIndexes,
+} from "../src/app/lib/utils/deductions-row-validation";
 
 const completeRow = {
   "ID Number": "027307003710",
@@ -42,6 +45,31 @@ test("Deductions validation supports normalized legacy field aliases", () => {
     }),
     true,
   );
+});
+
+test("Deductions keeps each valid row linked to its original storage index", () => {
+  const subtotalRow = {
+    "TOTAL PAYMENT": 3_575_833,
+    "Sheet Source": "Hold T1",
+  };
+  const firstTransaction = { ...completeRow, id: "first" };
+  const secondTransaction = { ...completeRow, id: "second" };
+
+  const selected = selectValidDeductionsRowsWithSourceIndexes([
+    subtotalRow,
+    firstTransaction,
+    null,
+    secondTransaction,
+  ]);
+
+  assert.deepEqual(
+    selected.map((row) => [row.id, row._originalIndex]),
+    [
+      ["first", 1],
+      ["second", 3],
+    ],
+  );
+  assert.equal("_originalIndex" in firstTransaction, false);
 });
 
 test("Master import and hydration both enforce complete Deductions rows", () => {
