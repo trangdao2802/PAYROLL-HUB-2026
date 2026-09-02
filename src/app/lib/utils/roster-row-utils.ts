@@ -2,6 +2,7 @@ import {
   getBusinessFromL07,
   getCenterInfoByAECode,
   getL07FromFileName,
+  resolveMktRosterCenter,
   resolveNorthMktLocalL07,
 } from "./center-utils";
 import { generateUUID, getVal } from "./data-utils";
@@ -51,18 +52,21 @@ export function mapExcelRosterRow(
     `${fileName || ""} ${rawCenter} ${rawChargeToCenter}`,
   );
   const isMktFile = /MKT|MARKETING/i.test(fileName || "");
+  const mktChargeSource = rawChargeToCenter || rawCenter;
+  const resolvedMktCharge = resolveMktRosterCenter(mktChargeSource);
 
   let l07 = centerInfo?.l07 || fileL07 || rawCenter || "UNKNOWN";
   let chargeToCenterMkt = rawChargeToCenter;
 
   if (isMktFile || regionalMktL07) {
     l07 = regionalMktL07 || fileL07 || "MKT LOCAL NORTH";
-    chargeToCenterMkt = rawChargeToCenter || rawCenter;
+    chargeToCenterMkt =
+      resolvedMktCharge.chargeToCenterMkt || mktChargeSource;
   }
 
   const business = getBusinessFromL07(
     (isMktFile || regionalMktL07) && chargeToCenterMkt
-      ? chargeToCenterMkt
+      ? resolvedMktCharge.l07 || chargeToCenterMkt
       : l07,
   );
   const employeeId = String(

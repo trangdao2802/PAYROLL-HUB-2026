@@ -166,6 +166,7 @@ export function getCenterInfoFromFileName(fileName: string): CenterInfo | null {
 }
 
 const LOOKUP_MAP = new Map<string, CenterInfo>();
+const NORTH_MKT_ROSTER_L07_BY_NUMBER = new Map<number, string>();
 
 CENTER_DATA.forEach((info) => {
   const normL07 = normalizeCenterKey(info.l07);
@@ -178,6 +179,14 @@ CENTER_DATA.forEach((info) => {
     const normK = normalizeCenterKey(k);
     if (normK) LOOKUP_MAP.set(normK, info);
   });
+
+  const northMktNumberMatch = info.l07.match(/^HN0*(\d+)\.[A-Z0-9]+$/i);
+  if (northMktNumberMatch) {
+    NORTH_MKT_ROSTER_L07_BY_NUMBER.set(
+      Number(northMktNumberMatch[1]),
+      info.l07,
+    );
+  }
 
   CENTER_MAPPING[info.l07] = { l07: info.l07, aeCode: info.aeCode, bus: info.bus };
 });
@@ -437,9 +446,28 @@ export function getL07FromFileName(fileName: string): string {
   return getCenterInfoFromFileName(fileName)?.l07 || "";
 }
 
+/**
+ * MKT Local North roster files sometimes store only the Hanoi center sequence
+ * from L07 (for example 27 instead of HN0027.OPK). Resolve only a standalone
+ * integer so ordinary center names/codes continue through the normal mapper.
+ */
+export function getNorthMktRosterL07FromNumber(value: string): string {
+  const cleaned = String(value || "").trim();
+  const numericMatch = cleaned.match(/^0*(\d+)(?:[.,]0+)?$/);
+  if (!numericMatch) return "";
+
+  const sequence = Number(numericMatch[1]);
+  if (!Number.isSafeInteger(sequence) || sequence <= 0) return "";
+
+  return NORTH_MKT_ROSTER_L07_BY_NUMBER.get(sequence) || "";
+}
+
 export function getL07FromChargeToCenterMkt(chargeToCenter: string): string {
   if (!chargeToCenter) return "";
   const cleaned = String(chargeToCenter).trim();
+  const numericL07 = getNorthMktRosterL07FromNumber(cleaned);
+  if (numericL07) return numericL07;
+
   const upper = cleaned.toUpperCase();
   if (upper.includes("MKT LOCAL NORTH_HP") || upper.includes("MKT HP")) return "MKT LOCAL NORTH_HP";
   if (upper.includes("MKT LOCAL NORTH_TN") || upper.includes("MKT TN")) return "MKT LOCAL NORTH_TN";
@@ -550,12 +578,13 @@ export function resolveMktRosterCenter(rawChargeToCenter: string): {
     };
   }
 
-  let l07 = "";
-  if (normalized.includes("MKT") || normalized.includes("MARKETING")) {
-    l07 = resolveNorthMktLocalL07(cleaned) || mapL07(cleaned) || cleaned;
-  } else {
-    l07 = mapL07(cleaned) || cleaned;
-  }
+  const l07 =
+    getL07FromChargeToCenterMkt(cleaned) ||
+    (normalized.includes("MKT") || normalized.includes("MARKETING")
+      ? resolveNorthMktLocalL07(cleaned)
+      : "") ||
+    mapL07(cleaned) ||
+    cleaned;
 
   return {
     chargeToCenterMkt: l07,

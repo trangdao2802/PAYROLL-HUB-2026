@@ -47,6 +47,8 @@ function findHeaderRow(rows: any[][]) {
         value.includes("mã ae") ||
         value.includes("account") ||
         value === "center" ||
+        value === "charge to center" ||
+        value === "charge to center mkt" ||
         value === "s code" ||
         value === "class" ||
         value.includes("class name") ||
@@ -101,6 +103,14 @@ function isRosterSheetName(sheetName: string): boolean {
 function isGenericDataSheetName(sheetName: string): boolean {
   const normalized = normalizeSheetName(sheetName);
   return normalized.includes("DU LIEU") || normalized.includes("DATA");
+}
+
+function isMktLocalNorthFileName(fileName: string): boolean {
+  const normalized = normalizeSheetName(fileName);
+  return (
+    normalized.includes("MKT LOCAL NORTH") ||
+    normalized.includes("NORTH MKT")
+  );
 }
 
 export function parseExcelData(
@@ -205,7 +215,8 @@ export function parseExcelData(
             : (decodedRange?.s.r || 0) + headerRowIndex,
       },
     );
-    const isMktLocalNorth = fileName.toUpperCase().includes("MKT LOCAL NORTH") || fileName.toUpperCase().includes("MKT_LOCAL_NORTH");
+    const isMktLocalNorthRoster =
+      isMktLocalNorthFileName(fileName) && isRosterSheetName(sheetName);
 
     parsedRows.forEach((row) => {
       const cleaned: Record<string, unknown> = {};
@@ -216,7 +227,7 @@ export function parseExcelData(
       }
 
       if (Object.keys(cleaned).length > 0) {
-        if (isMktLocalNorth) {
+        if (isMktLocalNorthRoster) {
           const keys = Object.keys(cleaned);
           
           // Rename 'code' to 'Type' if 'type' doesn't exist
@@ -229,7 +240,8 @@ export function parseExcelData(
             }
           }
 
-          // Rename 'center' to 'Charge to Center' if 'charge to center' doesn't exist
+          // In MKT Local North ROSTER/Q_ROSTER, CENTER and CHARGE TO
+          // CENTER are aliases for the allocation code that resolves to L07.
           const hasChargeToCenter = keys.some(k => k.toLowerCase().trim().includes("charge to center"));
           if (!hasChargeToCenter) {
             const centerKey = keys.find(k => k.toLowerCase().trim() === "center");
