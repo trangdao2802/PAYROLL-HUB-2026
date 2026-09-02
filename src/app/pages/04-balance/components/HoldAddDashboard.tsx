@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { buildBulkPaymentAnalytics } from "../../../lib/utils/bulk-payment-analytics";
 import {
@@ -2301,16 +2301,6 @@ export function HoldAddDashboard() {
     rowRCloseBalances,
   ]);
 
-  useEffect(() => {
-    const handleSectionExport = () => handleExportExcel();
-    window.addEventListener("app-export-section-excel", handleSectionExport);
-    return () =>
-      window.removeEventListener(
-        "app-export-section-excel",
-        handleSectionExport,
-      );
-  }, [handleExportExcel]);
-
   return (
     <div className="trial-balance-frame unified-table-frame h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent w-full" style={{ borderRadius: "0px" }}>
       {/* Toolbar */}
@@ -2460,7 +2450,7 @@ export function HoldAddDashboard() {
                   className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Xuất Excel
+                  Xuất Excel Trial Balance
                 </Button>
               </DropdownMenuContent>
             </DropdownMenu>

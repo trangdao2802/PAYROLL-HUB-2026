@@ -1437,16 +1437,6 @@ export function TimesheetHub() {
     toDate,
   ]);
 
-  useEffect(() => {
-    const handleSectionExport = () => handleExportAllExcel();
-    window.addEventListener("app-export-section-excel", handleSectionExport);
-    return () =>
-      window.removeEventListener(
-        "app-export-section-excel",
-        handleSectionExport,
-      );
-  }, [handleExportAllExcel]);
-
   const handleSyncToSupabase = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       toast.error("Supabase chưa được cấu hình! Vui lòng cài đặt URL và Anon Key trong phần cấu hình.");
@@ -2151,12 +2141,11 @@ export function TimesheetHub() {
 
                           {/* Export Excel */}
                           <DropdownMenuItem
-                            disabled={currentData.length === 0}
-                            onClick={handleExportExcel}
-                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-foreground hover:bg-muted disabled:opacity-40"
+                            onClick={handleExportAllExcel}
+                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-foreground hover:bg-muted"
                           >
                             <Download className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Xuất Excel</span>
+                            <span>Xuất toàn bộ Timesheet</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

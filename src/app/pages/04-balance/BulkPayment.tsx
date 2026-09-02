@@ -3240,6 +3240,15 @@ export function BulkPayment({
                   <Settings className="w-4 h-4 text-slate-500" />
                   <span>Cài đặt Giao diện</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    window.dispatchEvent(new Event("app-export-section-excel"))
+                  }
+                  className="text-slate-700"
+                >
+                  <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-700" />
+                  <span>Xuất toàn bộ Master</span>
+                </DropdownMenuItem>
                 {rightPanelTab === "visuals" ? (
                   <>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />

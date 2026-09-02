@@ -1475,16 +1475,6 @@ export function Audit() {
     teacherDateRange,
   ]);
 
-  useEffect(() => {
-    const handleSectionExport = () => handleExportExcel();
-    window.addEventListener("app-export-section-excel", handleSectionExport);
-    return () =>
-      window.removeEventListener(
-        "app-export-section-excel",
-        handleSectionExport,
-      );
-  }, [handleExportExcel]);
-
   return (
     <motion.div
       variants={containerVariants}
@@ -1839,7 +1829,7 @@ export function Audit() {
                   >
                     <Download className="w-4 h-4 text-emerald-500" />
                     <span className="text-xs font-bold text-slate-700">
-                      Xuất báo cáo Excel
+                      Xuất toàn bộ Audit
                     </span>
                   </DropdownMenuItem>
 

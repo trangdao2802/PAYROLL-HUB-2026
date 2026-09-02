@@ -261,31 +261,52 @@ test("Master batch export covers all four pages and every permanent child table"
   assert.equal(reconciliation?.table?.rows[0]?.["Variance"], 0);
 });
 
-test("all routed data areas expose one section-wide Excel action", () => {
+test("section-wide Excel actions live inside each table action icon, not the navbar", () => {
   const navbar = readFileSync(
     new URL("../src/app/components/layouts/Navbar.tsx", import.meta.url),
     "utf8",
   );
-  for (const route of [
-    "/centers",
-    "/audit",
-    "/master-ae",
-    "/hold-dashboard",
-  ]) {
-    assert.ok(navbar.includes(`"${route}"`));
+  assert.doesNotMatch(navbar, /app-export-section-excel/);
+  assert.doesNotMatch(navbar, /Excel toàn bộ/);
+
+  const tableMenus = [
+    {
+      path: "../src/app/pages/01-timesheet/TimesheetHub.tsx",
+      action: /onClick=\{handleExportAllExcel\}/,
+      label: /Xuất toàn bộ Timesheet/,
+    },
+    {
+      path: "../src/app/pages/02-audit/Audit.tsx",
+      action: /onClick=\{handleExportExcel\}/,
+      label: /Xuất toàn bộ Audit/,
+    },
+    {
+      path: "../src/app/pages/03-master/MasterAE.tsx",
+      action: /onClick=\{handleExportAllExcel\}/,
+      label: /Xuất toàn bộ Master/,
+    },
+    {
+      path: "../src/app/pages/04-balance/components/HoldAddDashboard.tsx",
+      action: /onClick=\{handleExportExcel\}/,
+      label: /Xuất Excel Trial Balance/,
+    },
+  ];
+
+  for (const { path, action, label } of tableMenus) {
+    const source = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.match(source, action);
+    assert.match(source, label);
+    assert.match(source, /downloadHierarchicalWorkbook/);
   }
-  assert.match(navbar, /Excel toàn bộ/);
-  assert.match(navbar, /app-export-section-excel/g);
 
   for (const sourcePath of [
-    "../src/app/pages/01-timesheet/TimesheetHub.tsx",
-    "../src/app/pages/02-audit/Audit.tsx",
-    "../src/app/pages/03-master/MasterAE.tsx",
-    "../src/app/pages/04-balance/components/HoldAddDashboard.tsx",
+    "../src/app/pages/03-master/components/HoldAETable.tsx",
+    "../src/app/pages/04-balance/BulkPayment.tsx",
+    "../src/app/pages/04-balance/PivotSheet.tsx",
   ]) {
     const source = readFileSync(new URL(sourcePath, import.meta.url), "utf8");
     assert.match(source, /app-export-section-excel/);
-    assert.match(source, /downloadHierarchicalWorkbook/);
+    assert.match(source, /Xuất toàn bộ Master/);
   }
 });
 

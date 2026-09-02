@@ -1025,11 +1025,20 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   <span className="text-xs font-bold text-slate-700">Cài đặt Giao diện</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onClick={() =>
+                    window.dispatchEvent(new Event("app-export-section-excel"))
+                  }
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors"
+                >
+                  <Download className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-bold text-slate-700">Xuất toàn bộ Master</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={handleExportExcel}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
                   <Download className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-700">Xuất file Excel</span>
+                  <span className="text-xs font-bold text-slate-700">Xuất bảng Deductions</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-50" />
                 <DropdownMenuItem

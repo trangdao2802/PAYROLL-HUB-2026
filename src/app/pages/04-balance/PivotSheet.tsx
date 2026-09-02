@@ -2133,11 +2133,24 @@ export function PivotSheet() {
                     </div>
 
                     <button
-                      onClick={handleExportExcel}
-                      className="w-full mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg shadow-2xs transition-all cursor-pointer"
+                      onClick={() => {
+                        setIsSettingsOpen(false);
+                        window.dispatchEvent(
+                          new Event("app-export-section-excel"),
+                        );
+                      }}
+                      className="w-full mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Xuất Excel</span>
+                      <span>Xuất toàn bộ Master</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportExcel}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg shadow-2xs transition-all cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Xuất bảng Pivot Master</span>
                     </button>
                   </div>
 
