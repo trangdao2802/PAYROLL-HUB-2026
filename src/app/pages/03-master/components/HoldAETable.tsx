@@ -5,7 +5,7 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock, Zap } from "lucide-react";
 import {
   TableInitialMark,
   TableTitleRemainder,
@@ -58,9 +58,11 @@ import {
 } from "../../../lib/utils/deductions-sheet-source";
 import { TransactionReferenceCell } from "../../../components/TransactionReferenceCell";
 import {
+  applyTransactionReferenceSync,
   getTransactionReferenceField,
   type TransactionReferenceAuditEntry,
 } from "../../../lib/utils/transaction-reference-sync";
+import { markTransactionSaved } from "../../../lib/utils/transaction-activity";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -733,6 +735,52 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       }, 500);
     };
 
+    const handleBulkSyncFromReconcile = useCallback(() => {
+      updateAppData((prev: any) => {
+        const useBankExport = (prev.BankExport?.data || []).length > 0;
+        const transactionRows = useBankExport
+          ? prev.BankExport.data
+          : prev.Bank_North_AE?.data || [];
+        const result = applyTransactionReferenceSync({
+          grossRows: prev.Sheet1_AE?.data || [],
+          deductionRows: prev.Hold_AE?.data || [],
+          transactionRows,
+          rawTimesheetRows: [
+            ...(prev.Timesheet_Roster || []),
+            ...(prev.Q_Staff || []),
+          ],
+          reportMonth: prev.globalMonth,
+        });
+
+        if (result.correctedCells === 0) {
+          toast.info("Deductions đã khớp dữ liệu Reconcile trong kỳ hiện tại.");
+          return prev;
+        }
+
+        toast.success(
+          `Đã đồng bộ một lần ${result.correctedCells} ô trên ${result.correctedRows} dòng và lưu ngay.`,
+        );
+        const next = {
+          ...prev,
+          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+          Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
+          TransactionActivity: markTransactionSaved(prev),
+        };
+        return useBankExport
+          ? {
+              ...next,
+              BankExport: { ...prev.BankExport, data: result.transactionRows },
+            }
+          : {
+              ...next,
+              Bank_North_AE: {
+                ...prev.Bank_North_AE,
+                data: result.transactionRows,
+              },
+            };
+      }, true, true);
+    }, [updateAppData]);
+
     const handleExportExcel = () => {
       import("xlsx").then((XLSX) => {
         const ws = XLSX.utils.json_to_sheet(filteredData.data);
@@ -1002,6 +1050,15 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 >
                   <RefreshCw className={`w-4 h-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
                   <span className="text-xs font-bold text-slate-700">Làm mới dữ liệu</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleBulkSyncFromReconcile}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors"
+                >
+                  <Zap className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-bold text-slate-700">
+                    Đồng bộ từ Reconcile
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {

@@ -36,6 +36,15 @@ export interface TransactionReferenceCorrection {
   newValue: unknown;
 }
 
+export interface TransactionRawTimesheetCorrection {
+  transactionIndex: number;
+  field: TransactionReferenceField;
+  fieldKey: string;
+  oldValue: unknown;
+  newValue: unknown;
+  source: "RAWDATA_TIMESHEET";
+}
+
 export interface TransactionReferenceMatch {
   transactionKey: string;
   transactionIndex: number;
@@ -43,13 +52,21 @@ export interface TransactionReferenceMatch {
   grossRowIndexes: number[];
   deductionRowIndexes: number[];
   corrections: TransactionReferenceCorrection[];
-  reason: "name-account" | "id" | "two-fields" | "unmatched";
+  transactionCorrections: TransactionRawTimesheetCorrection[];
+  reason:
+    | "name-account"
+    | "id"
+    | "two-fields"
+    | "raw-timesheet"
+    | "unmatched";
 }
 
 export interface TransactionReferencePlan {
   matches: TransactionReferenceMatch[];
   byTransactionKey: Map<string, TransactionReferenceMatch>;
   byTransactionIndex: Map<number, TransactionReferenceMatch>;
+  effectiveTransactionRows: any[];
+  transactionCorrections: TransactionRawTimesheetCorrection[];
 }
 
 interface ReferenceIdentity {
@@ -70,6 +87,13 @@ const ID_KEYS = [
   "Mã ae",
   "CCCD",
   "National ID",
+  "Số CCCD",
+  "Số CCCD Instructor",
+  "CMND",
+  "employeeId",
+  "employee_id",
+  "ma_nv",
+  "Mã NV",
 ];
 const NAME_KEYS = [
   "Full name",
@@ -78,6 +102,12 @@ const NAME_KEYS = [
   "Beneficiary Name",
   "Họ tên",
   "Họ và tên",
+  "Tên nhân viên",
+  "Họ và tên Instructor",
+  "fullName",
+  "full_name",
+  "employeeName",
+  "employee_name",
 ];
 const ACCOUNT_KEYS = [
   "Bank Account Number",
@@ -86,6 +116,11 @@ const ACCOUNT_KEYS = [
   "STK AE",
   "STK",
   "Số tài khoản",
+  "Account Number",
+  "bankAccountNumber",
+  "bank_account_number",
+  "accountNumber",
+  "account_number",
 ];
 
 function readField(row: any, keys: string[]): { key: string; value: unknown } {
@@ -96,6 +131,20 @@ function readField(row: any, keys: string[]): { key: string; value: unknown } {
     }
   }
   return { key: keys[0], value: "" };
+}
+
+function readWritableField(
+  row: any,
+  keys: string[],
+): { key: string; value: unknown } {
+  const populated = readField(row, keys);
+  if (String(populated.value ?? "").trim()) return populated;
+  const existingKey = keys.find((key) =>
+    Object.prototype.hasOwnProperty.call(row || {}, key),
+  );
+  return existingKey
+    ? { key: existingKey, value: row?.[existingKey] }
+    : populated;
 }
 
 function normalizeCompact(value: unknown): string {
@@ -162,6 +211,15 @@ function targetField(
   return readField(row, ACCOUNT_KEYS);
 }
 
+function writableTargetField(
+  row: any,
+  field: TransactionReferenceField,
+): { key: string; value: unknown } {
+  if (field === "idNumber") return readWritableField(row, ID_KEYS);
+  if (field === "fullName") return readWritableField(row, NAME_KEYS);
+  return readWritableField(row, ACCOUNT_KEYS);
+}
+
 function fieldDiffers(
   field: TransactionReferenceField,
   currentValue: unknown,
@@ -184,6 +242,155 @@ function identityKey(identity: ReferenceIdentity): string {
   return `${identity.id}|${identity.name}|${identity.account}`;
 }
 
+function identityCompleteness(identity: ReferenceIdentity): number {
+  return [identity.id, identity.name, identity.account].filter(Boolean).length;
+}
+
+function countIdentityValues(
+  identities: ReferenceIdentity[],
+  field: "id" | "account",
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  identities.forEach((identity) => {
+    const value = identity[field];
+    if (value) counts.set(value, (counts.get(value) || 0) + 1);
+  });
+  return counts;
+}
+
+function uniqueBestRawTimesheetReference(
+  candidates: Array<{ row: any; identity: ReferenceIdentity }>,
+): ReferenceIdentity | null {
+  if (candidates.length === 0) return null;
+  const maxCompleteness = Math.max(
+    ...candidates.map(({ identity }) => identityCompleteness(identity)),
+  );
+  const bestByIdentity = new Map<string, ReferenceIdentity>();
+  candidates.forEach(({ identity }) => {
+    if (identityCompleteness(identity) !== maxCompleteness) return;
+    bestByIdentity.set(identityKey(identity), identity);
+  });
+  return bestByIdentity.size === 1
+    ? Array.from(bestByIdentity.values())[0]
+    : null;
+}
+
+function resolveRawTimesheetReference(
+  transactionIdentity: ReferenceIdentity,
+  rawReferences: Array<{ row: any; identity: ReferenceIdentity }>,
+  duplicateId: boolean,
+  duplicateAccount: boolean,
+): ReferenceIdentity | null {
+  const matchingFields = (candidate: ReferenceIdentity) =>
+    [
+      !duplicateId &&
+        transactionIdentity.id &&
+        candidate.id === transactionIdentity.id,
+      transactionIdentity.name && candidate.name === transactionIdentity.name,
+      !duplicateAccount &&
+        transactionIdentity.account &&
+        candidate.account === transactionIdentity.account,
+    ].filter(Boolean).length;
+
+  const twoFieldMatch = uniqueBestRawTimesheetReference(
+    rawReferences.filter(({ identity }) => matchingFields(identity) >= 2),
+  );
+  if (twoFieldMatch) return twoFieldMatch;
+
+  // A unique Full Name in RAWDATA_TIMESHEET is the deterministic tiebreaker
+  // when Transaction reused an ID Number or bank account for another person.
+  if (transactionIdentity.name) {
+    const byName = uniqueBestRawTimesheetReference(
+      rawReferences.filter(
+        ({ identity }) => identity.name === transactionIdentity.name,
+      ),
+    );
+    if (byName) return byName;
+  }
+
+  if (transactionIdentity.id && !duplicateId) {
+    const byId = uniqueBestRawTimesheetReference(
+      rawReferences.filter(({ identity }) => identity.id === transactionIdentity.id),
+    );
+    if (byId) return byId;
+  }
+
+  if (transactionIdentity.account && !duplicateAccount) {
+    return uniqueBestRawTimesheetReference(
+      rawReferences.filter(
+        ({ identity }) => identity.account === transactionIdentity.account,
+      ),
+    );
+  }
+  return null;
+}
+
+function planTransactionRepairsFromRawTimesheet(
+  transactionRows: any[],
+  rawTimesheetRows: any[],
+): {
+  effectiveRows: any[];
+  corrections: TransactionRawTimesheetCorrection[];
+} {
+  if (rawTimesheetRows.length === 0 || transactionRows.length === 0) {
+    return { effectiveRows: [...transactionRows], corrections: [] };
+  }
+
+  const transactionIdentities = transactionRows.map(identityOf);
+  const idCounts = countIdentityValues(transactionIdentities, "id");
+  const accountCounts = countIdentityValues(transactionIdentities, "account");
+  const rawReferences = rawTimesheetRows
+    .filter(Boolean)
+    .map((row) => ({ row, identity: identityOf(row) }))
+    .filter(({ identity }) => identityCompleteness(identity) >= 2);
+  const effectiveRows = [...transactionRows];
+  const corrections: TransactionRawTimesheetCorrection[] = [];
+
+  transactionRows.forEach((row, transactionIndex) => {
+    const current = transactionIdentities[transactionIndex];
+    const duplicateId = Boolean(current.id && (idCounts.get(current.id) || 0) > 1);
+    const duplicateAccount = Boolean(
+      current.account && (accountCounts.get(current.account) || 0) > 1,
+    );
+    const hasMissingIdentity = !current.id || !current.name || !current.account;
+    if (!duplicateId && !duplicateAccount && !hasMissingIdentity) return;
+
+    const reference = resolveRawTimesheetReference(
+      current,
+      rawReferences,
+      duplicateId,
+      duplicateAccount,
+    );
+    if (!reference) return;
+
+    const referenceValues: Record<TransactionReferenceField, unknown> = {
+      idNumber: reference.rawId,
+      fullName: reference.rawName,
+      bankAccountNumber: reference.rawAccount,
+    };
+    let nextRow = row;
+    (["idNumber", "fullName", "bankAccountNumber"] as const).forEach(
+      (field) => {
+        const currentField = writableTargetField(nextRow, field);
+        const nextValue = referenceValues[field];
+        if (!fieldDiffers(field, currentField.value, nextValue)) return;
+        corrections.push({
+          transactionIndex,
+          field,
+          fieldKey: currentField.key,
+          oldValue: currentField.value,
+          newValue: nextValue,
+          source: "RAWDATA_TIMESHEET",
+        });
+        nextRow = { ...nextRow, [currentField.key]: nextValue };
+      },
+    );
+    effectiveRows[transactionIndex] = nextRow;
+  });
+
+  return { effectiveRows, corrections };
+}
+
 function amountOf(row: any, table: TransactionReferenceTable): number {
   const value = parseMoneyToNumber(
     row?.["Payment Amount"] ??
@@ -203,7 +410,10 @@ function amountOf(row: any, table: TransactionReferenceTable): number {
 }
 
 function buildCorrections(
-  match: Omit<TransactionReferenceMatch, "corrections">,
+  match: Pick<
+    TransactionReferenceMatch,
+    "transactionRow" | "grossRowIndexes" | "deductionRowIndexes"
+  >,
   grossRows: any[],
   deductionRows: any[],
 ): TransactionReferenceCorrection[] {
@@ -249,13 +459,19 @@ export function buildTransactionReferenceSyncPlan({
   grossRows,
   deductionRows,
   transactionRows,
+  rawTimesheetRows = [],
   reportMonth,
 }: {
   grossRows: any[];
   deductionRows: any[];
   transactionRows: any[];
+  rawTimesheetRows?: any[];
   reportMonth?: string;
 }): TransactionReferencePlan {
+  const transactionRepairPlan = planTransactionRepairsFromRawTimesheet(
+    transactionRows,
+    rawTimesheetRows,
+  );
   const targets = [
     ...grossRows.map((row, rowIndex) => ({
       table: "Sheet1_AE" as const,
@@ -271,18 +487,23 @@ export function buildTransactionReferenceSyncPlan({
     })),
   ].filter(({ row }) => rowMatchesMonth(row, reportMonth));
 
-  const transactions = transactionRows
+  const transactions = transactionRepairPlan.effectiveRows
     .map((row, transactionIndex) => ({
       row,
       transactionIndex,
-      transactionKey: transactionKey(row, transactionIndex),
+      transactionKey: transactionKey(
+        transactionRows[transactionIndex],
+        transactionIndex,
+      ),
       identity: identityOf(row),
+      originalIdentity: identityOf(transactionRows[transactionIndex]),
     }))
     .filter(({ row }) => rowMatchesMonth(row, reportMonth));
 
   const transactionIdentityCount = new Map<string, number>();
   const transactionPairIdentityCount = new Map<string, Set<string>>();
   const transactionIdIdentityCount = new Map<string, Set<string>>();
+  const transactionNameIdentityCount = new Map<string, Set<string>>();
   transactions.forEach(({ identity }) => {
     const fullKey = identityKey(identity);
     transactionIdentityCount.set(
@@ -301,6 +522,12 @@ export function buildTransactionReferenceSyncPlan({
         transactionIdIdentityCount.set(identity.id, new Set());
       }
       transactionIdIdentityCount.get(identity.id)!.add(fullKey);
+    }
+    if (identity.name) {
+      if (!transactionNameIdentityCount.has(identity.name)) {
+        transactionNameIdentityCount.set(identity.name, new Set());
+      }
+      transactionNameIdentityCount.get(identity.name)!.add(fullKey);
     }
   });
 
@@ -344,6 +571,42 @@ export function buildTransactionReferenceSyncPlan({
     }
   });
 
+  // When RAWDATA_TIMESHEET repaired duplicate Transaction keys, use the
+  // unique beneficiary name to connect the still-unrepaired source row in the
+  // same click. Without this bridge the user would need a second sync pass.
+  const transactionIndexesRepairedFromRaw = new Set(
+    transactionRepairPlan.corrections.map(
+      (correction) => correction.transactionIndex,
+    ),
+  );
+  draftMatches.forEach((match) => {
+    if (!transactionIndexesRepairedFromRaw.has(match.transactionIndex)) return;
+    if (
+      !match.identity.name ||
+      transactionNameIdentityCount.get(match.identity.name)?.size !== 1
+    ) {
+      return;
+    }
+    targets.forEach((target, targetIndex) => {
+      if (assignedTargets.has(targetToken(targetIndex))) return;
+      const sameName = target.identity.name === match.identity.name;
+      const matchesOriginalIdentity = [
+        match.originalIdentity.id &&
+          match.originalIdentity.id === target.identity.id,
+        match.originalIdentity.name &&
+          match.originalIdentity.name === target.identity.name,
+        match.originalIdentity.account &&
+          match.originalIdentity.account === target.identity.account,
+      ].filter(Boolean).length >= 2;
+      if (!sameName && !matchesOriginalIdentity) return;
+      match.targetIndexes.push(targetIndex);
+      assignedTargets.add(targetToken(targetIndex));
+    });
+    if (match.reason === "unmatched" && match.targetIndexes.length > 0) {
+      match.reason = "raw-timesheet";
+    }
+  });
+
   // Last deterministic fallback: any two matching identity fields.
   draftMatches.forEach((match) => {
     targets.forEach((target, targetIndex) => {
@@ -372,7 +635,10 @@ export function buildTransactionReferenceSyncPlan({
       else deductionRowIndexes.push(target.rowIndex);
     });
 
-    const withoutCorrections: Omit<TransactionReferenceMatch, "corrections"> = {
+    const withoutCorrections: Omit<
+      TransactionReferenceMatch,
+      "corrections" | "transactionCorrections"
+    > = {
       transactionKey: draft.transactionKey,
       transactionIndex: draft.transactionIndex,
       transactionRow: draft.row,
@@ -382,6 +648,9 @@ export function buildTransactionReferenceSyncPlan({
     };
     return {
       ...withoutCorrections,
+      transactionCorrections: transactionRepairPlan.corrections.filter(
+        (correction) => correction.transactionIndex === draft.transactionIndex,
+      ),
       corrections: buildCorrections(
         withoutCorrections,
         grossRows,
@@ -396,6 +665,8 @@ export function buildTransactionReferenceSyncPlan({
     byTransactionIndex: new Map(
       matches.map((match) => [match.transactionIndex, match]),
     ),
+    effectiveTransactionRows: transactionRepairPlan.effectiveRows,
+    transactionCorrections: transactionRepairPlan.corrections,
   };
 }
 
@@ -424,6 +695,7 @@ export function applyTransactionReferenceSync({
   grossRows,
   deductionRows,
   transactionRows,
+  rawTimesheetRows = [],
   reportMonth,
   transactionKeys,
   correctedAt = new Date().toISOString(),
@@ -431,35 +703,63 @@ export function applyTransactionReferenceSync({
   grossRows: any[];
   deductionRows: any[];
   transactionRows: any[];
+  rawTimesheetRows?: any[];
   reportMonth?: string;
   transactionKeys?: Iterable<string>;
   correctedAt?: string;
 }): {
   grossRows: any[];
   deductionRows: any[];
+  transactionRows: any[];
   correctedCells: number;
   correctedRows: number;
+  transactionCorrectedCells: number;
+  transactionCorrectedRows: number;
   appliedTransactionKeys: string[];
 } {
   const plan = buildTransactionReferenceSyncPlan({
     grossRows,
     deductionRows,
     transactionRows,
+    rawTimesheetRows,
     reportMonth,
   });
   const allowedKeys = transactionKeys ? new Set(transactionKeys) : null;
   const selectedMatches = plan.matches.filter(
     (match) =>
-      match.corrections.length > 0 &&
+      (match.corrections.length > 0 ||
+        match.transactionCorrections.length > 0) &&
       (!allowedKeys || allowedKeys.has(match.transactionKey)),
   );
   const nextGross = [...grossRows];
   const nextDeductions = [...deductionRows];
+  const nextTransactions = [...transactionRows];
   const correctedRowTokens = new Set<string>();
+  const correctedTransactionRows = new Set<number>();
   let correctedCells = 0;
+  let transactionCorrectedCells = 0;
 
   selectedMatches.forEach((match) => {
     const reference = identityOf(match.transactionRow);
+    match.transactionCorrections.forEach((correction) => {
+      const original = nextTransactions[correction.transactionIndex];
+      if (!original) return;
+      nextTransactions[correction.transactionIndex] = {
+        ...original,
+        [correction.fieldKey]: correction.newValue,
+        _rawTimesheetReferenceAudit: {
+          ...(original._rawTimesheetReferenceAudit || {}),
+          [correction.field]: {
+            ...correction,
+            correctedAt,
+          },
+        },
+      };
+      correctedCells += 1;
+      transactionCorrectedCells += 1;
+      correctedTransactionRows.add(correction.transactionIndex);
+      correctedRowTokens.add(`BankExport:${correction.transactionIndex}`);
+    });
     match.corrections.forEach((correction) => {
       const rows = correction.table === "Sheet1_AE" ? nextGross : nextDeductions;
       const original = rows[correction.rowIndex];
@@ -505,8 +805,11 @@ export function applyTransactionReferenceSync({
   return {
     grossRows: nextGross,
     deductionRows: nextDeductions,
+    transactionRows: nextTransactions,
     correctedCells,
     correctedRows: correctedRowTokens.size,
+    transactionCorrectedCells,
+    transactionCorrectedRows: correctedTransactionRows.size,
     appliedTransactionKeys: selectedMatches.map(
       (match) => match.transactionKey,
     ),
