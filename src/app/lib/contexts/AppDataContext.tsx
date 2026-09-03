@@ -61,6 +61,7 @@ interface AppActionsCtx {
   updateAppData: (
     updater: (prev: AppData) => AppData,
     saveToHistory?: boolean,
+    persistImmediately?: boolean,
   ) => void;
   undo: () => void;
   redo: () => void;
@@ -93,6 +94,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const persistedSplitRefs = useRef(
     new Map<keyof AppData, AppData[keyof AppData]>(),
   );
+  const immediatePersistRequestedRef = useRef(false);
+  const persistenceQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     const syncActivePathname = () => setActivePathname(window.location.pathname);
@@ -594,7 +597,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const id = setTimeout(saveData, 3000); // debounce 3s để giảm tải localforage
+    const persistImmediately = immediatePersistRequestedRef.current;
+    const id = setTimeout(() => {
+      immediatePersistRequestedRef.current = false;
+      persistenceQueueRef.current = persistenceQueueRef.current.then(
+        saveData,
+        saveData,
+      );
+    }, persistImmediately ? 0 : 3000);
     return () => clearTimeout(id);
   }, [state.present, isLoading, isStorageHydrating]);
 
@@ -622,10 +632,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   // ── Actions (stable references — never cause re-render) ──
   const updateAppData = useCallback(
-    (updater: (prev: AppData) => AppData, saveToHistory: boolean = true) => {
+    (
+      updater: (prev: AppData) => AppData,
+      saveToHistory: boolean = true,
+      persistImmediately: boolean = false,
+    ) => {
       setState((prev) => {
         const nextPresent = updater(prev.present);
         if (nextPresent === prev.present) return prev;
+        if (persistImmediately) immediatePersistRequestedRef.current = true;
         return {
           past: saveToHistory
             ? [...prev.past, prev.present].slice(-3)

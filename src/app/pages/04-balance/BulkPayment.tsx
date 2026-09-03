@@ -107,6 +107,7 @@ import {
   applyTransactionReferenceSync,
   buildTransactionReferenceSyncPlan,
   type TransactionReferenceCorrection,
+  type TransactionRawTimesheetCorrection,
 } from "../../lib/utils/transaction-reference-sync";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -644,7 +645,7 @@ export function BulkPayment({
           Hold_AE: { ...prev.Hold_AE, data: newHold },
           TransactionActivity: markTransactionSaved(prev),
         };
-      });
+      }, true, true);
       toast.success("Đã cập nhật và đồng bộ dữ liệu sang bảng gốc thành công!");
     },
     [updateAppData],
@@ -666,6 +667,10 @@ export function BulkPayment({
           grossRows: prev.Sheet1_AE?.data || [],
           deductionRows: prev.Hold_AE?.data || [],
           transactionRows,
+          rawTimesheetRows: [
+            ...(prev.Timesheet_Roster || []),
+            ...(prev.Q_Staff || []),
+          ],
           reportMonth: prev.globalMonth,
           transactionKeys: [item.referenceTransactionKey],
         });
@@ -679,13 +684,25 @@ export function BulkPayment({
           `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
         );
 
-        return {
+        const next = {
           ...prev,
           Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
           Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
           TransactionActivity: markTransactionSaved(prev),
         };
-      });
+        return prev.BankExport?.data?.length > 0
+          ? {
+              ...next,
+              BankExport: { ...prev.BankExport, data: result.transactionRows },
+            }
+          : {
+              ...next,
+              Bank_North_AE: {
+                ...prev.Bank_North_AE,
+                data: result.transactionRows,
+              },
+            };
+      }, true, true);
     },
     [updateAppData],
   );
@@ -775,6 +792,10 @@ export function BulkPayment({
       grossRows: sheet1Rows,
       deductionRows: holdRows,
       transactionRows: bankExportRows,
+      rawTimesheetRows: [
+        ...(appData.Timesheet_Roster || []),
+        ...(appData.Q_Staff || []),
+      ],
       reportMonth: appData.globalMonth,
     });
     const accountById = buildBankAccountIndex([
@@ -939,7 +960,8 @@ export function BulkPayment({
     });
 
     const docIdCounts = new Map<string, number>();
-    bankExportRows.forEach((r: any) => {
+    const bankAccountCounts = new Map<string, number>();
+    transactionReferencePlan.effectiveTransactionRows.forEach((r: any) => {
       const docId = String(
         r["Document ID"] ||
           r["ID Number"] ||
@@ -951,6 +973,21 @@ export function BulkPayment({
         .toLowerCase();
       if (docId) {
         docIdCounts.set(docId, (docIdCounts.get(docId) || 0) + 1);
+      }
+      const account = String(
+        r["Beneficiary Account No."] ||
+          r["Bank Account Number"] ||
+          r["Số tài khoản"] ||
+          "",
+      )
+        .replace(/\s+/g, "")
+        .trim()
+        .toLowerCase();
+      if (account) {
+        bankAccountCounts.set(
+          account,
+          (bankAccountCounts.get(account) || 0) + 1,
+        );
       }
     });
 
@@ -976,6 +1013,7 @@ export function BulkPayment({
       targetTabForAccLink: "Sheet1_AE" | "Hold_AE";
       referenceTransactionKey: string;
       referenceCorrections: TransactionReferenceCorrection[];
+      referenceTransactionCorrections: TransactionRawTimesheetCorrection[];
       referenceSyncReason: string;
     }> = [];
 
@@ -1027,8 +1065,26 @@ export function BulkPayment({
 
       totalActualSum += actualAmount;
 
-      const cleanDocId = rawDocId.toLowerCase();
       const referenceMatch = transactionReferencePlan.byTransactionIndex.get(index);
+      const effectiveTransactionRow = referenceMatch?.transactionRow || row;
+      const effectiveDocId = String(
+        effectiveTransactionRow["Document ID"] ||
+          effectiveTransactionRow["ID Number"] ||
+          effectiveTransactionRow["Document ID / CCCD"] ||
+          effectiveTransactionRow["CCCD"] ||
+          "",
+      )
+        .trim()
+        .toLowerCase();
+      const effectiveAccount = String(
+        effectiveTransactionRow["Beneficiary Account No."] ||
+          effectiveTransactionRow["Bank Account Number"] ||
+          effectiveTransactionRow["Số tài khoản"] ||
+          "",
+      )
+        .replace(/\s+/g, "")
+        .trim()
+        .toLowerCase();
       const matchedSheet1RowsList = (referenceMatch?.grossRowIndexes || [])
         .map((rowIndex) => sheet1Rows[rowIndex])
         .filter(Boolean);
@@ -1060,6 +1116,23 @@ export function BulkPayment({
 
       let sheet1Amount = 0;
       const issues: string[] = [];
+
+      if ((referenceMatch?.transactionCorrections.length || 0) > 0) {
+        const fields = Array.from(
+          new Set(
+            referenceMatch!.transactionCorrections.map((correction) =>
+              correction.field === "idNumber"
+                ? "ID Number"
+                : correction.field === "fullName"
+                  ? "Full Name"
+                  : "Bank Account Number",
+            ),
+          ),
+        );
+        issues.push(
+          `Cần sửa ${fields.join(", ")} của Transaction theo RAWDATA_TIMESHEET`,
+        );
+      }
 
       if ((referenceMatch?.corrections.length || 0) > 0) {
         const fields = Array.from(
@@ -1183,9 +1256,23 @@ export function BulkPayment({
         status = "MISSING_INFO";
         issues.push("Thiếu/Sai số tài khoản");
         missingInfoCount++;
-      } else if (cleanDocId && (docIdCounts.get(cleanDocId) || 0) > 1) {
+      } else if (
+        effectiveDocId &&
+        (docIdCounts.get(effectiveDocId) || 0) > 1
+      ) {
         status = "DUPLICATE";
-        issues.push(`Trùng Document ID (${docIdCounts.get(cleanDocId)} lần)`);
+        issues.push(
+          `Trùng Document ID (${docIdCounts.get(effectiveDocId)} lần)`,
+        );
+        duplicateCount++;
+      } else if (
+        effectiveAccount &&
+        (bankAccountCounts.get(effectiveAccount) || 0) > 1
+      ) {
+        status = "DUPLICATE";
+        issues.push(
+          `Trùng Bank Account (${bankAccountCounts.get(effectiveAccount)} lần)`,
+        );
         duplicateCount++;
       } else if (Math.abs(variance) >= 1) {
         status = "VARIANCE";
@@ -1199,7 +1286,10 @@ export function BulkPayment({
           );
         }
         varianceCount++;
-      } else if ((referenceMatch?.corrections.length || 0) > 0) {
+      } else if (
+        (referenceMatch?.corrections.length || 0) > 0 ||
+        (referenceMatch?.transactionCorrections.length || 0) > 0
+      ) {
         status = "MISSING_INFO";
         missingInfoCount++;
       } else {
@@ -1299,6 +1389,8 @@ export function BulkPayment({
         targetTabForAccLink,
         referenceTransactionKey: referenceMatch?.transactionKey || "",
         referenceCorrections: referenceMatch?.corrections || [],
+        referenceTransactionCorrections:
+          referenceMatch?.transactionCorrections || [],
         referenceSyncReason: referenceMatch?.reason || "unmatched",
       });
     });
@@ -1601,8 +1693,10 @@ export function BulkPayment({
     appData.Bank_North_AE?.data,
     appData.Sheet1_AE?.data,
     appData.Hold_AE?.data,
+    appData.Q_Staff,
     appData.globalMonth,
     dynamicReportStats,
+    appData.Timesheet_Roster,
     calculationSummary,
     currentMonthNumComp,
     currentYearNumComp,
@@ -1718,14 +1812,15 @@ export function BulkPayment({
   }, [filteredTransactionAudits, safePage, itemsPerPage, reconcileRowsPerPage]);
 
   const handleAutoFillMissingAccountBulk = useCallback(() => {
-    const itemsToSync = filteredTransactionAudits.filter(
+    const itemsToSync = reconciliationAudit.transactionAuditList.filter(
       (item) =>
         item.referenceTransactionKey &&
-        (item.referenceCorrections?.length || 0) > 0,
+        ((item.referenceCorrections?.length || 0) > 0 ||
+          (item.referenceTransactionCorrections?.length || 0) > 0),
     );
 
     if (itemsToSync.length === 0) {
-      toast.info("Không có dữ liệu nào hợp lệ để đồng bộ trên trang hiện tại.");
+      toast.info("Không còn dữ liệu nào cần đồng bộ trong kỳ hiện tại.");
       return;
     }
 
@@ -1738,6 +1833,10 @@ export function BulkPayment({
         grossRows: prev.Sheet1_AE?.data || [],
         deductionRows: prev.Hold_AE?.data || [],
         transactionRows,
+        rawTimesheetRows: [
+          ...(prev.Timesheet_Roster || []),
+          ...(prev.Q_Staff || []),
+        ],
         reportMonth: prev.globalMonth,
         transactionKeys: itemsToSync.map(
           (item) => item.referenceTransactionKey,
@@ -1752,14 +1851,26 @@ export function BulkPayment({
         `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
       );
 
-      return {
+      const next = {
         ...prev,
         Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
         Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
         TransactionActivity: markTransactionSaved(prev),
       };
-    });
-  }, [filteredTransactionAudits, updateAppData]);
+      return prev.BankExport?.data?.length > 0
+        ? {
+            ...next,
+            BankExport: { ...prev.BankExport, data: result.transactionRows },
+          }
+        : {
+            ...next,
+            Bank_North_AE: {
+              ...prev.Bank_North_AE,
+              data: result.transactionRows,
+            },
+          };
+    }, true, true);
+  }, [reconciliationAudit.transactionAuditList, updateAppData]);
 
   const handleExportReconciliationExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -3292,7 +3403,7 @@ export function BulkPayment({
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-amber-50 text-slate-700 hover:text-amber-800 font-bold text-xs"
                     >
                       <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span>Đồng bộ hàng loạt</span>
+                      <span>Đồng bộ toàn bộ</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-2 py-1">
@@ -3438,7 +3549,7 @@ export function BulkPayment({
                         },
                         {
                           id: "DUPLICATE",
-                          label: `⚠️ Trùng ID (${reconciliationAudit.duplicateCount})`,
+                          label: `⚠️ Trùng ID/STK (${reconciliationAudit.duplicateCount})`,
                         },
                         {
                           id: "MATCHED",
@@ -3481,9 +3592,9 @@ export function BulkPayment({
                             2. <strong>Thiếu thông tin:</strong> Bản ghi thiếu STK hoặc ID Number.
                           </p>
                           <p>
-                            3. <strong>Đồng bộ hai chiều:</strong> Bấm nút ⚡
-                            Đồng bộ trên dòng cần xử lý để tự động điền STK/ID
-                            sang bảng đích.
+                            3. <strong>Đồng bộ một lần:</strong> Hệ thống tham
+                            chiếu thêm RAWDATA_TIMESHEET khi ID/STK bị trùng,
+                            sau đó cập nhật đồng thời Transaction và bảng đích.
                           </p>
                         </PopoverContent>
                       </Popover>
@@ -3592,20 +3703,11 @@ export function BulkPayment({
                           paginatedTransactionAudits.map((item) => {
                             const isUnmatched =
                               item.id.startsWith("unmatched-");
-                            const isMatched = item.status === "MATCHED";
-                            const isAlreadySynced =
-                              item.accountNo &&
-                              item.benefitsAccountNo &&
-                              item.accountNo === item.benefitsAccountNo;
                             const canSync =
                               !isUnmatched &&
                               ((item.referenceCorrections?.length || 0) > 0 ||
-                                (!isMatched &&
-                                  !isAlreadySynced &&
-                                  (item.status === "MISSING_INFO" ||
-                                    item.status === "VARIANCE" ||
-                                    !item.accountNo ||
-                                    !item.benefitsAccountNo)));
+                                (item.referenceTransactionCorrections?.length ||
+                                  0) > 0);
                             const totalTargetBankAcc =
                               item.sheet1Amount + item.holdAmount;
 
@@ -3819,7 +3921,7 @@ export function BulkPayment({
                                           : item.status === "MISSING_INFO"
                                             ? "SAI/THIẾU THÔNG TIN"
                                             : item.status === "DUPLICATE"
-                                              ? "TRÙNG ID"
+                                              ? "TRÙNG ID/STK"
                                               : "KHÔNG CÓ TRONG SHEET1"}
                                     </span>
                                     {item.issues.length > 0 && (

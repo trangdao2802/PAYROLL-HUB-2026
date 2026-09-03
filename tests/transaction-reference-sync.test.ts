@@ -173,6 +173,137 @@ test("unique ID repairs wrong common fields in Deductions", () => {
   assert.equal(result.correctedCells, 2);
 });
 
+test("one click resolves duplicate Transaction identity from RAWDATA_TIMESHEET", () => {
+  const transactionRows = [
+    {
+      id: "tx-alpha",
+      "Tháng báo cáo": month,
+      "Document ID": "DUPLICATE-ID",
+      "Beneficiary Name": "NGUYEN VAN ALPHA",
+      "Beneficiary Account No.": "DUPLICATE-ACCOUNT",
+      "Payment Amount": 100_000,
+    },
+    {
+      id: "tx-beta",
+      "Tháng báo cáo": month,
+      "Document ID": "DUPLICATE-ID",
+      "Beneficiary Name": "TRAN THI BETA",
+      "Beneficiary Account No.": "DUPLICATE-ACCOUNT",
+      "Payment Amount": 200_000,
+    },
+  ];
+  const deductionRows = [
+    {
+      "Tháng báo cáo": month,
+      "ID Number": "DUPLICATE-ID",
+      "Full name": "NGUYEN VAN ALPHA",
+      "Bank Account Number": "DUPLICATE-ACCOUNT",
+      "TOTAL PAYMENT": -10_000,
+      "Nghiệp vụ": "Hold",
+    },
+  ];
+  const rawTimesheetRows = [
+    {
+      "ID NUMBER": "ID-ALPHA",
+      "FULL NAME": "NGUYEN VAN ALPHA",
+      "BANK ACCOUNT NUMBER": "ACC-ALPHA",
+    },
+    {
+      employeeId: "ID-BETA",
+      fullName: "TRAN THI BETA",
+      bankAccountNumber: "ACC-BETA",
+    },
+  ];
+
+  const result = applyTransactionReferenceSync({
+    grossRows: [],
+    deductionRows,
+    transactionRows,
+    rawTimesheetRows,
+    reportMonth: month,
+  });
+
+  assert.equal(result.transactionRows[0]["Document ID"], "ID-ALPHA");
+  assert.equal(
+    result.transactionRows[0]["Beneficiary Account No."],
+    "ACC-ALPHA",
+  );
+  assert.equal(result.transactionRows[1]["Document ID"], "ID-BETA");
+  assert.equal(
+    result.transactionRows[1]["Beneficiary Account No."],
+    "ACC-BETA",
+  );
+  assert.equal(result.deductionRows[0]["ID Number"], "ID-ALPHA");
+  assert.equal(
+    result.deductionRows[0]["Bank Account Number"],
+    "ACC-ALPHA",
+  );
+  assert.equal(result.transactionCorrectedCells, 4);
+  assert.equal(result.correctedCells, 6);
+
+  const secondPass = applyTransactionReferenceSync({
+    grossRows: result.grossRows,
+    deductionRows: result.deductionRows,
+    transactionRows: result.transactionRows,
+    rawTimesheetRows,
+    reportMonth: month,
+  });
+  assert.equal(secondPass.correctedCells, 0);
+});
+
+test("missing Transaction fields are written to its existing bank columns", () => {
+  const result = applyTransactionReferenceSync({
+    grossRows: [],
+    deductionRows: [],
+    transactionRows: [
+      {
+        "Tháng báo cáo": month,
+        "Document ID": "ID-01",
+        "Beneficiary Name": "LE THI GAMMA",
+        "Beneficiary Account No.": "",
+      },
+    ],
+    rawTimesheetRows: [
+      {
+        "ID NUMBER": "ID-01",
+        "FULL NAME": "LE THI GAMMA",
+        "BANK ACCOUNT NUMBER": "ACC-01",
+      },
+    ],
+    reportMonth: month,
+  });
+
+  assert.equal(
+    result.transactionRows[0]["Beneficiary Account No."],
+    "ACC-01",
+  );
+  assert.equal("Bank Account Number" in result.transactionRows[0], false);
+});
+
+test("bulk sync is available in Deductions and persists immediately", () => {
+  const deductions = readFileSync(
+    new URL(
+      "../src/app/pages/03-master/components/HoldAETable.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const reconcile = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+  const context = readFileSync(
+    new URL("../src/app/lib/contexts/AppDataContext.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(deductions, /Đồng bộ từ Reconcile/);
+  assert.match(deductions, /handleBulkSyncFromReconcile/);
+  assert.match(reconcile, /reconciliationAudit\.transactionAuditList\.filter/);
+  assert.match(reconcile, /rawTimesheetRows/);
+  assert.match(context, /persistImmediately \? 0 : 3000/);
+});
+
 test("corrected cells expose audit marker and two-way Transaction navigation", () => {
   const marker = readFileSync(
     new URL("../src/app/components/TransactionReferenceCell.tsx", import.meta.url),
