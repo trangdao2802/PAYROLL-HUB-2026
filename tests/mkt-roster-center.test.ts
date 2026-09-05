@@ -9,6 +9,8 @@ import {
   parseExcelData,
   prepareExcelResult,
 } from "../src/app/workers/excelParser.worker";
+import { calculateTimesheet } from "../src/app/workers/timesheet.worker";
+import { TASK_COLUMNS } from "../src/app/constants/timesheet-logic";
 
 function createWorkbookBuffer(
   sheetName: string,
@@ -67,4 +69,55 @@ test("reads CHARGE TO CENTER from a Q_ROSTER sheet and converts it to L07", () =
   assert.equal(row.l07, "MKT LOCAL NORTH");
   assert.equal(row.chargeToCenterMkt, "HN0016.PDP");
   assert.equal(row.business, "AHN");
+});
+
+test("Roster Center assigns non-zero MKT Local cost to its destination L07", () => {
+  const result = calculateTimesheet({
+    rosterData: [
+      {
+        _rowId: "mkt-source",
+        _sourceFile: "MKT LOCAL NORTH.xlsx",
+        center: "27",
+        chargeToCenterMkt: "HN0027.OPK",
+        "ID NUMBER": "001090627040",
+        "FULL NAME": "NGUYEN PHUNG MANH",
+        DATE: "15/08/2026",
+        TYPE: "LPAR01",
+        FROM: "09:00",
+        TO: "11:00",
+      },
+    ],
+    salaryScaleData: [],
+    staffData: [],
+    cacheData: [],
+    fromDateStr: "2026-08-01",
+    toDateStr: "2026-08-31",
+    appData: {
+      Timesheet_InputList: [
+        {
+          id: "mkt-source",
+          l07: "MKT LOCAL NORTH",
+          aeCode: "MKT LOCAL NORTH",
+          bus: "AHN",
+        },
+      ],
+    },
+    preferredYear: 2026,
+    checkTAsMap: {},
+    classSizeMap: {},
+    TASK_COLUMNS,
+  });
+
+  assert.equal(result.centerSummary.length, 1);
+  assert.equal(result.centerSummary[0].l07, "HN0027.OPK");
+  assert.equal(result.centerSummary[0].business, "AHN");
+  assert.equal(result.centerSummary[0].chargeMktLocal, 40_000);
+  assert.equal(
+    result.centerSummary.some(
+      (row: Record<string, unknown>) =>
+        row.l07 === "MKT LOCAL NORTH" &&
+        Number(row.chargeMktLocal || 0) !== 0,
+    ),
+    false,
+  );
 });
