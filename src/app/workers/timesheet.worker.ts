@@ -627,7 +627,16 @@ export function calculateTimesheet(params: any) {
 
     const { l07, ma_nv: empId, full_name: effName, business: centerBusiness, duration: actHours, _taskField: taskField, _rates: rates, _money: money, ngay: dateStr, isMktLocal, chargeToCenterMkt } = detailRow;
 
-    const effectiveL07 = l07;
+    // MKT Local is the source bucket, while CHARGE TO CENTER is the actual
+    // cost-allocation destination. Roster Center must therefore group a
+    // non-zero MKT Local amount under that destination L07 instead of creating
+    // a misleading `MKT LOCAL NORTH` center row.
+    const rawAllocationL07 = String(chargeToCenterMkt || "").trim();
+    const mappedAllocationL07 = rawAllocationL07
+      ? mapL07(rawAllocationL07) || rawAllocationL07
+      : "";
+    const effectiveL07 =
+      isMktLocal && mappedAllocationL07 ? mappedAllocationL07 : l07;
 
     const empKey = `${effectiveL07}_${empId}_${centerBusiness}`;
     if (!empGroup[empKey]) {
