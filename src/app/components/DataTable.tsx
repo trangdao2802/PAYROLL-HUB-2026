@@ -78,6 +78,9 @@ import { CustomSortDialog } from "./CustomSortDialog";
 import { normalizeSortRules, type SortRule } from "./sort-utils";
 
 const AUTO_FIT_SAMPLE_LIMIT = 320;
+const COLUMN_FILTER_SCAN_CHUNK_SIZE = 2_000;
+const COLUMN_FILTER_RENDER_LIMIT = 250;
+const COLUMN_FILTER_SORT_LIMIT = 5_000;
 
 function getAutoFitSample<T>(rows: T[]): T[] {
   if (rows.length <= AUTO_FIT_SAMPLE_LIMIT) return rows;
@@ -316,91 +319,189 @@ const ColumnFilter = ({
 }: any) => {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [uniqueValues, setUniqueValues] = useState<any[]>([]);
+  const [isLoadingValues, setIsLoadingValues] = useState(false);
+  const deferredSearch = useDeferredValue(search);
   const isCurrentDateColumn = isDateColumn(
     column.key,
     column.label,
     column.type,
   );
-  const getFilterValue = (value: any, key = column.key) => {
-    const shouldNormalizeDate =
-      key === column.key
-        ? isCurrentDateColumn
-        : isDateColumn(key, key);
-    if (shouldNormalizeDate) {
-      return normalizeDateFilterValue(value) || "undefined";
-    }
-    return value == null || value === "" ? "undefined" : String(value);
-  };
+  const getFilterValue = useCallback(
+    (value: any, key = column.key) => {
+      const shouldNormalizeDate =
+        key === column.key
+          ? isCurrentDateColumn
+          : isDateColumn(key, key);
+      if (shouldNormalizeDate) {
+        return normalizeDateFilterValue(value) || "undefined";
+      }
+      return value == null || value === "" ? "undefined" : String(value);
+    },
+    [column.key, isCurrentDateColumn],
+  );
 
-  const uniqueValues = useMemo(() => {
-    if (!isOpen) return [];
+  // Ignore this column's own selection so checking a value does not trigger a
+  // full rescan of a high-cardinality Timesheet column.
+  const otherFilterSignature = useMemo(
+    () =>
+      JSON.stringify(
+        Object.entries(filterState)
+          .filter(
+            ([key, allowedValues]) =>
+              key !== column.key && allowedValues instanceof Set,
+          )
+          .map(([key, allowedValues]) => [
+            key,
+            Array.from(allowedValues as Set<any>, (value) => String(value)).sort(),
+          ])
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
+      ),
+    [filterState, column.key],
+  );
 
-    const vals = new Set<any>();
+  useEffect(() => {
+    if (!isOpen) return;
 
-    // Dependent Filtering: Calculate options based on other filters
-    let currentData = allData;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let rowIndex = 0;
+    const values = new Set<any>();
+    const lowerSearch = String(searchTerm || "").trim().toLowerCase();
+    const trimmedZeroSearch = lowerSearch.replace(/^0+/, "");
+    const otherFilters = Object.entries(filterState).filter(
+      ([key, allowedValues]) =>
+        key !== column.key && allowedValues instanceof Set,
+    ) as Array<[string, Set<any>]>;
 
-    // 1. Apply Global Search
-    if (searchTerm) {
-      const lowerSearch = String(searchTerm).trim().toLowerCase();
-      const trimmedZeroSearch = lowerSearch.replace(/^0+/, "");
-      currentData = currentData.filter((row: any) =>
-        Object.values(row).some((val) => {
-          if (val == null || val === "") return false;
-          const str = String(val).toLowerCase();
-          if (str.includes(lowerSearch)) return true;
-          if (trimmedZeroSearch && str.includes(trimmedZeroSearch)) return true;
+    const rowMatchesGlobalSearch = (row: any) => {
+      if (!lowerSearch) return true;
+      return Object.values(row).some((value) => {
+        if (value == null || value === "") return false;
+        const normalizedValue = String(value).toLowerCase();
+        if (normalizedValue.includes(lowerSearch)) return true;
+        if (trimmedZeroSearch && normalizedValue.includes(trimmedZeroSearch)) {
+          return true;
+        }
+        if (!/^[+\d.eE\s]+$/.test(normalizedValue)) return false;
+        const formattedId = formatIdNumber(value).toLowerCase();
+        return (
+          formattedId.includes(lowerSearch) ||
+          Boolean(trimmedZeroSearch && formattedId.includes(trimmedZeroSearch))
+        );
+      });
+    };
 
-          if (/^[+\d.eE\s]+$/.test(str)) {
-            const formattedId = formatIdNumber(val).toLowerCase();
-            if (formattedId && formattedId.includes(lowerSearch)) return true;
-            if (trimmedZeroSearch && formattedId && formattedId.includes(trimmedZeroSearch)) return true;
-          }
-
-          return false;
-        }),
+    const processChunk = () => {
+      if (cancelled) return;
+      const chunkEnd = Math.min(
+        rowIndex + COLUMN_FILTER_SCAN_CHUNK_SIZE,
+        allData.length,
       );
-    }
 
-    // 2. Apply ALL OTHER column filters
-    Object.entries(filterState).forEach(([key, allowedValues]) => {
-      if (key !== column.key && allowedValues instanceof Set) {
-        currentData = currentData.filter((row: any) => {
-          const val = getFilterValue(row[key], key);
-          return allowedValues.has(val);
+      for (; rowIndex < chunkEnd; rowIndex += 1) {
+        const row = allData[rowIndex];
+        if (!rowMatchesGlobalSearch(row)) continue;
+        const matchesOtherFilters = otherFilters.every(
+          ([key, allowedValues]) =>
+            allowedValues.has(getFilterValue(row[key], key)),
+        );
+        if (!matchesOtherFilters) continue;
+        values.add(getFilterValue(row[column.key]));
+      }
+
+      if (rowIndex < allData.length) {
+        timer = setTimeout(processChunk, 0);
+        return;
+      }
+
+      const currentSelection = filterState[column.key];
+      if (currentSelection instanceof Set) {
+        currentSelection.forEach((value) => values.add(value));
+      }
+
+      const nextValues = Array.from(values);
+      // Sorting a few values is useful; locale-sorting tens of thousands is a
+      // needless main-thread spike because the popover renders a bounded list.
+      if (nextValues.length <= COLUMN_FILTER_SORT_LIMIT) {
+        nextValues.sort((left: any, right: any) => {
+          if (left === "undefined") return -1;
+          if (right === "undefined") return 1;
+          return String(left).localeCompare(String(right), undefined, {
+            numeric: true,
+          });
         });
       }
-    });
 
-    // 3. Extract unique values from contextually filtered data
-    currentData.forEach((row: any) => {
-      vals.add(getFilterValue(row[column.key]));
-    });
+      if (!cancelled) {
+        setUniqueValues(nextValues);
+        setIsLoadingValues(false);
+      }
+    };
 
-    // Also include currently selected values even if they aren't in the contextually filtered data
+    timer = setTimeout(() => {
+      if (cancelled) return;
+      setUniqueValues([]);
+      setIsLoadingValues(true);
+      processChunk();
+    }, 0);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [
+    allData,
+    column.key,
+    getFilterValue,
+    isOpen,
+    otherFilterSignature,
+    searchTerm,
+  ]);
+
+  const { filteredValues, hasMoreFilteredValues } = useMemo(() => {
+    const normalizedSearch = String(deferredSearch || "").trim().toLowerCase();
+    const visibleValues: any[] = [];
+    const seen = new Set<any>();
     const currentSelection = filterState[column.key];
+
+    const appendIfVisible = (value: any) => {
+      if (seen.has(value)) return false;
+      const displayValue = value === "undefined" ? "(Trống)" : String(value);
+      if (
+        normalizedSearch &&
+        !displayValue.toLowerCase().includes(normalizedSearch)
+      ) {
+        return false;
+      }
+      seen.add(value);
+      visibleValues.push(value);
+      return visibleValues.length > COLUMN_FILTER_RENDER_LIMIT;
+    };
+
+    // Keep active selections visible even when their source position is beyond
+    // the first 250 values.
     if (currentSelection instanceof Set) {
-      currentSelection.forEach((val) => vals.add(val));
+      for (const value of currentSelection) {
+        if (appendIfVisible(value)) break;
+      }
+    }
+    if (visibleValues.length <= COLUMN_FILTER_RENDER_LIMIT) {
+      for (const value of uniqueValues) {
+        if (appendIfVisible(value)) break;
+      }
     }
 
-    return Array.from(vals).sort((a: any, b: any) => {
-      if (a === "undefined") return -1;
-      if (b === "undefined") return 1;
-      return String(a).localeCompare(String(b), undefined, { numeric: true });
-    });
-  }, [allData, column.key, column.label, column.type, filterState, searchTerm, isOpen, isCurrentDateColumn]);
-
-  const filteredValues = useMemo(() => {
-    if (!search) return uniqueValues;
-    return uniqueValues.filter((v) => {
-      const displayVal = v === "undefined" ? "(Trống)" : String(v);
-      return displayVal.toLowerCase().includes(search.toLowerCase());
-    });
-  }, [uniqueValues, search]);
+    return {
+      filteredValues: visibleValues.slice(0, COLUMN_FILTER_RENDER_LIMIT),
+      hasMoreFilteredValues:
+        visibleValues.length > COLUMN_FILTER_RENDER_LIMIT ||
+        (!normalizedSearch && uniqueValues.length > COLUMN_FILTER_RENDER_LIMIT),
+    };
+  }, [uniqueValues, deferredSearch, filterState, column.key]);
 
   const currentFilters = filterState[column.key];
   const isAllSelected = !currentFilters;
-  const isFiltered = currentFilters instanceof Set && currentFilters.size !== uniqueValues.length;
+  const isFiltered = currentFilters instanceof Set;
   const currentSortIndex = Array.isArray(sortConfig)
     ? sortConfig.findIndex((rule: SortRule) => rule.key === column.key)
     : -1;
@@ -439,7 +540,19 @@ const ColumnFilter = ({
   };
 
   return (
-    <Popover onOpenChange={setIsOpen}>
+    <Popover
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (open) {
+          setUniqueValues([]);
+          setIsLoadingValues(true);
+        } else {
+          setSearch("");
+          setUniqueValues([]);
+          setIsLoadingValues(false);
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           className={`flex items-center justify-center p-0.5 rounded transition-all shrink-0 ${
@@ -543,12 +656,20 @@ const ColumnFilter = ({
                 </label>
               </div>
               <span className="text-[10px] tabular-nums text-muted-foreground">
-                ({isAllSelected ? uniqueValues.length : (currentFilters ? currentFilters.size : uniqueValues.length)}/{uniqueValues.length})
+                {isLoadingValues
+                  ? "(đang tải…)"
+                  : `(${isAllSelected ? uniqueValues.length : (currentFilters ? currentFilters.size : uniqueValues.length)}/${uniqueValues.length})`}
               </span>
             </div>
-            {filteredValues.map((val, i) => (
+            {isLoadingValues && (
+              <div className="flex items-center justify-center gap-2 p-3 text-xs font-medium text-muted-foreground">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                Đang tải giá trị lọc…
+              </div>
+            )}
+            {!isLoadingValues && filteredValues.map((val, i) => (
               <div
-                key={i}
+                key={`${column.key}-${String(val)}-${i}`}
                 className="flex items-center justify-between px-2 hover:bg-muted/50 rounded py-1 cursor-pointer group"
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -575,7 +696,12 @@ const ColumnFilter = ({
                 </button>
               </div>
             ))}
-            {filteredValues.length === 0 && (
+            {!isLoadingValues && hasMoreFilteredValues && (
+              <div className="rounded-md bg-amber-50 px-2 py-1.5 text-[10px] font-medium leading-snug text-amber-800">
+                Chỉ hiển thị {COLUMN_FILTER_RENDER_LIMIT} giá trị để giữ bảng mượt. Nhập từ khóa để thu hẹp kết quả.
+              </div>
+            )}
+            {!isLoadingValues && filteredValues.length === 0 && (
               <div className="text-xs text-center text-muted-foreground p-2">
                 Không tìm thấy
               </div>
@@ -953,7 +1079,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     React.useEffect(() => {
       if (onColumnFiltersChange) {
         const hasActiveFilters = Object.values(columnFilters).some(
-          (v) => v && v.size > 0
+          (value) => value instanceof Set,
         );
         onColumnFiltersChange(hasActiveFilters);
       }
@@ -1525,8 +1651,15 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       return map;
     }, [columns]);
 
+    const containsSubtotalRows = useMemo(
+      () => data.some((row) => row._subtotalGroup != null),
+      [data],
+    );
+
     const filteredAndSortedData = useMemo(() => {
-      let result = [...data];
+      // Keep the original array until a filter or sort actually needs a new
+      // result. This avoids an immediate full-array copy for large Raw Data.
+      let result = data;
 
       // Apply search
       if (debouncedSearchTerm) {
@@ -1551,10 +1684,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
       // Apply filters
       Object.entries(columnFilters).forEach(([key, allowedValues]) => {
-        if (allowedValues && allowedValues.size > 0) {
+        if (allowedValues instanceof Set) {
+          const column = columns.find((item) => item.key === key);
           result = result.filter((row) => {
             const rawVal = row[key];
-            const column = columns.find((item) => item.key === key);
             const normalizedFilterValue = isDateColumn(
               key,
               column?.label,
@@ -1604,7 +1737,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
       // Apply Excel-style multi-level sorting. Earlier rules always have
       // higher priority; empty values stay at the bottom at every level.
-      if (sortConfig.length > 0 || result.some((row) => row._subtotalGroup != null)) {
+      if (sortConfig.length > 0 || containsSubtotalRows) {
+        if (result === data) result = [...result];
         result.sort((a, b) => {
           const aNeedsSourceNote = Boolean(a._needsSheetSourceNote);
           const bNeedsSourceNote = Boolean(b._needsSheetSourceNote);
@@ -1659,11 +1793,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       }
 
       return result;
-    }, [data, sortConfig, columnFilters, debouncedSearchTerm, debouncedColumnFilters]);
+    }, [data, sortConfig, columnFilters, debouncedSearchTerm, debouncedColumnFilters, containsSubtotalRows]);
 
     const activeFilters = useMemo(() => {
       return Object.entries(columnFilters)
-        .filter(([_, value]) => value instanceof Set && value.size > 0)
+        .filter(([_, value]) => value instanceof Set)
         .map(([key]) => {
           const col = columns.find((c) => c.key === key);
           return {
@@ -2971,7 +3105,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           : colWidth
         : "150px";
       
-      const isColFiltered = columnFilters[col.key] instanceof Set && columnFilters[col.key]!.size > 0;
+      const isColFiltered = columnFilters[col.key] instanceof Set;
       const isNoHeader = isNoCol(col.key) || isNoCol(col.label);
       const filteredHeaderClass = isColFiltered
         ? "bg-[#FEF3C7] dark:bg-amber-950/40 border-amber-300 text-amber-900 font-extrabold"
