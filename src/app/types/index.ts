@@ -46,6 +46,7 @@ export interface AppData {
   Bank_North_AE: TableData;
   Sheet1_AE: TableData;
   Hold_AE: TableData;
+  Hold_AE_Source?: TableData;
   SoSanh_AE: TableData;
   AuditReport: TableData;
   BankExport: TableData;

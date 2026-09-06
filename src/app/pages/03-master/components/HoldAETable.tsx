@@ -1,3 +1,5 @@
+import { deductionsNote, prioritizeMatchingDeductions } from "../../../lib/utils/deductions-display";
+import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useCallback, forwardRef } from "react";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
@@ -5,7 +7,7 @@ import {
   DataTable,
   OPERATION_KEY_SHORTCUTS,
 } from "../../../components/DataTable";
-import { Trash2, Settings, Download, RefreshCw, Plus, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock, Zap } from "lucide-react";
+import { Trash2, Settings, Download, RefreshCw, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock, Zap } from "lucide-react";
 import {
   TableInitialMark,
   TableTitleRemainder,
@@ -204,7 +206,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
         );
         const normalizedRow = {
           ...row,
-          "ID Number": formatIdNumber(row["ID Number"]),
+          "ID Number": row["ID Number"] ?? "",
           "Sheet Source": sourceResolution.sheetSource,
           _needsSheetSourceNote: sourceResolution.needsSourceMonthNote,
         };
@@ -229,9 +231,9 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
       return {
         ...raw,
-        data: sortMissingDeductionsSourceNotesFirst(
+        data: prioritizeMatchingDeductions(sortMissingDeductionsSourceNotesFirst(
           mergeDuplicateHoldRows(normalizedRows),
-        ),
+        )),
       };
     }, [appData.Hold_AE, appData.globalMonth, parseToMonthIndex]);
 
@@ -689,6 +691,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
           const transactionReferenceField =
             getTransactionReferenceField(header);
+          if (header === "Note") renderOption = (_value, row) => deductionsNote(row);
           if (transactionReferenceField) {
             renderOption = (value: any, row: any) => (
               <TransactionReferenceCell
@@ -725,15 +728,26 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       onOpenTransactionReference,
     ]);
 
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const handleRefresh = () => {
-      setIsRefreshing(true);
-      updateAppData((prev: any) => ({ ...prev }));
-      setTimeout(() => {
-        setIsRefreshing(false);
-        toast.success("Đã làm mới dữ liệu Hold AE");
-      }, 500);
+      if (!appData.Hold_AE_Source) {
+        toast.error("Chưa có bản dữ liệu gốc. Vui lòng xử lý lại file nguồn trong Cấu hình để tạo bản khôi phục.");
+        return;
+      }
+      updateAppData((prev: any) => ({
+        ...prev,
+        Hold_AE: structuredClone(prev.Hold_AE_Source),
+        HoldCarrySnapshots: {},
+      }), true, true);
+      toast.success("Đã khôi phục toàn bộ Deductions từ dữ liệu file gốc");
     };
+    const pendingSync = useMemo(() => applyTransactionReferenceSync({
+      targetTable: "Hold_AE",
+      grossRows: appData.Sheet1_AE?.data || [],
+      deductionRows: appData.Hold_AE?.data || [],
+      transactionRows: appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || [],
+      rawTimesheetRows: [...(appData.Timesheet_Roster || []), ...(appData.Q_Staff || [])],
+      reportMonth: appData.globalMonth,
+    }).correctedCells > 0, [appData.Sheet1_AE, appData.Hold_AE, appData.BankExport, appData.Bank_North_AE, appData.Timesheet_Roster, appData.Q_Staff, appData.globalMonth]);
 
     const handleBulkSyncFromReconcile = useCallback(() => {
       updateAppData((prev: any) => {
@@ -781,15 +795,10 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       }, true, true);
     }, [updateAppData]);
 
-    const handleExportExcel = () => {
-      import("xlsx").then((XLSX) => {
-        const ws = XLSX.utils.json_to_sheet(filteredData.data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Hold_AE");
-        XLSX.writeFile(wb, "Hold_AE_Export.xlsx");
-        toast.success("Đã xuất file Excel thành công");
-      });
-    };
+    const handleExportExcel = () => chooseExcelExport(() => {
+      const current = (ref as any)?.current;
+      current?.exportExcel?.();
+    });
 
     const handleClearAll = () => {
       setShowClearConfirm(true);
@@ -1035,45 +1044,25 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                     {isSearchVisible ? "Ẩn công cụ tìm kiếm" : "Tìm kiếm..."}
                   </span>
                 </DropdownMenuItem>
-                {onAddRow && !isCurrentMonthLocked && (
-                  <DropdownMenuItem
-                    onClick={() => onAddRow()}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
-                  >
-                    <Plus className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold text-slate-700">Thêm dòng mới</span>
-                  </DropdownMenuItem>
-                )}
+
                 <DropdownMenuItem
                   onClick={handleRefresh}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <RefreshCw className={`w-4 h-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
+                  <RefreshCw className="w-4 h-4 text-primary" />
                   <span className="text-xs font-bold text-slate-700">Làm mới dữ liệu</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleBulkSyncFromReconcile}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors"
+                  disabled={!pendingSync || isCurrentMonthLocked}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors data-[disabled]:bg-muted data-[disabled]:text-muted-foreground"
                 >
-                  <Zap className="w-4 h-4 text-amber-600" />
+                  <Zap className={`w-4 h-4 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
                   <span className="text-xs font-bold text-slate-700">
                     Đồng bộ từ Reconcile
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    const currentRef = ref as any;
-                    if (currentRef?.current?.resetTableConfig) {
-                      currentRef.current.resetTableConfig();
-                    } else {
-                      toast.error("Không tìm thấy cấu hình bảng");
-                    }
-                  }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4 text-amber-600 animate-pulse" />
-                  <span className="text-xs font-bold text-slate-700">Khôi phục bố cục bảng</span>
-                </DropdownMenuItem>
+
                 <DropdownMenuItem
                   onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
@@ -1081,21 +1070,13 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   <Settings className="w-4 h-4 text-slate-500" />
                   <span className="text-xs font-bold text-slate-700">Cài đặt Giao diện</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() =>
-                    window.dispatchEvent(new Event("app-export-section-excel"))
-                  }
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-50 transition-colors"
-                >
-                  <Download className="w-4 h-4 text-emerald-700" />
-                  <span className="text-xs font-bold text-slate-700">Xuất toàn bộ Master</span>
-                </DropdownMenuItem>
+
                 <DropdownMenuItem
                   onClick={handleExportExcel}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
                   <Download className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-700">Xuất bảng Deductions</span>
+                  <span className="text-xs font-bold text-slate-700">Xuất Excel</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-50" />
                 <DropdownMenuItem
@@ -1162,7 +1143,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           externalSearchTerm={searchTerm}
           onExternalSearchChange={onSearchTermChange}
           storageKey="master_ae_Hold_AE"
-          ignoreSavedHiddenColumns={true}
+          ignoreSavedHiddenColumns={false}
           hideSearch={true}
           showFooter={true}
           footerStatusContent={

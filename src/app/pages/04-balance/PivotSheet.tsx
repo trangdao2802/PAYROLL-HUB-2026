@@ -1,3 +1,5 @@
+import { registerTableExport } from "../../lib/utils/table-excel";
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import * as XLSX from "xlsx";
@@ -1405,15 +1407,15 @@ export function PivotSheet() {
 
     const visibleTypes = safeTypeColumns
       .map((type, idx) => ({ type, idx }))
-      .filter(({ type, idx }) => !isTypeColHidden(type, idx));
+      ;
 
     const headers: string[] = [];
-    if (!hiddenColumns.no) headers.push("No.");
-    if (!hiddenColumns.business) headers.push("Business");
-    if (!hiddenColumns.charge) headers.push("L07");
-    if (!hiddenColumns.month) headers.push("Tháng");
+    headers.push("No.");
+    headers.push("Business");
+    headers.push("L07");
+    headers.push("Tháng");
     visibleTypes.forEach(({ type }) => headers.push(type));
-    if (!hiddenColumns.grandTotal) headers.push("TỔNG CỘNG");
+    headers.push("TỔNG CỘNG");
 
     const wsData: any[][] = [];
     wsData.push(headers);
@@ -1462,39 +1464,46 @@ export function PivotSheet() {
             : l07;
 
           const rowData: any[] = [];
-          if (!hiddenColumns.no) rowData.push(rowId++);
-          if (!hiddenColumns.business) rowData.push(bu);
-          if (!hiddenColumns.charge) rowData.push(displayL07);
-          if (!hiddenColumns.month) rowData.push(month);
+          rowData.push(rowId++);
+          rowData.push(bu);
+          rowData.push(displayL07);
+          rowData.push(month);
           rowData.push(...rowVals);
-          if (!hiddenColumns.grandTotal) rowData.push(rowTotal);
+          rowData.push(rowTotal);
 
           wsData.push(rowData);
         });
       });
 
       const buRowData: any[] = [];
-      if (!hiddenColumns.no) buRowData.push("");
-      if (!hiddenColumns.business) buRowData.push(bu);
-      if (!hiddenColumns.charge) buRowData.push(`${bu} Total`);
-      if (!hiddenColumns.month) buRowData.push("");
+      buRowData.push("");
+      buRowData.push(bu);
+      buRowData.push(`${bu} Total`);
+      buRowData.push("");
       buRowData.push(...buTotals);
-      if (!hiddenColumns.grandTotal) buRowData.push(buGrandTotal);
+      buRowData.push(buGrandTotal);
 
       wsData.push(buRowData);
     });
 
     const totalRowData: any[] = [];
-    if (!hiddenColumns.no) totalRowData.push("");
-    if (!hiddenColumns.business) totalRowData.push("");
-    if (!hiddenColumns.charge) totalRowData.push("");
-    if (!hiddenColumns.month) totalRowData.push("TỔNG CỘNG");
+    totalRowData.push("");
+    totalRowData.push("");
+    totalRowData.push("");
+    totalRowData.push("TỔNG CỘNG");
     totalRowData.push(...excelGrandTotals);
-    if (!hiddenColumns.grandTotal) totalRowData.push(superGrandTotal);
+    totalRowData.push(superGrandTotal);
 
     wsData.push(totalRowData);
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws["!cols"] = [
+      { hidden: hiddenColumns.no }, { hidden: hiddenColumns.business },
+      { hidden: hiddenColumns.charge }, { hidden: hiddenColumns.month },
+      ...safeTypeColumns.map((type, idx) => ({ hidden: isTypeColHidden(type, idx) })),
+      { hidden: hiddenColumns.grandTotal },
+    ];
+    Object.values(ws).forEach(cell => { if (cell?.t === "n") cell.z = "General"; });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Pivot_Data");
     XLSX.writeFile(wb, "Pivot_Salary_Report.xlsx");
@@ -1621,6 +1630,23 @@ export function PivotSheet() {
       return sortDirection === "asc" ? valA - valB : valB - valA;
     });
   }, [allFlatRows, safeTypeColumns, sortField, sortDirection]);
+
+  useEffect(() => {
+    const cols = [
+      {key: "No.", label: "No.", hidden: !!hiddenColumns.no},
+      {key: "Business", label: "Business", hidden: !!hiddenColumns.business},
+      {key: "L07", label: "L07", hidden: !!hiddenColumns.charge},
+      {key: "Month", label: "Tháng", hidden: !!hiddenColumns.month},
+      ...safeTypeColumns.map((type, idx) => ({key: type, label: type, type: "currency", hidden: isTypeColHidden(type, idx)})),
+      {key: "Grand Total", label: "TỔNG CỘNG", type: "currency", hidden: !!hiddenColumns.grandTotal},
+    ];
+    return registerTableExport("master-pivot", () => ({
+      schema: {columns: cols, hiddenColumns: cols.filter(c => c.hidden).map(c => c.key)},
+      rows: sortedFlatRows.map(row => ({"No.": row.globalRowId, Business: row.bu,
+        L07: row.sourceLabels.length ? row.l07 + " — " + row.sourceLabels.join(" / ") : row.l07,
+        Month: row.month, ...Object.fromEntries(safeTypeColumns.map((type, idx) => [type, row.values[idx]])), "Grand Total": row.rowTotal})),
+    }));
+  });
 
   const autoFitAllColumns = useCallback(() => {
     const canvas = document.createElement("canvas");
@@ -2132,25 +2158,14 @@ export function PivotSheet() {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setIsSettingsOpen(false);
-                        window.dispatchEvent(
-                          new Event("app-export-section-excel"),
-                        );
-                      }}
-                      className="w-full mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg shadow-2xs transition-all cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Xuất toàn bộ Master</span>
-                    </button>
+
 
                     <button
-                      onClick={handleExportExcel}
+                      onClick={() => chooseExcelExport(handleExportExcel)}
                       className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Xuất bảng Pivot Master</span>
+                      <span>Xuất Excel</span>
                     </button>
                   </div>
 

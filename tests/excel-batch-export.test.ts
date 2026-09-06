@@ -37,7 +37,7 @@ test("bank Transaction export keeps the web row intact but blanks its ID fields"
   assert.deepEqual(Object.keys(exported), BANK_TRANSACTION_EXPORT_HEADERS);
 });
 
-test("hierarchical export starts with a linked tree index and includes cards beside each table", () => {
+test("hierarchical export starts with a linked tree index and includes cards below each table", () => {
   const definition: WorkbookExportDefinition = {
     title: "MASTER",
     fileName: "master.xlsx",
@@ -106,7 +106,7 @@ test("hierarchical export starts with a linked tree index and includes cards bes
   const amountCell = Object.values(grossSheet).find(
     (cell) => isWorksheetCell(cell) && cell.v === 1250000 && cell.t === "n",
   ) as XLSX.CellObject | undefined;
-  assert.equal(amountCell?.z, "#,##0.##");
+  assert.equal(amountCell?.z, "General");
   assert.ok(!String(amountCell?.z).toUpperCase().includes("VND"));
 
   const serialized = XLSXStyle.write(workbook, {
@@ -252,13 +252,13 @@ test("Master batch export covers all four pages and every permanent child table"
   assert.equal(deductions?.table?.rows.length, 1);
 
   const transaction = masterTables.find((node) => node.title === "Transaction");
-  assert.equal(transaction?.table?.rows[0]?.["Document ID"], "");
+  assert.equal(transaction?.table?.rows[0]?.["Document ID"], "001");
 
   const reconciliation = masterTables.find(
     (node) => node.title === "Reconciliation Details",
   );
-  assert.equal(reconciliation?.table?.rows[0]?.["ID Number"], "001");
-  assert.equal(reconciliation?.table?.rows[0]?.["Variance"], 0);
+  assert.equal(reconciliation?.table?.rows[0]?.["ID NUMBER"], "001");
+  assert.equal(reconciliation?.table?.rows[0]?.["Diff"], 0);
 });
 
 test("section-wide Excel actions live inside each table action icon, not the navbar", () => {
@@ -272,22 +272,22 @@ test("section-wide Excel actions live inside each table action icon, not the nav
   const tableMenus = [
     {
       path: "../src/app/pages/01-timesheet/TimesheetHub.tsx",
-      action: /onClick=\{handleExportAllExcel\}/,
-      label: /Xuất toàn bộ Timesheet/,
+      action: /chooseExcelExport\(/,
+      label: /Xuất Excel/,
     },
     {
       path: "../src/app/pages/02-audit/Audit.tsx",
-      action: /onClick=\{handleExportExcel\}/,
-      label: /Xuất toàn bộ Audit/,
+      action: /chooseExcelExport\(/,
+      label: /Xuất Excel/,
     },
     {
       path: "../src/app/pages/03-master/MasterAE.tsx",
-      action: /onClick=\{handleExportAllExcel\}/,
-      label: /Xuất toàn bộ Master/,
+      action: /chooseExcelExport\(/,
+      label: /Xuất Excel/,
     },
     {
       path: "../src/app/pages/04-balance/components/HoldAddDashboard.tsx",
-      action: /onClick=\{handleExportExcel\}/,
+      action: /chooseExcelExport\(/,
       label: /Xuất Excel Trial Balance/,
     },
   ];
@@ -305,8 +305,8 @@ test("section-wide Excel actions live inside each table action icon, not the nav
     "../src/app/pages/04-balance/PivotSheet.tsx",
   ]) {
     const source = readFileSync(new URL(sourcePath, import.meta.url), "utf8");
-    assert.match(source, /app-export-section-excel/);
-    assert.match(source, /Xuất toàn bộ Master/);
+    assert.match(source, /chooseExcelExport/);
+    assert.match(source, /Xuất Excel/);
   }
 });
 

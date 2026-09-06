@@ -1,3 +1,4 @@
+import { masterTableExportColumns } from "./master-table-columns";
 import type { AppData } from "../../types";
 import {
   accountOf,
@@ -18,7 +19,6 @@ import { parseMoneyToNumber, removeVietnameseTones } from "./data-utils";
 import { hasRequiredDeductionsFields } from "./deductions-row-validation";
 import {
   BANK_TRANSACTION_EXPORT_HEADERS,
-  prepareTransactionBankExportRows,
   type WorkbookExportDefinition,
 } from "./excel-export";
 import { buildPivotFromAppData, getPivotSourceLabels } from "./pivot-utils";
@@ -493,7 +493,7 @@ export function createMasterExportDefinition(
     appData.BankExport?.data?.length > 0
       ? appData.BankExport.data
       : appData.Bank_North_AE?.data || [];
-  const transactionRows = prepareTransactionBankExportRows(rawTransactions);
+  const transactionRows = rawTransactions;
   const reconciliation = buildReconciliationRows(
     grossRows,
     deductionRows,
@@ -533,7 +533,8 @@ export function createMasterExportDefinition(
             title: "Gross Pay Details",
             sheetName: "Gross Pay",
             table: {
-              headers: appData.Sheet1_AE?.headers,
+              storageKey: "master-ae-Sheet1_AE",
+              columns: masterTableExportColumns(appData.Sheet1_AE, "Sheet1_AE"),
               rows: grossRows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },
@@ -551,7 +552,8 @@ export function createMasterExportDefinition(
             title: "Deductions & Benefits",
             sheetName: "Deductions",
             table: {
-              headers: appData.Hold_AE?.headers,
+              storageKey: "master_ae_Hold_AE",
+              columns: masterTableExportColumns(appData.Hold_AE, "Hold_AE"),
               rows: deductionRows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },
@@ -569,7 +571,8 @@ export function createMasterExportDefinition(
             title: "Transaction",
             sheetName: "Transaction",
             table: {
-              headers: [...BANK_TRANSACTION_EXPORT_HEADERS],
+              storageKey: "bulk_payment",
+              columns: (appData.BankExport?.headers?.length ? appData.BankExport.headers : [...BANK_TRANSACTION_EXPORT_HEADERS]).filter(key => !key.startsWith("_") && !/^(id|uuid|rowid|recordid)$/i.test(key)).map(key => ({key, label: key === "Document ID" ? "ID NUMBER" : key, type: key === "Payment Amount" ? "currency" : "text"})),
               rows: transactionRows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },
@@ -594,7 +597,14 @@ export function createMasterExportDefinition(
                 title: "Reconciliation Details",
                 sheetName: "Reconciliation Details",
                 table: {
-                  rows: reconciliation.details,
+                  storageKey: "master-reconcile",
+                  headers: ["No.", "ID NUMBER", "FULL NAME", "Bank Acc No. from AE", "Bank Acc No. from ACC", "TOTAL BANK AE", "TOTAL BANK ACC", "Diff", "Process Sync", "Problems"],
+                  rows: reconciliation.details.map(row => ({
+                    "No.": row["No."], "ID NUMBER": row["ID Number"], "FULL NAME": row["Full Name"],
+                    "Bank Acc No. from AE": row["Bank Account Number"], "Bank Acc No. from ACC": row["Bank Account Number"],
+                    "TOTAL BANK AE": row["Actual Transaction"], "TOTAL BANK ACC": row["Expected Payment"],
+                    Diff: row.Variance, "Process Sync": "", Problems: row.Status === "MATCHED" ? "" : "Chênh lệch số tiền",
+                  })),
                   cards: [
                     {
                       label: "Employees",
@@ -615,6 +625,8 @@ export function createMasterExportDefinition(
             title: "HOLD Lifecycle Analysis",
             sheetName: "HOLD Analysis",
             table: {
+              headers: ["No.", "BU", "Tháng HOLD", "Tổng số dư HOLD", "Số dư HOLD đầu kỳ", "HOLD phát sinh", "Thanh toán HOLD tại kỳ", "CANCEL tại kỳ", "Các tháng đã thanh toán", "Số dư HOLD còn lại", "Trạng thái HOLD"],
+              storageKey: "master-analysis",
               rows: analytics.summaryRows as unknown as DataRow[],
               cards: [
                 { label: "Reporting Month", value: analytics.currentPeriod },
@@ -707,6 +719,7 @@ export function createMasterExportDefinition(
             title: "Cost Allocation by BU, L07 & Task Type",
             sheetName: "Pivot Master",
             table: {
+              storageKey: "master-pivot",
               rows: pivot.rows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },

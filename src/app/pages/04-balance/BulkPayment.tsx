@@ -1,3 +1,5 @@
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
@@ -1872,48 +1874,27 @@ export function BulkPayment({
     }, true, true);
   }, [reconciliationAudit.transactionAuditList, updateAppData]);
 
+  const reconciliationExportRows = useMemo(() => filteredTransactionAudits.map(t => ({
+      "No.": t.id.startsWith("unmatched-") ? "DISC" : t.serialNo,
+      "ID NUMBER": t.docId,
+      "FULL NAME": t.name,
+      "Bank Acc No. from AE": t.accountNo || "",
+      "Bank Acc No. from ACC": t.benefitsAccountNo || t.accountNo || "",
+      "TOTAL BANK AE": t.actualAmount,
+      "TOTAL BANK ACC": t.sheet1Amount + t.holdAmount,
+      "Diff": t.variance,
+      "Process Sync": ((t.referenceCorrections?.length || 0) + (t.referenceTransactionCorrections?.length || 0)) > 0 ? "Sync" : "",
+      "Problems": t.issues.join("; "),
+    })), [filteredTransactionAudits]);
+  useEffect(() => registerTableExport("master-reconcile", () => ({
+    schema: { columns: ["No.", "ID NUMBER", "FULL NAME", "Bank Acc No. from AE", "Bank Acc No. from ACC", "TOTAL BANK AE", "TOTAL BANK ACC", "Diff", "Process Sync", "Problems"].map(key => ({key, label: key, type: /^(TOTAL|Diff)/.test(key) ? "currency" : "text"})), hiddenColumns: [] },
+    rows: reconciliationExportRows,
+  })), [reconciliationExportRows]);
+
   const handleExportReconciliationExcel = () => {
     const wb = XLSX.utils.book_new();
 
-    const buData = Object.values(reconciliationAudit.buMatrix).map((b) => ({
-      "Business Unit (BU)": b.bu,
-      "Số tiền Sheet1 AE": b.sheet1Total,
-      "Điều chỉnh Hold AE": b.holdTotal,
-      "Tổng Mục tiêu (Sheet1 + Hold AE)": b.expectedTotal,
-      "Tổng Giao dịch Thực tế (Bank Export)": b.actualTotal,
-      "Chênh lệch (Variance)": b.variance,
-      "Số lượng Giao dịch": b.txCount,
-      "Giao dịch Khớp 100%": b.matchedTxCount,
-      "Trạng thái": b.status === "MATCHED" ? "KHỚP 100%" : "LỆCH SỐ LIỆU",
-    }));
-    const ws1 = XLSX.utils.json_to_sheet(buData);
-    XLSX.utils.book_append_sheet(wb, ws1, "BU_Consolidated_Matrix");
-
-    const txData = reconciliationAudit.transactionAuditList.map((t) => ({
-      "STT / Serial": t.serialNo,
-      "Họ và tên Người thụ hưởng": t.name,
-      "Document ID / CCCD": t.docId,
-      "Số tài khoản": t.accountNo,
-      "Ngân hàng": t.bankName,
-      "BU / Cơ sở": t.bu,
-      "Số tiền Thực tế (Bank Export)": t.actualAmount,
-      "Số tiền Sheet1 AE": t.sheet1Amount,
-      "Điều chỉnh Hold AE": t.holdAmount,
-      "Mục tiêu Target (Sheet1 + Hold AE)": t.expectedAmount,
-      "Chênh lệch (Variance)": t.variance,
-      "Trạng thái Đối soát":
-        t.status === "MATCHED"
-          ? "KHỚP 100%"
-          : t.status === "VARIANCE"
-            ? "CHÊNH LỆCH"
-            : t.status === "MISSING_INFO"
-              ? "THIẾU THÔNG TIN"
-              : t.status === "DUPLICATE"
-                ? "TRÙNG LẶP ID"
-                : "KHÔNG CÓ TRONG SHEET1",
-      "Ghi chú / Vấn đề": t.issues.join("; "),
-    }));
-    const ws2 = XLSX.utils.json_to_sheet(txData);
+    const ws2 = XLSX.utils.json_to_sheet(reconciliationExportRows);
     XLSX.utils.book_append_sheet(wb, ws2, "Chi_Tiet_Doi_Soat_Giao_Dich");
 
     XLSX.writeFile(
@@ -3352,13 +3333,11 @@ export function BulkPayment({
                   <span>Cài đặt Giao diện</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() =>
-                    window.dispatchEvent(new Event("app-export-section-excel"))
-                  }
+                  onClick={() => chooseExcelExport(() => { if (rightPanelTab === "table") downloadTableExcel("bulk_payment"); else handleExportReconciliationExcel(); })}
                   className="text-slate-700"
                 >
                   <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-700" />
-                  <span>Xuất toàn bộ Master</span>
+                  <span>Xuất Excel</span>
                 </DropdownMenuItem>
                 {rightPanelTab === "visuals" ? (
                   <>
@@ -3411,10 +3390,7 @@ export function BulkPayment({
                     </DropdownMenuLabel>
                     <DropdownMenuItem
                       onClick={() => {
-                        handleExportExcel();
-                        toast.success(
-                          "Đã xuất file Excel Bank Export thành công!",
-                        );
+                        chooseExcelExport(() => downloadTableExcel("bulk_payment"));
                       }}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold text-xs"
                     >
@@ -3422,7 +3398,7 @@ export function BulkPayment({
                       <span>Xuất Bảng kê Bank Export</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={handleExportReconciliationExcel}
+                      onClick={() => chooseExcelExport(handleExportReconciliationExcel)}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-bold text-xs"
                     >
                       <Scale className="w-4 h-4 text-sky-600 shrink-0" />
