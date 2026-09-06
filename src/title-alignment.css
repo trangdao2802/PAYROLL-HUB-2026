@@ -1,0 +1,33 @@
+/*
+ * Keeps every branded table-title initial on the same optical baseline as the
+ * text that follows it. The reference A–Z masks contain a small amount of
+ * lower visual weight, so the initial needs a fixed 2px lift everywhere it is
+ * rendered, including expandable/toggle headers.
+ */
+.app-table-initial-mark {
+  position: relative;
+  top: -2px;
+}
+
+/* Hover animation may scale the decorative initial, but must never move its
+ * baseline away from the remainder of the title. */
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, a):hover .app-table-initial-mark {
+    transform: scale(1.025) !important;
+  }
+}
+
+.table-initial-toggle:hover .app-table-initial-mark {
+  transform: scale(1.025) !important;
+}
+
+/* Page sub-title in the navbar uses sentence case: only the first character
+ * is capitalized, e.g. “Bulk payment” instead of “Bulk Payment”. */
+.navbar-current-label {
+  display: inline-block;
+  text-transform: lowercase !important;
+}
+
+.navbar-current-label::first-letter {
+  text-transform: uppercase !important;
+}

@@ -4,6 +4,7 @@ import { registerFrenchMatchaPaletteTheme } from "./app/lib/french-matcha-theme"
 import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
 import "./table-border-zero.css";
+import "./title-alignment.css";
 
 declare global {
   interface Window {
