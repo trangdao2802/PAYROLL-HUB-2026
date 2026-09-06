@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
+import { registerFrenchMatchaPaletteTheme } from "./app/lib/french-matcha-theme";
 import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
 import "./table-border-zero.css";
@@ -64,6 +65,8 @@ async function loadDynamicSupabaseConfig() {
 }
 
 function start() {
+  registerFrenchMatchaPaletteTheme();
+
   if (isValidSupabaseConfig(staticSupabaseConfig)) {
     window.__SUPABASE_CONFIG__ = staticSupabaseConfig;
   } else {
