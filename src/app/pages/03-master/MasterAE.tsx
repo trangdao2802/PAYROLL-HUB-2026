@@ -1,3 +1,5 @@
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { downloadTableExcel } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
@@ -864,6 +866,7 @@ export function MasterAE() {
   ]);
 
   const handleExportExcel = useCallback(() => {
+    if (downloadTableExcel(activeTab === "Hold_AE" ? "master_ae_Hold_AE" : `master-ae-${activeTab}`)) return;
     if (currentData.data.length === 0) return;
 
     if (activeTab === "BulkPayment") {
@@ -946,6 +949,7 @@ export function MasterAE() {
               >
                 <div 
                   className="table-container flex-1 flex flex-col min-h-0 relative bg-transparent rounded-none shadow-none overflow-hidden master-ae-table-wrapper"
+                  data-split-panels={activeTab === "BulkPayment"}
                   style={{ paddingTop: "0px", paddingLeft: "0px", paddingRight: "0px", paddingBottom: "0px", borderWidth: "0px" }}
                 >
                   {activeTab === "BulkPayment" && (
@@ -1166,11 +1170,11 @@ export function MasterAE() {
                                     <span className="text-xs font-bold text-slate-700">Cài đặt Giao diện</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={handleExportAllExcel}
+                                    onClick={() => chooseExcelExport(handleExportExcel, handleExportAllExcel)}
                                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                                   >
                                     <Download className="w-4 h-4 text-emerald-600" />
-                                    <span className="text-xs font-bold text-slate-700">Xuất toàn bộ Master</span>
+                                    <span className="text-xs font-bold text-slate-700">Xuất Excel</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator className="bg-slate-50" />
                                   <DropdownMenuItem

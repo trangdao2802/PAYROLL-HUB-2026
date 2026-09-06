@@ -1,3 +1,6 @@
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { createMasterExportDefinition } from "../../lib/utils/master-excel-export";
+import { downloadHierarchicalWorkbook } from "../../lib/utils/excel-export";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -1473,6 +1476,7 @@ export function AEDataConfig({
                       _needsSheetSourceNote: needsSheetSourceNote,
                       "Nghiệp vụ": sheetSource.toUpperCase().includes("ADD") ? "ADD" : "Hold",
                       Note: note,
+                      _adjacentNote: iNote >= 0 ? String(row[iNote + 1] ?? "").trim() : "",
                       "TÊN FILE": item.name || "",
                       _fileBank: effectiveBank,
                       _fileMonth: itemMonth,
@@ -1569,6 +1573,7 @@ export function AEDataConfig({
                       _needsSheetSourceNote: needsSheetSourceNote,
                       "Nghiệp vụ": nghiepVu,
                       Note: note,
+                      _adjacentNote: String(row[9] ?? "").trim(),
                       "TÊN FILE": item.name || "",
                       _fileBank: effectiveBank,
                       _fileMonth: itemMonth,
@@ -2270,6 +2275,14 @@ export function AEDataConfig({
             ],
             data: finalSoSanhAeData,
           },
+          Hold_AE_Source: {
+            headers: ["No.", "BU", "L07", "ID Number", "Full name", "Bank Account Number", "TOTAL PAYMENT", "Sheet Source", "Tháng báo cáo", "Nghiệp vụ", "Note"],
+            data: structuredClone([
+              ...(prev.Hold_AE_Source?.data || []).filter((row: any) => !targets.some(item =>
+                row["TÊN FILE"] === item.name && normalizeMonth(row._fileMonth || row["Tháng báo cáo"]) === normalizeMonth(item.month || currentMonth))),
+              ...verifiedHoldData,
+            ]),
+          },
           Hold_AE: {
             headers: [
               "No.",
@@ -2575,7 +2588,7 @@ export function AEDataConfig({
                   <DropdownMenuSeparator className="bg-primary/10 mx-1.5" />
 
                   <DropdownMenuItem
-                    onClick={exportConfigListToExcel}
+                    onClick={() => chooseExcelExport(exportConfigListToExcel, () => { void downloadHierarchicalWorkbook(createMasterExportDefinition(appData)); })}
                     className="cursor-pointer font-bold uppercase text-[0.6875rem] gap-3 hover:bg-teal-50 text-teal-600 p-3 rounded-xl transition-all"
                   >
                     <Download className="w-4 h-4" />

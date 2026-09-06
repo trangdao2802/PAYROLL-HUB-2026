@@ -1,3 +1,4 @@
+import { registerTableExport } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
   useState,
@@ -1769,6 +1770,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       toast.success(`Đã đổi định dạng cột sang ${type}`);
     };
 
+    useEffect(() => {
+      if (!storageKey) return;
+      return registerTableExport(storageKey, () => ({
+        schema: { columns: columns.map(({ key, label, type, hidden }) => ({ key, label, type, hidden })), hiddenColumns: [...effectiveHiddenColumns] },
+        rows: filteredAndSortedData,
+      }));
+    }, [storageKey, columns, effectiveHiddenColumns, filteredAndSortedData]);
     React.useImperativeHandle(ref, () => ({
       columns,
       hiddenColumns: effectiveHiddenColumns,

@@ -1,3 +1,4 @@
+import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
@@ -2446,7 +2447,7 @@ export function HoldAddDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleExportExcel}
+                  onClick={() => chooseExcelExport(handleExportExcel, handleExportExcel)}
                   className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />

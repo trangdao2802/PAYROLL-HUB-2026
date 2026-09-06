@@ -1,3 +1,4 @@
+import { getLiveTableExport, readTableExportSchema, tableExportValue, type ExportColumn } from "./table-excel";
 import * as XLSX from "xlsx";
 
 export const BANK_TRANSACTION_EXPORT_HEADERS = [
@@ -29,6 +30,9 @@ export interface WorkbookCardValue {
 export interface WorkbookTableDefinition {
   rows: Array<Record<string, unknown>>;
   headers?: string[];
+  columns?: ExportColumn[];
+  storageKey?: string;
+  hiddenHeaders?: string[];
   cards?: WorkbookCardValue[];
 }
 
@@ -168,6 +172,7 @@ const collectHeaders = (
     seen.add(normalized);
     headers.push(header);
   });
+  if (requestedHeaders) return headers;
   rows.forEach((row) => {
     Object.keys(row || {}).forEach((key) => {
       const normalized = key.trim().toUpperCase();
@@ -223,7 +228,7 @@ const setCellLink = (cell: XLSX.CellObject | undefined, target: string) => {
 
 const applyNumberFormat = (cell: XLSX.CellObject | undefined) => {
   if (!cell || cell.t !== "n") return;
-  cell.z = "#,##0.##";
+  cell.z = "General";
 };
 
 const applyTableStyles = (
@@ -265,9 +270,17 @@ const createTableWorksheet = (
   node: ResolvedWorkbookNode,
 ): XLSX.WorkSheet => {
   const table = node.table!;
-  const headers = collectHeaders(table.rows, table.headers);
-  const rows = table.rows.map((row) =>
-    headers.map((header) => normalizeExportValue(row?.[header], header)),
+  const liveTable = table.storageKey ? getLiveTableExport(table.storageKey) : undefined;
+  const savedSchema = table.storageKey ? readTableExportSchema(table.storageKey) : undefined;
+  const schema = liveTable?.schema || (table.columns ? {
+    columns: table.columns,
+    hiddenColumns: savedSchema?.hiddenColumns || table.columns.filter(c => c.hidden).map(c => c.key),
+  } : savedSchema);
+  const headers = schema ? schema.columns.map(col => col.label) : collectHeaders(table.rows, table.headers);
+  const sourceRows = (table.storageKey && getLiveTableExport(table.storageKey)?.rows) || table.rows;
+  const rows = sourceRows.map((row, index) =>
+    schema ? schema.columns.map(col => tableExportValue(row, col, index))
+      : headers.map((header) => normalizeExportValue(row?.[header], header)),
   );
   const headerRowIndex = 3;
   const worksheet = XLSX.utils.aoa_to_sheet([
@@ -294,7 +307,8 @@ const createTableWorksheet = (
     visibleColumnCount,
   );
 
-  const cardStartColumn = Math.max(visibleColumnCount + 2, 6);
+  const cardStartColumn = 0;
+  const cardStartRow = headerRowIndex + rows.length + 3;
   if (table.cards?.length) {
     XLSX.utils.sheet_add_aoa(
       worksheet,
@@ -305,12 +319,12 @@ const createTableWorksheet = (
           normalizeExportValue(card.value, card.label),
         ]),
       ],
-      { origin: { r: 1, c: cardStartColumn } },
+      { origin: { r: cardStartRow, c: cardStartColumn } },
     );
     for (let column = cardStartColumn; column <= cardStartColumn + 1; column += 1) {
-      const headerCell = worksheet[XLSX.utils.encode_cell({ r: 1, c: column })];
+      const headerCell = worksheet[XLSX.utils.encode_cell({ r: cardStartRow, c: column })];
       if (headerCell) headerCell.s = HEADER_STYLE;
-      for (let row = 2; row < 2 + table.cards.length; row += 1) {
+      for (let row = cardStartRow + 1; row < cardStartRow + 1 + table.cards.length; row += 1) {
         const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: column })];
         if (!cell) continue;
         cell.s = { ...(cell.s || {}), border: DATA_BORDER };
@@ -322,6 +336,7 @@ const createTableWorksheet = (
   worksheet["!cols"] = [
     ...(headers.length > 0
       ? headers.map((header, column) => ({
+          hidden: schema ? schema.hiddenColumns.includes(schema.columns[column].key) : table.hiddenHeaders?.includes(header),
           wch: estimateColumnWidth(
             header,
             rows.slice(0, 200).map((row) => row[column]),
@@ -329,12 +344,7 @@ const createTableWorksheet = (
         }))
       : [{ wch: 18 }]),
   ];
-  if (table.cards?.length) {
-    while ((worksheet["!cols"] || []).length < cardStartColumn) {
-      worksheet["!cols"]!.push({ wch: 3 });
-    }
-    worksheet["!cols"]!.push({ wch: 24 }, { wch: 18 });
-  }
+
   worksheet["!rows"] = [
     { hpt: 20 },
     { hpt: 24 },

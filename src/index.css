@@ -3619,3 +3619,16 @@ body {
     max-height: 34dvh !important;
   }
 }
+
+/* Use one separator color across table titles, cells and footers. */
+:root { --table-frame-border: var(--table-border-color, var(--border)); }
+:where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper, .pivot-table-container) :where(th, td, .table-footer-pagination, .table-header, .unified-table-frame-header) {
+  border-color: var(--table-border-color, var(--border)) !important;
+}
+.data-table-wrapper table tbody tr.data-table-row--matching-deduction > td {
+  background-color: color-mix(in srgb, var(--primary) 18%, var(--card)) !important;
+}
+.bulk-payment-layout { border: 0 !important; box-shadow: none !important; }
+.bulk-payment-layout::before, .bulk-payment-layout::after { content: none !important; }
+
+.master-ae-table-wrapper[data-split-panels="true"]::after { content: none !important; }

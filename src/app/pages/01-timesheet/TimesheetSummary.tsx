@@ -1,3 +1,4 @@
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   FileSpreadsheet,
@@ -40,7 +41,6 @@ import {
 import { formatTimesheetSyncDate } from "../../lib/utils/timesheet-sync-date";
 import { 
   generateUUID, 
-  prepareDataForExport,
   getExcelFileBuffer,
   fetchGoogleSheetAsFile,
 } from "../../lib/utils/data-utils";
@@ -1154,7 +1154,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       toast?.error("Không có dữ liệu");
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(prepareDataForExport(activeData));
+    const ws = XLSX.utils.json_to_sheet(activeData.map((row, index) => ({"No.": index + 1, "L07": row.l07 || "", "AE Code": row.aeCode || "", "Business": row.bus || "", "File / Link": row.name || row.url || "", "Upload Date": row.uploadDate || "", "Status": row.status || "", "Actions": ""})));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab);
     XLSX.writeFile(wb, `Timesheet_Export_${activeTab}.xlsx`);
@@ -1330,7 +1330,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                   <DropdownMenuSeparator className="bg-border/60 mx-1" />
 
                   <DropdownMenuItem
-                    onSelect={handleExport}
+                    onSelect={() => chooseExcelExport(handleExport, handleExport)}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-muted text-foreground transition-colors font-medium text-xs"
                   >
                     <Download className="w-3.5 h-3.5 text-primary" />

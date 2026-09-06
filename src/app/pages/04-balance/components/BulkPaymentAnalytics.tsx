@@ -1,5 +1,7 @@
+import { registerTableExport } from "../../../lib/utils/table-excel";
+import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   Download,
@@ -49,8 +51,7 @@ import {
   DialogContent,
 } from "../../../components/ui/dialog";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
-import { parseMoneyToNumber, formatIdNumber, removeVietnameseTones, getHoldRowAmount } from "../../../lib/utils/data-utils";
-import { getBusinessFromL07 } from "../../../lib/utils/center-utils";
+import { removeVietnameseTones } from "../../../lib/utils/data-utils";
 import { toast } from "sonner";
 
 interface BulkPaymentAnalyticsProps {
@@ -344,6 +345,17 @@ export function BulkPaymentAnalytics({
       "No.": index + 1,
     }));
   }, [baseRows, quickFilter]);
+
+  useEffect(() => registerTableExport("master-analysis", () => ({
+    schema: { columns: [
+      ["No.", "NO."], ["BU", "BU"], ["Tháng HOLD", "THÁNG PHÁT SINH HOLD"],
+      ["Tổng số dư HOLD", "TỔNG SỐ DƯ HOLD"], ["Số dư HOLD đầu kỳ", "SỐ DƯ TRƯỚC KỲ BÁO CÁO"],
+      ["HOLD phát sinh", "HOLD PHÁT SINH"], ["Thanh toán HOLD tại kỳ", "THANH TOÁN HOLD"],
+      ["CANCEL tại kỳ", "CANCEL"], ["Các tháng đã thanh toán", "LỊCH SỬ THANH TOÁN HOLD"],
+      ["Số dư HOLD còn lại", "SỐ DƯ HOLD CÒN LẠI"], ["Trạng thái HOLD", "TRẠNG THÁI HOLD"],
+    ].map(([key, label]) => ({key, label})), hiddenColumns: [] },
+    rows: filteredRows,
+  })), [filteredRows]);
 
   const currentPeriod = useMemo(() => {
     return (
@@ -1292,7 +1304,7 @@ export function BulkPaymentAnalytics({
                 <RefreshCw className="h-4 w-4 shrink-0 text-primary" />
                 <span>Đặt lại bộ lọc</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportAnalysis}>
+              <DropdownMenuItem onClick={() => chooseExcelExport(handleExportAnalysis)}>
                 <Download className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span>Xuất Excel bảng Analysis</span>
               </DropdownMenuItem>

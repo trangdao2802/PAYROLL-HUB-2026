@@ -698,6 +698,7 @@ export function applyTransactionReferenceSync({
   rawTimesheetRows = [],
   reportMonth,
   transactionKeys,
+  targetTable,
   correctedAt = new Date().toISOString(),
 }: {
   grossRows: any[];
@@ -706,6 +707,7 @@ export function applyTransactionReferenceSync({
   rawTimesheetRows?: any[];
   reportMonth?: string;
   transactionKeys?: Iterable<string>;
+  targetTable?: TransactionReferenceTable;
   correctedAt?: string;
 }): {
   grossRows: any[];
@@ -725,7 +727,11 @@ export function applyTransactionReferenceSync({
     reportMonth,
   });
   const allowedKeys = transactionKeys ? new Set(transactionKeys) : null;
-  const selectedMatches = plan.matches.filter(
+  const selectedMatches = plan.matches.map(match => ({
+    ...match,
+    corrections: targetTable ? match.corrections.filter(c => c.table === targetTable) : match.corrections,
+    transactionCorrections: targetTable && !match.corrections.some(c => c.table === targetTable) ? [] : match.transactionCorrections,
+  })).filter(
     (match) =>
       (match.corrections.length > 0 ||
         match.transactionCorrections.length > 0) &&

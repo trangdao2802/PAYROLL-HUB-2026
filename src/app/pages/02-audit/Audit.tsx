@@ -1,3 +1,5 @@
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { downloadTableExcel } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useMemo, useEffect, useCallback, useTransition, useDeferredValue } from "react";
 import { useNavigate, useLocation } from "react-router";
@@ -1398,7 +1400,9 @@ export function Audit() {
               title: "Class Capacity Overview",
               sheetName: "Audit Overview",
               table: {
-                rows: exportData,
+                storageKey: "audit_main_v3",
+                rows: mainData,
+                columns: mainColumns,
                 cards: [
                   { label: "Classes", value: exportData.length },
                   {
@@ -1428,7 +1432,9 @@ export function Audit() {
               title: "Class Capacity Discrepancy Details",
               sheetName: "Audit Details",
               table: {
-                rows: exportDetails,
+                storageKey: "audit_detail_v2",
+                rows: detailData,
+                columns: detailColumns,
                 cards: [
                   { label: "Detail Rows", value: exportDetails.length },
                   {
@@ -1821,7 +1827,7 @@ export function Audit() {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
-                    onClick={handleExportExcel}
+                    onClick={() => chooseExcelExport(() => { if (activeTab === "rules") { void downloadHierarchicalWorkbook({ title: "Allowed Intern Rules", fileName: "Allowed_Intern_Rules.xlsx", pages: [{title: "Allowed Intern Rules", table: {rows: allowedTaRules.map((r, i) => ({"No.": i + 1, "Class Name Contains": r.classNameContains, "Student Condition": r.studentCondition, "Allowed Interns": r.result}))}}] }); } else downloadTableExcel(activeTab === "main" ? "audit_main_v3" : "audit_detail_v2"); }, handleExportExcel)}
                     disabled={
                       !auditResults.results || auditResults.results.length === 0
                     }
@@ -1829,7 +1835,7 @@ export function Audit() {
                   >
                     <Download className="w-4 h-4 text-emerald-500" />
                     <span className="text-xs font-bold text-slate-700">
-                      Xuất toàn bộ Audit
+                      Xuất Excel
                     </span>
                   </DropdownMenuItem>
 

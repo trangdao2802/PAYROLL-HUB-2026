@@ -1,3 +1,4 @@
+import { registerTableExport, downloadTableExcel } from "../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
   useState,
@@ -783,7 +784,7 @@ const DataRow = React.memo(
       <tr
         onClick={() => onRowClick?.(row)}
         data-overlap-group={row.overlap_group || undefined}
-        className={`group ${selectable || onRowClick ? "cursor-pointer" : "cursor-default"} ${row._dimmed ? "data-table-row--dimmed" : ""} ${row._needsSheetSourceNote ? "data-table-row--needs-source-note" : ""} ${row._isSubtotal ? "data-table-subtotal-row bg-[var(--table-footer-bg,#E9D9DF)] font-black text-primary border-t-2 border-primary/25" : row._isTotalRow ? "bg-primary/[0.06] font-black border-t-2 border-primary/20" : String(row.overlap_check || "").startsWith("Trùng lịch") ? "bg-rose-100/70 text-rose-950 dark:bg-rose-950/40 dark:text-rose-100" : String(row.overlap_check || "").startsWith("Trùng dòng") ? "bg-amber-100/70 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" : isSelected ? "bg-primary/[0.05]" : isRowInRange ? "bg-primary/[0.015]" : "bg-[var(--card,#fff)]"} relative`}
+        className={`group ${selectable || onRowClick ? "cursor-pointer" : "cursor-default"} ${row._dimmed ? "data-table-row--dimmed" : ""} ${row._matchingDeduction ? "data-table-row--matching-deduction" : ""} ${row._needsSheetSourceNote ? "data-table-row--needs-source-note" : ""} ${row._isSubtotal ? "data-table-subtotal-row bg-[var(--table-footer-bg,#E9D9DF)] font-black text-primary border-t-2 border-primary/25" : row._isTotalRow ? "bg-primary/[0.06] font-black border-t-2 border-primary/20" : String(row.overlap_check || "").startsWith("Trùng lịch") ? "bg-rose-100/70 text-rose-950 dark:bg-rose-950/40 dark:text-rose-100" : String(row.overlap_check || "").startsWith("Trùng dòng") ? "bg-amber-100/70 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100" : isSelected ? "bg-primary/[0.05]" : isRowInRange ? "bg-primary/[0.015]" : "bg-[var(--card,#fff)]"} relative`}
         style={{ height: rowHeight ? `${rowHeight}px` : undefined }}
       >
         {selectable && (
@@ -1006,6 +1007,7 @@ export interface DataTableRef {
   resetTableConfig: () => void;
   clearAllFilters: () => void;
   getCurrentPageData: () => any[];
+  exportExcel: () => void;
 }
 
 export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
@@ -1740,6 +1742,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       if (sortConfig.length > 0 || containsSubtotalRows) {
         if (result === data) result = [...result];
         result.sort((a, b) => {
+          if (Boolean(a._matchingDeduction) !== Boolean(b._matchingDeduction)) return a._matchingDeduction ? -1 : 1;
           const aNeedsSourceNote = Boolean(a._needsSheetSourceNote);
           const bNeedsSourceNote = Boolean(b._needsSheetSourceNote);
           if (aNeedsSourceNote !== bNeedsSourceNote) {
@@ -2366,7 +2369,19 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       showStatus(`Đã đổi định dạng cột sang ${type}`);
     };
 
+    useEffect(() => {
+      if (!storageKey) return;
+      return registerTableExport(storageKey, () => ({
+        schema: { columns: [
+          ...(showRowNumber && !columns.some(c => isNoCol(c.key)) ? [{ key: "No.", label: "No.", type: "number" }] : []),
+          ...columns.filter(c => !isInternalHelperCol(c.key) && !isInternalHelperCol(c.label)).map(({ key, label, type, hidden }) => ({ key, label, type, hidden })),
+        ], hiddenColumns: [...effectiveHiddenColumns, ...(effectiveHiddenColumns.has("__ROW_NUMBER__") ? ["No."] : [])] },
+        rows: filteredAndSortedData,
+      }));
+    }, [storageKey, columns, effectiveHiddenColumns, filteredAndSortedData, showRowNumber]);
+
     React.useImperativeHandle(ref, () => ({
+      exportExcel: () => { if (storageKey) downloadTableExcel(storageKey); },
       columns,
       hiddenColumns: effectiveHiddenColumns,
       toggleColumn,

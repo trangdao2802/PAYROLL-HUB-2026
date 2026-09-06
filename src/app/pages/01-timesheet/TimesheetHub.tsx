@@ -1,3 +1,7 @@
+import { buildCenterTable } from "../../lib/utils/center-table";
+import { getDynamicEmployeeColumns } from "../../constants/timesheet-columns";
+import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { downloadTableExcel } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars, react-hooks/exhaustive-deps */
 import React, { useMemo, useRef, useState, useEffect, useTransition, useCallback, useDeferredValue } from "react";
 import { useLocation } from "react-router";
@@ -1246,6 +1250,8 @@ export function TimesheetHub() {
   }, [updateAppData]);
 
   const handleExportExcel = () => {
+    const key = activeTab === "roster_raw" ? "timesheet_roster_raw" : activeTab === "employee" ? "timesheet_employee" : "timesheet_center";
+    if (activeTab !== "mkt_local_north" && downloadTableExcel(key)) return;
     if (currentData.length === 0) return;
 
     if (activeTab === "mkt_local_north") {
@@ -1311,6 +1317,7 @@ export function TimesheetHub() {
       });
       return mappedRow;
     });
+    const centerTable = buildCenterTable(centerSummary, mktLocalNorthData);
     const pivotRows = buildTimesheetMktPivotExportRows(exportRoster);
     const pivotTotal = Number(
       pivotRows[pivotRows.length - 1]?.["Grand Total"] || 0,
@@ -1336,6 +1343,8 @@ export function TimesheetHub() {
               title: "Employee Paid Hours",
               sheetName: "Total Paid Hours",
               table: {
+                storageKey: "timesheet_employee",
+                columns: getDynamicEmployeeColumns(exportRoster).map(c => ({key: String(c.key), label: String(c.label), type: String(c.type || "text"), hidden: Boolean(c.hidden)})),
                 rows: employeeSummary,
                 cards: [
                   { label: "Employees", value: employeeSummary.length },
@@ -1363,7 +1372,9 @@ export function TimesheetHub() {
               title: "Center Summary",
               sheetName: "Roster Center",
               table: {
-                rows: centerSummary,
+                storageKey: "timesheet_center",
+                columns: centerTable.centerColumns,
+                rows: centerTable.centerRows,
                 cards: [
                   { label: "Centers", value: centerSummary.length },
                   {
@@ -1406,7 +1417,9 @@ export function TimesheetHub() {
               title: "Roster Raw Data",
               sheetName: "Raw Data",
               table: {
-                rows: rawRows,
+                storageKey: "timesheet_roster_raw",
+                rows: exportRoster,
+                columns: ROSTER_RAW_COLUMNS,
                 cards: [
                   { label: "Rows", value: rawRows.length },
                   { label: "Total Duration", value: rosterMetrics.totalDuration },
@@ -1427,6 +1440,7 @@ export function TimesheetHub() {
       });
   }, [
     calculatedRosterData,
+    mktLocalNorthData,
     centerSummary,
     employeeSummary,
     fromDate,
@@ -2141,11 +2155,11 @@ export function TimesheetHub() {
 
                           {/* Export Excel */}
                           <DropdownMenuItem
-                            onClick={handleExportAllExcel}
+                            onClick={() => chooseExcelExport(handleExportExcel, handleExportAllExcel)}
                             className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-foreground hover:bg-muted"
                           >
                             <Download className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Xuất toàn bộ Timesheet</span>
+                            <span>Xuất Excel</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
