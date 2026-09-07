@@ -23,17 +23,20 @@ not grant access to every signed-in user and does not support multiple tenants.
 
 RLS restricts shared history to the membership table. Clients can select, but
 cannot insert directly, update/delete versions, or grant membership. The supplied
-append-only SECURITY DEFINER RPC is intentionally privileged for its single
-insert: it checks `auth.uid()` membership, has an empty search path, validates
+private SECURITY DEFINER RPC is intentionally privileged for atomic month
+replacement: it checks `auth.uid()` membership, has an empty search path, validates
 the snapshot, and revokes PUBLIC execution (only authenticated can call it).
 Do not relax these restrictions to resolve login or setup errors.
 
 ## Workflow
 
-- In Transaction, use **Đăng nhập kho**, select the month and **Lưu phiên bản**.
-  Every successful save creates an immutable version; retrying the same payload
-  after a lost response in the current session reuses the request UUID.
-  Reloading the app or signing out clears retry state and a new save is a new version.
+- In Transaction, use **Đăng nhập kho**, select the month and **Lưu tháng**. Apply `supabase/migrations/20260907110103_replace_transaction_month.sql`
+  after the initial migration. Each successful save replaces all saved versions of
+  that month with the current full snapshot. Other months stay unchanged. Validation
+  or write failure rolls back the entire save. Existing history is not removed by
+  the migration itself. A retry of the current request returns its saved ID; a
+  superseded request is rejected. Private hash receipts prevent stale retries from
+  restoring deleted payroll data. After a conflict, review the data before saving again.
 - The full month's Transaction is saved, independent of display filters.
   Total/subtotal rows are excluded. Missing or invalid row months block saving
   and checking; valid rows from other months are excluded.
@@ -65,7 +68,7 @@ Do not relax these restrictions to resolve login or setup errors.
 
 `npm test`, `npm run test:transaction-db`, `npm run build`.
 Database tests use PGlite (PostgreSQL WASM), not production. They simulate Supabase
-Auth roles and exercise the actual SQL migration, membership/RLS, append-only
+Auth roles and exercise the actual SQL migration, membership/RLS, atomic month replacement
 storage, period validation and retry handling. Production Auth/PostgREST and
 multi-client concurrent saves still require deployment-environment verification.
 
@@ -73,3 +76,12 @@ At implementation time, all 86 repository tests and production build passed.
 Lint passed for the new modules/tests. Full TypeScript checking found the same
 40 diagnostics as base commit `656447b`, with no new diagnostics (line offsets
 ignored). Browser interaction and a live Supabase project have not been tested.
+
+## Month replacement verification (2026-09-07)
+
+The replacement migration was applied to production. A synthetic save/replace/stale-retry
+check ran inside a rolled-back transaction; the seven existing saved months were unchanged.
+Database tests also force a delete failure to verify full rollback. Build and focused lint passed.
+The private receipts table intentionally has no client policies (RPC owner only).
+Existing project-wide advisor warnings remain outside this change; see
+[Supabase database advisors](https://supabase.com/docs/guides/database/database-advisors).

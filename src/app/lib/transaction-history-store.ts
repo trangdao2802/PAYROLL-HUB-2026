@@ -26,7 +26,9 @@ export async function loadLatestVersion(client: SupabaseClient, period: string):
   return data ? {...data, id: String(data.id)} as TransactionVersion : null;
 }
 
-/** Pin the latest immutable snapshot for every earlier saved month. */
+export class HistorySaveConflictError extends Error {}
+
+/** Pin the latest saved snapshot for every earlier saved month. */
 export async function loadAllPriorVersions(client: SupabaseClient, period: string): Promise<TransactionVersion[]> {
   await requireHistoryMember(client);
   const before = `${normalizePeriod(period)}-01`;
@@ -64,6 +66,7 @@ export async function saveVersion(client: SupabaseClient, period: string, rows: 
   const { data, error } = await client.rpc('append_transaction_version', {
     p_period: `${normalizePeriod(period)}-01`, p_rows: rows, p_request_id: requestId,
   });
+  if (error?.code === 'P0002') throw new HistorySaveConflictError(error.message);
   if (error) throw new Error(error.message);
   return String(data);
 }

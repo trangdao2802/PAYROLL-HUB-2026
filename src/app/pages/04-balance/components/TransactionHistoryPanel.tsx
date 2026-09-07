@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../../lib/supabaseClient';
-import { loadAllPriorVersions, saveVersion, type TransactionVersion } from '../../../lib/transaction-history-store';
+import { HistorySaveConflictError, loadAllPriorVersions, saveVersion, type TransactionVersion } from '../../../lib/transaction-history-store';
 import { compareAccountsAcrossHistory, selectPeriodRows, type TransactionRow, type HistoricalAccountComparison } from '../../../lib/utils/transaction-history';
 
 interface Props {
@@ -64,7 +64,10 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
         if (retry.current?.context !== started) retry.current = {context: started, requestId: crypto.randomUUID()};
         const id = await saveVersion(supabase, month, selected, retry.current.requestId);
         retry.current = null;
-        if (currentContext.current === started) setMessage(`Đã lưu phiên bản #${id} — ${month} (${selected.length} dòng).`);
+        if (currentContext.current === started) {
+          setReport(null);
+          setMessage(`Đã lưu tháng ${month}: ${selected.length} dòng (#${id}). Dữ liệu cũ của tháng này đã được thay thế.`);
+        }
       } else {
         setReport(null);
         const versions = await loadAllPriorVersions(supabase, month);
@@ -74,6 +77,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
         onOpenReport();
       }
     } catch (error) {
+      if (error instanceof HistorySaveConflictError) retry.current = null;
       if (currentContext.current === started) setMessage(error instanceof Error ? error.message : 'Không thể truy cập kho Transaction.');
     } finally {
       operation.current = false;
@@ -120,7 +124,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
   return <section aria-label="Kho Transaction theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs font-semibold">Kho Transaction · {month}</span>
-      <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('save')}>Lưu phiên bản</button>
+      <button type="button" className={buttonClass} disabled={busy || !userId} title="Thay toàn bộ dữ liệu đã lưu của tháng đang chọn bằng Transaction hiện tại" onClick={() => void run('save')}>Lưu tháng</button>
       <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('check')}>Check STK</button>
       {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
         : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {

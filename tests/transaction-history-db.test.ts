@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 
-test('monthly history enforces membership, atomic immutable versions, period and retry rules', async () => {
+test('monthly history enforces membership, atomic month replacement, period and retry rules', async () => {
   const db = new PGlite();
   try {
     await db.exec(`
@@ -32,6 +32,31 @@ test('monthly history enforces membership, atomic immutable versions, period and
     const saved = await db.query<{rows: Record<string, string>[]}>('select rows from public.transaction_monthly_versions order by id desc');
     assert.equal(saved.rows.length, 2);
     assert.equal(saved.rows[0].rows[0]['Beneficiary Account No.'], '001234');
+    await db.exec('reset role');
+    await db.exec(readFileSync(new URL('../supabase/migrations/20260907110103_replace_transaction_month.sql', import.meta.url), 'utf8'));
+    await db.exec('set role authenticated');
+    const feb = rows.replace('2026-01', '2026-02');
+    await append('2026-02-01', feb, '20000000-0000-0000-0000-000000000001');
+    const updated = rows.replace('001234', '009999');
+    const replacementRequest = '30000000-0000-0000-0000-000000000001';
+    const replacement = await append('2026-01-01', updated, replacementRequest);
+    assert.deepEqual((await append('2026-01-01', updated, replacementRequest)).rows, replacement.rows);
+    const months = await db.query<{period: string; rows: Record<string, string>[]}>(
+      'select period::text, rows from public.transaction_monthly_versions order by period');
+    assert.equal(months.rows.length, 2);
+    assert.equal(months.rows[0].rows[0]['Beneficiary Account No.'], '009999');
+    assert.equal(months.rows[1].rows[0]['Beneficiary Account No.'], '001234');
+    await assert.rejects(append('2026-01-01', rows), {code: 'P0002'});
+    await assert.rejects(append('2026-01-01', rows, replacementRequest), {code: 'P0002'});
+    await assert.rejects(db.query('select * from payroll_private.transaction_save_receipts'));
+    // Force a failure after insertion: the delete and new snapshot must both roll back.
+    await db.exec(`reset role;
+      create function public.fail_delete() returns trigger language plpgsql as $$ begin raise exception 'forced delete failure'; end $$;
+      create trigger fail_delete before delete on public.transaction_monthly_versions for each row execute function public.fail_delete();
+      set role authenticated;`);
+    await assert.rejects(append('2026-01-01', rows, '40000000-0000-0000-0000-000000000001'), /forced delete failure/);
+    assert.deepEqual((await db.query('select period::text, rows from public.transaction_monthly_versions order by period')).rows, months.rows);
+    await db.exec('reset role; drop trigger fail_delete on public.transaction_monthly_versions; set role authenticated');
     await assert.rejects(append('2026-02-01', rows));
     await assert.rejects(append('2026-01-01', '[]'));
     await assert.rejects(append('2026-01-01', '[null]'));
