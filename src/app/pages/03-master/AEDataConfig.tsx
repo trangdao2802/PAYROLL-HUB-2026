@@ -1,3 +1,4 @@
+import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { createMasterExportDefinition } from "../../lib/utils/master-excel-export";
 import { downloadHierarchicalWorkbook } from "../../lib/utils/excel-export";
@@ -2208,7 +2209,10 @@ export function AEDataConfig({
         });
 
         // Merge Sheet1_AE with existing data to keep multiple months
-        const existingSheet1 = prev.Sheet1_AE?.data || [];
+        const existingSheet1 = (prev.Sheet1_AE?.data || []).filter((row: any) =>
+          !targets.some(target => row["TÊN FILE"] === target.name &&
+            normalizeMonth(row._fileMonth || row["Tháng báo cáo"]) === normalizeMonth(target.month || currentMonth)));
+
         const sheet1Map = new Map<string, any>();
 
         const getSheet1Key = (r: any) => {
@@ -2304,7 +2308,7 @@ export function AEDataConfig({
             data: mergedHoldData,
           },
         };
-      }, false);
+      }, false, true, ["Sheet1_AE", "Bank_North_AE", "Hold_AE", "Master_Roster"]);
 
       // Đồng bộ dữ liệu Pivot Master
       try {
@@ -2455,6 +2459,7 @@ export function AEDataConfig({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
+              <TableRestoreButton fields={["Ae_Global_Inputs"]} />
             <div className="app-table-title-lockup min-w-0 flex-1">
               <div className="app-table-title-line">
                 <TableInitialMark

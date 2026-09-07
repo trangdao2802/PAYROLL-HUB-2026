@@ -1,3 +1,4 @@
+import { useTableRestore } from '../../hooks/useTableRestore';
 import { buildCenterTable } from "../../lib/utils/center-table";
 import { getDynamicEmployeeColumns } from "../../constants/timesheet-columns";
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
@@ -505,6 +506,7 @@ async function fetchAllFromSupabaseTable(tableName: string) {
 
 export function TimesheetHub() {
   const { appData, updateAppData } = useAppData();
+  const restoreTable = useTableRestore();
   const location = useLocation();
   const uiSettings = useUiSettings();
   const navigate = useNavigate();
@@ -2146,11 +2148,11 @@ export function TimesheetHub() {
 
                           {/* Reload */}
                           <DropdownMenuItem
-                            onClick={() => handleFetchFromSupabase()}
+                            onClick={() => restoreTable(["Timesheet_Roster"])}
                             className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-foreground hover:bg-muted"
                           >
                             <RefreshCw className="w-3.5 h-3.5 text-primary" />
-                            <span>Reload dữ liệu</span>
+                            <span>Làm mới dữ liệu</span>
                           </DropdownMenuItem>
 
                           {/* Export Excel */}

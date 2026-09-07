@@ -1,3 +1,4 @@
+import { useTableRestore } from './useTableRestore';
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useAppData } from "../lib/contexts/AppDataContext";
@@ -150,11 +151,12 @@ export const isPastMonthHold = (row: any, currentMonthNum: number, currentYearNu
 
 export function useBulkPaymentLogic() {
   const { appData, updateAppData } = useAppData();
+  const restoreTable = useTableRestore();
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isRefreshing = false;
 
   const [reportStats, setReportStats] = useState<{
     sheet1Totals: Record<string, number>;
@@ -1076,7 +1078,7 @@ export function useBulkPaymentLogic() {
           [currentMonthVal]: { ...reconciliationTotals, generatedAt },
         },
         TransactionActivity: markTransactionGenerated(prev, generatedAt),
-      }));
+      }), true, true, ["BankExport"]);
 
       const reportTotal = data.reduce((sum, r) => sum + r["Payment Amount"], 0);
       const isTotalMatch = Math.abs(reportTotal - bankNorthTotal) < 1;
@@ -1322,16 +1324,7 @@ export function useBulkPaymentLogic() {
     });
   }, [updateAppData]);
 
-  const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    updateAppData((prev) => ({ ...prev }));
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Đã làm mới dữ liệu", {
-        description: "Dữ liệu bảng kê đã được cập nhật thành công.",
-      });
-    }, 400);
-  }, [updateAppData]);
+  const handleRefresh = useCallback(() => restoreTable(["BankExport"]), [restoreTable]);
 
   // 9. TEXT REPORT FORMATTERS & COPY FUNCTIONS
   const generateAllSummaryText = useCallback(() => {

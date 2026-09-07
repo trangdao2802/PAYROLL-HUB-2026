@@ -1,3 +1,4 @@
+import { useTableRestore } from '../../hooks/useTableRestore';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { downloadTableExcel } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
@@ -231,6 +232,7 @@ function AuditSourceCard({
 
 export function Audit() {
   const { appData, updateAppData } = useAppData();
+  const restoreTable = useTableRestore();
   const navigate = useNavigate();
 
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -288,8 +290,9 @@ export function Audit() {
   }, []);
 
   const handleRefreshData = () => {
+    if (activeTab === "rules") { restoreTable(["Q_AllowedTARules"]); return; }
     setIsRefreshing(true);
-    updateAppData((prev) => ({ ...prev, AuditClearedTables: {} }));
+    updateAppData((prev) => ({ ...prev, AuditClearedTables: { ...prev.AuditClearedTables, [activeTab]: false } }));
     setTimeout(() => {
       setIsRefreshing(false);
       toast.success("Đã làm mới dữ liệu", {

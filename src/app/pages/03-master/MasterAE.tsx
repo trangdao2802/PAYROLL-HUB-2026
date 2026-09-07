@@ -1,3 +1,6 @@
+import { useTableRestore } from '../../hooks/useTableRestore';
+import { TableRestoreButton } from '../../components/TableRestoreButton';
+import { grossPayRowVisible, sourceRowIndex } from '../../lib/utils/table-originals';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { downloadTableExcel } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
@@ -121,21 +124,11 @@ export function MasterAE() {
   };
 
   const [view, setView] = useState<"list" | "upload">("list");
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isRefreshing = false;
   const [showLeftCard, setShowLeftCard] = useState(true);
   const [showClearBankExportDialog, setShowClearBankExportDialog] =
     useState(false);
 
-  const handleRefreshData = useCallback(() => {
-    setIsRefreshing(true);
-    updateAppData((prev) => ({ ...prev }));
-    setTimeout(() => {
-      setIsRefreshing(false);
-      toast.success("Đã làm mới dữ liệu", {
-        description: "Dữ liệu MASTER AE đã được làm mới thành công.",
-      });
-    }, 600);
-  }, [updateAppData]);
 
   const {
     activeTab,
@@ -150,6 +143,11 @@ export function MasterAE() {
     handleDeleteRow,
     clearCurrentTableData,
   } = useMasterAELogic();
+
+  const restoreTable = useTableRestore();
+  const handleRefreshData = useCallback(() => {
+    if (activeTab === "Sheet1_AE" || activeTab === "Bank_North_AE") restoreTable([activeTab]);
+  }, [activeTab, restoreTable]);
 
   const [cameFromBulkPayment, setCameFromBulkPayment] = useState(false);
 
@@ -269,16 +267,17 @@ export function MasterAE() {
       headers.forEach((h: string) => {
         newRow[h] = "";
       });
-      newRow["Tháng báo cáo"] = appData.globalMonth || "03.2026";
+      newRow.id = `custom_${crypto.randomUUID()}`;
+      newRow["Tháng báo cáo"] = currentPeriodVal;
 
-      let insertIdx = idx;
+      let insertIdx = idx === undefined ? undefined : sourceRowIndex(data, currentData.data[idx]);
       if (insertIdx === undefined && tableRef.current) {
         const activeCell = tableRef.current.getActiveCell?.();
         const filteredAndSorted = tableRef.current.getFilteredAndSortedData?.();
         if (activeCell && filteredAndSorted) {
           const targetRow = filteredAndSorted[activeCell.r];
           if (targetRow) {
-            const actualIdx = data.findIndex((r: any) => r.id === targetRow.id);
+            const actualIdx = sourceRowIndex(data, targetRow);
             if (actualIdx >= 0) {
               insertIdx = actualIdx;
             }
@@ -390,8 +389,8 @@ export function MasterAE() {
       const globalYear = currentPeriodVal.split(".")[1] || "2026";
 
       // Map data to ensure "Tháng báo cáo" is correctly populated
-      const mappedData = raw.data.map((r: any) => {
-        const mappedRow = { ...r };
+      const mappedData = raw.data.map((r: any, sourceIndex: number) => {
+        const mappedRow = { ...r, _originalIndex: sourceIndex };
         const rawM = mappedRow["Tháng báo cáo"] || mappedRow["_fileMonth"] || mappedRow["Tháng"];
         if (rawM) {
           mappedRow["Tháng báo cáo"] = normalizeMonthLabel(rawM, globalYear);
@@ -409,8 +408,7 @@ export function MasterAE() {
           }
         }
         if (activeTab === "Sheet1_AE") {
-          const idNum = String(r["ID Number"] || r["id_number"] || "").trim();
-          if (!idNum) return false; // Trống ID Number tại Gross Pay thì hoàn toàn bỏ qua
+          if (!grossPayRowVisible(r)) return false;
         }
         const rawM = r["Tháng báo cáo"] || r["_fileMonth"] || r["Tháng"];
         if (!rawM) return true;
@@ -909,7 +907,7 @@ export function MasterAE() {
 
   useEffect(() => {
     const handleUploadRequest = () => setView("upload");
-    const handleRefreshRequest = () => handleRefreshData();
+    const handleRefreshRequest = () => updateAppData(prev => ({ ...prev }), false);
     const handleExportRequest = () => handleExportExcel();
     const handleSectionExportRequest = () => handleExportAllExcel();
     const handleClearRequest = () => setShowClearDialog(true);
@@ -927,7 +925,7 @@ export function MasterAE() {
       window.removeEventListener("app-export-section-excel", handleSectionExportRequest);
       window.removeEventListener("master-ae-request-clear", handleClearRequest);
     };
-  }, [setActiveTab, handleRefreshData, handleExportExcel, handleExportAllExcel]);
+  }, [setActiveTab, updateAppData, handleExportExcel, handleExportAllExcel]);
 
   return (
     <div className="page-master-ae flex-1 flex flex-col min-h-0 relative overflow-hidden bg-transparent">
@@ -1001,6 +999,10 @@ export function MasterAE() {
                           <p className="font-bold uppercase text-xl tracking-tight text-primary/40">
                             Chưa có dữ liệu {activeTab}
                           </p>
+                          <div className="flex gap-2 my-3 text-primary">
+                            <TableRestoreButton onRestore={handleRefreshData} />
+                            <button type="button" onClick={() => handleAddRow()} className="rounded-full border border-border px-3 py-1.5 text-xs">Thêm dòng</button>
+                          </div>
                           <p className="text-[0.625rem] font-bold uppercase opacity-40 tracking-widest mt-2 text-center max-w-md">
                             Vui lòng vào phần Cấu hình để chọn file AE Final, hệ thống sẽ tự động cập nhật dữ liệu.
                           </p>

@@ -1,3 +1,4 @@
+import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { TransactionHistoryPanel } from "./components/TransactionHistoryPanel";
 import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-excel";
@@ -3413,6 +3414,7 @@ export function BulkPayment({
         </div>
         )}
 
+        <div className="flex justify-end px-3 py-1"><TableRestoreButton onRestore={rightPanelTab === "table" ? handleRefresh : () => updateAppData(prev => ({ ...prev }), false)} /></div>
         <div hidden={rightPanelTab === "visuals"}>
           <TransactionHistoryPanel
             rows={appData.BankExport?.data || []}

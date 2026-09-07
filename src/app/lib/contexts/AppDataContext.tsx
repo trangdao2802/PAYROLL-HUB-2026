@@ -13,6 +13,7 @@ import localforage from "localforage";
 import { toast } from "sonner";
 import { AppData } from "../../types";
 import { INITIAL_APP_DATA } from "../../constants/initial-data";
+import { trackTableOriginals, type OriginalField } from '../utils/table-originals';
 import { parseMoneyToNumber, removeVietnameseTones, formatIdNumber } from "../utils/data-utils";
 import { resolveL07BuFromAeCode } from "../utils/center-utils";
 import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
@@ -33,6 +34,7 @@ localforage.config({
 const STORAGE_KEY = "PayrollApp_Data";
 const STORAGE_META_KEY = `${STORAGE_KEY}:meta`;
 const SPLIT_STORAGE_FIELDS = [
+  "TableOriginals",
   "Timesheet_Roster",
   "Master_Roster",
   "Q_Staff",
@@ -62,6 +64,7 @@ interface AppActionsCtx {
     updater: (prev: AppData) => AppData,
     saveToHistory?: boolean,
     persistImmediately?: boolean,
+    sourceFields?: readonly OriginalField[],
   ) => void;
   undo: () => void;
   redo: () => void;
@@ -636,9 +639,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updater: (prev: AppData) => AppData,
       saveToHistory: boolean = true,
       persistImmediately: boolean = false,
+      sourceFields: readonly OriginalField[] = [],
     ) => {
       setState((prev) => {
-        const nextPresent = updater(prev.present);
+        const nextPresent = trackTableOriginals(prev.present, updater(prev.present), saveToHistory, sourceFields);
         if (nextPresent === prev.present) return prev;
         if (persistImmediately) immediatePersistRequestedRef.current = true;
         return {

@@ -1,3 +1,4 @@
+import { TableRestoreButton } from './TableRestoreButton';
 import { registerTableExport, downloadTableExcel } from "../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
@@ -1668,6 +1669,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         const lowerSearch = String(debouncedSearchTerm).trim().toLowerCase();
         const trimmedZeroSearch = lowerSearch.replace(/^0+/, "");
         result = result.filter((row) => {
+          if (row._isNew === true) return true;
           for (const key in row) {
             if (!Object.prototype.hasOwnProperty.call(row, key)) continue;
             const val = row[key];
@@ -1689,6 +1691,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         if (allowedValues instanceof Set) {
           const column = columns.find((item) => item.key === key);
           result = result.filter((row) => {
+            if (row._isNew === true) return true;
             const rawVal = row[key];
             const normalizedFilterValue = isDateColumn(
               key,
@@ -1731,6 +1734,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         if (val) {
           const lowerVal = val.toLowerCase();
           result = result.filter((row) => {
+            if (row._isNew === true) return true;
             const cellVal = row[key];
             return cellVal != null && String(cellVal).toLowerCase().includes(lowerVal);
           });
@@ -1825,6 +1829,18 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       const start = (currentPage - 1) * ipp;
       return filteredAndSortedData.slice(start, start + ipp);
     }, [filteredAndSortedData, currentPage, itemsPerPage]);
+
+    const knownDraftIds = useRef<Set<unknown> | null>(null);
+    if (knownDraftIds.current === null) knownDraftIds.current = new Set(onAddRow ? data.filter(row => row._isNew).map(row => row.id) : []);
+    useEffect(() => {
+      if (!onAddRow) return;
+      const newIndex = filteredAndSortedData.findIndex(row => row._isNew && row.id && !knownDraftIds.current!.has(row.id));
+      knownDraftIds.current = new Set(data.filter(row => row._isNew).map(row => row.id));
+      if (newIndex >= 0) {
+        setCurrentPage(itemsPerPage === Infinity ? 1 : Math.floor(newIndex / Number(itemsPerPage)) + 1);
+        setActiveCell({ r: newIndex, c: 0 });
+      }
+    }, [data, filteredAndSortedData, itemsPerPage, onAddRow]);
 
     // ── Custom Virtual Scrolling (no library needed) ──────────────────────────
     const densityHeights = useMemo(() => ({
@@ -3273,6 +3289,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } as any
           }
         >
+          {storageKey?.startsWith("timesheet_") ? <div className="flex justify-end px-3 py-1 border-b border-border"><TableRestoreButton fields={["Timesheet_Roster"]} /></div> : null}
           {/* Selection Action Bar */}
           {selectedRowIds.size > 0 && (
             <div className="flex items-center justify-between px-4 py-2 bg-rose-50/90 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-800 shrink-0 text-rose-900 dark:text-rose-100 shadow-xs relative z-[130]">
@@ -4156,7 +4173,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   onClick={() => {
                     if (onAddRow) {
                       const targetRow = filteredAndSortedData[contextMenu.r];
-                      const actualIdx = targetRow ? data.findIndex((r) => r.id === targetRow.id) : -1;
+                      const actualIdx = targetRow ? data.indexOf(targetRow) : -1;
                       onAddRow(actualIdx >= 0 ? actualIdx : undefined);
                       closeContextMenu();
                     } else {

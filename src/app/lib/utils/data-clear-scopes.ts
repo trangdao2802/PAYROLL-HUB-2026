@@ -101,6 +101,7 @@ export function createClearedWebData(previous: AppData): AppData {
 
   return {
     ...cleanInitial,
+    TableOriginals: {},
     globalMonth: previous.globalMonth,
     Timesheet_InputList: [],
     Timesheet_Roster: [],

@@ -1,3 +1,4 @@
+import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useCallback } from "react";
@@ -2304,6 +2305,7 @@ export function HoldAddDashboard() {
 
   return (
     <div className="trial-balance-frame unified-table-frame h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent w-full" style={{ borderRadius: "0px" }}>
+      <div className="flex justify-end px-3 py-1"><TableRestoreButton onRestore={() => updateAppData(prev => ({ ...prev }), false)} /></div>
       {/* Toolbar */}
       <div
         className="trial-balance-header unified-table-frame-header flex-shrink-0 py-0 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)]"

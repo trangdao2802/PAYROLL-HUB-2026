@@ -1,3 +1,4 @@
+import { sourceRowIndex } from '../lib/utils/table-originals';
 import { useState, useCallback } from "react";
 import { useAppData } from "../lib/contexts/AppDataContext";
 import { toast } from "sonner";
@@ -101,18 +102,7 @@ export function useMasterAELogic() {
         if (!targetTab || !("data" in targetTab)) return prev;
         
         const data = [...targetTab.data];
-        const rowIndex = data.findIndex(
-          (r, idx) =>
-            r && row &&
-            ((row._originalIndex !== undefined && idx === row._originalIndex) ||
-              (r.id && row.id && r.id === row.id) ||
-              r === row ||
-              (r["ID Number"] === row["ID Number"] &&
-                r["TOTAL PAYMENT"] === row["TOTAL PAYMENT"] &&
-                ((r["No."] !== undefined && r["No."] === row["No."]) ||
-                  (r["No"] !== undefined && r["No"] === row["No"]) || 
-                  (r["STT"] !== undefined && r["STT"] === row["STT"]))))
-        );
+        const rowIndex = sourceRowIndex(data, row);
         if (rowIndex === -1) return prev;
         
         let finalValue = value;
@@ -128,6 +118,7 @@ export function useMasterAELogic() {
         }
 
         const updatedRow = { ...data[rowIndex], [columnKey]: finalValue };
+        if (tab === "Sheet1_AE" && columnKey === "ID Number" && String(finalValue || "").trim()) updatedRow._isNew = false;
         if (tab === "Hold_AE" && (columnKey === "Nghiệp vụ" || columnKey === "Tháng phát sinh" || columnKey === "Trạng thái")) {
           const valUpper = String(updatedRow[columnKey] || "").toUpperCase();
           const currentTotalPayment = parseMoneyToNumber(updatedRow["TOTAL PAYMENT"] || 0);
@@ -162,15 +153,7 @@ export function useMasterAELogic() {
         if (!targetTab || !("data" in targetTab)) return prev;
 
         const data = [...targetTab.data];
-        const rowIndex = data.findIndex(
-          (r, idx) =>
-            r && rowToDelete &&
-            ((rowToDelete._originalIndex !== undefined && idx === rowToDelete._originalIndex) ||
-              (r.id && rowToDelete.id && r.id === rowToDelete.id) ||
-              r === rowToDelete ||
-              (r["ID Number"] === rowToDelete["ID Number"] &&
-                r["TOTAL PAYMENT"] === rowToDelete["TOTAL PAYMENT"]))
-        );
+        const rowIndex = sourceRowIndex(data, rowToDelete);
         if (rowIndex === -1) return prev;
         
         data.splice(rowIndex, 1);

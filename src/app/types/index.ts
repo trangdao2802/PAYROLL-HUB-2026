@@ -40,6 +40,7 @@ export interface TimesheetDates {
 }
 
 export interface AppData {
+  TableOriginals?: import('../lib/utils/table-originals').TableOriginals;
   globalMonth?: string;
   Timesheet_InputList: any[];
   Final_AE: TableData;

@@ -1,3 +1,5 @@
+import { useTableRestore } from '../../hooks/useTableRestore';
+import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
@@ -138,6 +140,7 @@ interface TimesheetSummaryPageProps {
 
 export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPageProps = {}) {
   const { appData, updateAppData } = useAppData();
+  const restoreTable = useTableRestore();
 
   const [activeTab] = useState<"files">("files");
   const [fromDate] = useState("");
@@ -435,7 +438,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
         ...prev,
         Timesheet_InputList: nextInputs,
       };
-    }, false);
+    }, false, true, ["Timesheet_Roster", "Q_Staff", "Q_Salary_Scale", "Q_Cache", "Timesheet_InputList"]);
   }, [updateAppData]);
 
   const handleAddRow = () => {
@@ -578,8 +581,8 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
   };
 
   const handleRecalculate = () => {
+    restoreTable(["Timesheet_InputList"]);
     setRefreshKey((prev) => prev + 1);
-    toast?.success("Đã tổng hợp lại dữ liệu.");
   };
 
   const handleSaveData = async () => {
@@ -1078,7 +1081,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
           );
 
           return next;
-        }, false);
+        }, false, true, ["Timesheet_Roster", "Q_Staff", "Q_Salary_Scale", "Q_Cache", "Timesheet_InputList"]);
 
         toast?.success(`Đọc thành công ${file.name}`);
       }
@@ -1346,6 +1349,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
 
 
         <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden p-0">
+          <TableRestoreButton fields={["Timesheet_InputList"]} />
           <TimesheetInputTable
             rows={inputRows}
             onAddRow={handleAddRow}

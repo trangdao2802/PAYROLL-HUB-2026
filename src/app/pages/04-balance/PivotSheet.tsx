@@ -1,3 +1,4 @@
+import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { registerTableExport } from "../../lib/utils/table-excel";
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-unused-vars */
@@ -1010,8 +1011,8 @@ export function PivotSheet() {
     };
   }, []);
 
-  const loadMasterData = useCallback(async (showToastMsg = false) => {
-    const cachedStr = localStorage.getItem("pivot_master_processed_data");
+  const loadMasterData = useCallback(async (showToastMsg = false, restoreOriginal = false) => {
+    const cachedStr = restoreOriginal ? null : localStorage.getItem("pivot_master_processed_data");
     let cachedGroupedData: PivotGroupedData = {};
     let cachedTypeColumns: string[] = [];
     if (cachedStr) {
@@ -2079,6 +2080,7 @@ export function PivotSheet() {
               </div>
             </div>
 
+            <TableRestoreButton onRestore={() => { setEditingCell(null); void loadMasterData(true, true); }} />
             {/* Settings button & dropdown */}
             <div className="relative" ref={settingsMenuRef}>
               <button

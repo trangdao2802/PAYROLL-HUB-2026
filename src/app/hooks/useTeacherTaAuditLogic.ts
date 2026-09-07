@@ -59,7 +59,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
         Q_BonusData: bonusDataRaw || undefined,
         Q_BonusSheetName: bonusSheetName || "Bonus",
         AuditClearedTables: {},
-      }));
+      }), true, true, ["Q_TeacherHours"]);
     } catch (error) {
       console.error("Lỗi upload file A:", error);
       setErrorMsg("Lỗi đọc File A. Vui lòng kiểm tra định dạng file!");
@@ -158,7 +158,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
         Timesheet_Roster: mappedRosters,
         Timesheet_RosterFileName: fileName,
         AuditClearedTables: {},
-      } as any));
+      } as any), true, true, ["Timesheet_Roster"]);
     } catch (error) {
       console.error("Lỗi upload file B:", error);
       setErrorMsg("Lỗi đọc File B. Vui lòng kiểm tra định dạng file!");
@@ -210,7 +210,7 @@ export function useTeacherTaAuditLogic(rosterData: any[], fromDate: string, toDa
         Q_CheckTAs: configRaw,
         Q_CheckTAsFileName: fileName,
         AuditClearedTables: {},
-      } as any));
+      } as any), true, true, ["Q_CheckTAs"]);
     } catch (error) {
       console.error("Lỗi upload file Config:", error);
       setErrorMsg("Lỗi đọc File Config. Vui lòng kiểm tra định dạng file!");

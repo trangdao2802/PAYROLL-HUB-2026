@@ -1,3 +1,4 @@
+import { TableRestoreButton } from '../../../components/TableRestoreButton';
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2 } from "lucide-react";
@@ -159,6 +160,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
+      <div className="flex justify-end px-3 py-1"><TableRestoreButton fields={["Timesheet_Roster"]} /></div>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0">
       {/* Header Info - Consistent with other tables */}
       <div 
