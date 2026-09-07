@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
+import { isPasswordRecoveryUrl } from "./lib/password-recovery";
 import { registerFrenchMatchaPaletteTheme } from "./app/lib/french-matcha-theme";
 import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
@@ -65,16 +66,23 @@ async function loadDynamicSupabaseConfig() {
   }
 }
 
-function start() {
+async function start() {
+  const recovery = isPasswordRecoveryUrl(window.location.href);
   registerFrenchMatchaPaletteTheme();
 
   if (isValidSupabaseConfig(staticSupabaseConfig)) {
     window.__SUPABASE_CONFIG__ = staticSupabaseConfig;
   } else {
-    void loadDynamicSupabaseConfig();
+    if (recovery) await loadDynamicSupabaseConfig();
+    else void loadDynamicSupabaseConfig();
   }
 
-  createRoot(document.getElementById("root")!).render(<App />);
+  if (recovery) {
+    const { default: PasswordRecovery } = await import('./app/components/PasswordRecovery');
+    createRoot(document.getElementById("root")!).render(<PasswordRecovery />);
+  } else {
+    createRoot(document.getElementById("root")!).render(<App />);
+  }
 }
 
-start();
+void start();
