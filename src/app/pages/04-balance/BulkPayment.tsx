@@ -1,4 +1,5 @@
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { TransactionHistoryPanel } from "./components/TransactionHistoryPanel";
 import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -3412,6 +3413,14 @@ export function BulkPayment({
         </div>
         )}
 
+        <div hidden={rightPanelTab === "visuals"}>
+          <TransactionHistoryPanel
+            rows={appData.BankExport?.data || []}
+            month={appData.globalMonth || ""}
+            showReport={rightPanelTab === "reconcile"}
+            onOpenReport={() => setRightPanelTab("reconcile")}
+          />
+        </div>
         {/* Dynamic Display based on empty status & current selected tab */}
         {displayBankExportData.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-primary/10 bg-slate-50/20 p-8 select-none">

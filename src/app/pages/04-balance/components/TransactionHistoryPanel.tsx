@@ -1,0 +1,161 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { supabase, isSupabaseConfigured } from '../../../../lib/supabaseClient';
+import { loadLatestVersion, saveVersion, type TransactionVersion } from '../../../lib/transaction-history-store';
+import { compareAccounts, previousPeriod, selectPeriodRows, type TransactionRow, type AccountComparison } from '../../../lib/utils/transaction-history';
+
+interface Props {
+  rows: TransactionRow[];
+  month: string;
+  showReport: boolean;
+  onOpenReport: () => void;
+}
+interface Report {
+  context: string;
+  previous: string;
+  version: TransactionVersion | null;
+  comparisons: AccountComparison[];
+}
+
+export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport }: Props) {
+  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [report, setReport] = useState<Report | null>(null);
+  const [page, setPage] = useState(1);
+  const operation = useRef(false);
+  const authIdentity = useRef('');
+  const retry = useRef<{context: string; requestId: string} | null>(null);
+  // Fingerprint all source rows, not just visible/filtered Transaction rows.
+  const context = useMemo(() => JSON.stringify([month, rows, userId]), [month, rows, userId]);
+  const currentContext = useRef(context);
+  useEffect(() => { currentContext.current = context; }, [context]);
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    let live = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextId = session?.user.id || '';
+      if (live && nextId !== authIdentity.current) {
+        authIdentity.current = nextId;
+        setUserId(nextId);
+        setReport(null);
+        retry.current = null;
+      }
+    });
+    return () => { live = false; subscription.unsubscribe(); };
+  }, []);
+  const visibleReport = report?.context === context ? report : null;
+  const exceptions = visibleReport?.comparisons.filter(row => row.issues.length > 0) || [];
+  const pageCount = Math.max(1, Math.ceil(exceptions.length / 25));
+  const activePage = Math.min(page, pageCount);
+  const buttonClass = 'rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold whitespace-nowrap hover:bg-primary/10 disabled:opacity-50 active:scale-[0.98]';
+
+  async function run(action: 'save' | 'check') {
+    if (operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    setMessage('');
+    const started = context;
+    try {
+      if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase URL và publishable/anon key.');
+      const selected = selectPeriodRows(rows, month);
+      if (action === 'save') {
+        if (retry.current?.context !== started) retry.current = {context: started, requestId: crypto.randomUUID()};
+        const id = await saveVersion(supabase, month, selected, retry.current.requestId);
+        retry.current = null;
+        if (currentContext.current === started) setMessage(`Đã lưu phiên bản #${id} — ${month} (${selected.length} dòng).`);
+      } else {
+        setReport(null);
+        const previous = previousPeriod(month);
+        const version = await loadLatestVersion(supabase, previous);
+        if (currentContext.current !== started) return;
+        setReport({context: started, previous, version, comparisons: compareAccounts(selected, version?.rows ?? null)});
+        setPage(1);
+        onOpenReport();
+      }
+    } catch (error) {
+      if (currentContext.current === started) setMessage(error instanceof Error ? error.message : 'Không thể truy cập kho Transaction.');
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function login() {
+    if (operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    try {
+      if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase.');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      setLoginOpen(false);
+      setMessage('Đã đăng nhập kho.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Đăng nhập thất bại.');
+    } finally {
+      setPassword('');
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function exportReport() {
+    try {
+      if (!visibleReport) return;
+      const XLSX = await import('xlsx');
+      const data = exceptions.map(row => ({
+        'Tháng này': month, 'Tháng trước': visibleReport.previous,
+        'Phiên bản nguồn': visibleReport.version?.id || '',
+        'Document ID': row.documentId, 'STK trước': row.previousAccount,
+        'STK hiện tại': row.currentAccount, 'Tên trước': row.previousName,
+        'Tên hiện tại': row.currentName, 'Cảnh báo': row.issues.join('; '),
+      }));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data), 'Check STK');
+      XLSX.writeFile(workbook, `Check-STK-${month.replace(/[^\d-]/g, '-')}.xlsx`);
+    } catch { setMessage('Không thể xuất báo cáo Check STK.'); }
+  }
+
+  return <section aria-label="Kho Transaction theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs font-semibold">Kho Transaction · {month}</span>
+      <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('save')}>Lưu phiên bản</button>
+      <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('check')}>Check STK</button>
+      {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
+        : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
+          const { error } = await supabase.auth.signOut();
+          setMessage(error ? error.message : 'Đã đăng xuất kho.');
+        }}>Đăng xuất kho</button>}
+      {busy && <span role="status" className="text-xs">Đang xử lý…</span>}
+    </div>
+    {loginOpen && !userId && <form className="flex flex-wrap items-end gap-2 mt-2" onSubmit={event => {event.preventDefault(); void login();}}>
+      <label className="text-xs">Email<input type="email" required autoComplete="username" className="block rounded border p-1 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
+      <label className="text-xs">Mật khẩu<input type="password" required autoComplete="current-password" className="block rounded border p-1 text-foreground bg-background" value={password} onChange={event => setPassword(event.target.value)} /></label>
+      <button className={buttonClass} disabled={busy}>Đăng nhập</button>
+      <span className="text-xs">Cần tài khoản được quản trị viên cấp quyền kho payroll.</span>
+    </form>}
+    {message && <p role="status" className="text-xs mt-2">{message}</p>}
+    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK để kiểm tra lại.</p>}
+    {showReport && visibleReport && <div className="mt-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <strong>Check STK · {visibleReport.previous} → {month}</strong>
+        <span>{visibleReport.version ? `Nguồn #${visibleReport.version.id} · ${visibleReport.version.created_at}` : 'Chưa có dữ liệu tháng trước'}</span>
+        <span>{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {visibleReport.comparisons.length - exceptions.length} khớp</span>
+        <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK</button>
+      </div>
+      {exceptions.length > 0 && <>
+        <div className="max-h-64 overflow-auto mt-2 rounded border border-primary/15">
+          <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
+            {['Document ID', 'STK trước', 'STK hiện tại', 'Tên trước', 'Tên hiện tại', 'Cảnh báo'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
+          </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map((row, index) => <tr key={index} className="bg-amber-50/40 dark:bg-amber-950/20">
+            {[row.documentId, row.previousAccount, row.currentAccount, row.previousName, row.currentName, row.issues.join('; ')].map((value, column) => <td key={column} className="p-2 border-b tabular-nums">{value || '—'}</td>)}
+          </tr>)}</tbody></table>
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
+      </>}
+    </div>}
+  </section>;
+}
