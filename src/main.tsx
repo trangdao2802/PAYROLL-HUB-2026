@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
 import { isPasswordRecoveryUrl } from "./lib/password-recovery";
+import { registerCocoaBlushPaletteTheme } from "./app/lib/cocoa-blush-theme";
 import { registerFrenchMatchaPaletteTheme } from "./app/lib/french-matcha-theme";
 import { isDynamicImportError, reloadLatestAppVersion } from "./app/lib/lazy-routes";
 import "./index.css";
@@ -68,6 +69,7 @@ async function loadDynamicSupabaseConfig() {
 
 async function start() {
   const recovery = isPasswordRecoveryUrl(window.location.href);
+  registerCocoaBlushPaletteTheme();
   registerFrenchMatchaPaletteTheme();
 
   if (isValidSupabaseConfig(staticSupabaseConfig)) {
