@@ -97,3 +97,42 @@ export function compareAccounts(current: TransactionRow[], previous: Transaction
     return {documentId, currentAccount, previousAccount, currentName, previousName, issues};
   });
 }
+
+export interface HistoricalSnapshot {
+  id: string;
+  period: string;
+  created_at: string;
+  rows: TransactionRow[];
+}
+export interface HistoricalAccountComparison extends AccountComparison {
+  sources: { period: string; versionId: string; createdAt: string; account: string; name: string }[];
+}
+
+export function compareAccountsAcrossHistory(current: TransactionRow[], history: HistoricalSnapshot[]): HistoricalAccountComparison[] {
+  const results = compareAccounts(current, []).map(row => ({
+    ...row, issues: row.issues.filter(issue => issue !== 'Không có ID ở tháng trước'),
+    sources: [] as HistoricalAccountComparison['sources'],
+  }));
+  for (const snapshot of history) {
+    const period = snapshot.period.slice(0, 7);
+    const ids = groupById(snapshot.rows);
+    const comparisons = compareAccounts(current, snapshot.rows);
+    comparisons.forEach((comparison, index) => {
+      if (!ids.has(comparison.documentId)) return;
+      const result = results[index];
+      result.sources.push({ period, versionId: snapshot.id, createdAt: snapshot.created_at,
+        account: comparison.previousAccount, name: comparison.previousName });
+      for (const issue of comparison.issues) {
+        if (!result.issues.includes(issue) && !issue.includes('tháng này') && issue !== 'Thiếu Document ID') {
+          result.issues.push(`${period} (#${snapshot.id}): ${issue.replace('tháng trước', 'tháng nguồn')}`);
+        }
+      }
+    });
+  }
+  return results.map(result => ({ ...result,
+    previousAccount: [...new Set(result.sources.map(source => source.account))].join(' | '),
+    previousName: [...new Set(result.sources.map(source => source.name))].join(' | '),
+    issues: [...result.issues, ...(!history.length ? ['Chưa có lịch sử trước tháng đang chọn']
+      : result.documentId && !result.sources.length ? ['Không có ID trong các tháng đã lưu'] : [])],
+  }));
+}

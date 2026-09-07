@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../../lib/supabaseClient';
-import { loadLatestVersion, saveVersion, type TransactionVersion } from '../../../lib/transaction-history-store';
-import { compareAccounts, previousPeriod, selectPeriodRows, type TransactionRow, type AccountComparison } from '../../../lib/utils/transaction-history';
+import { loadAllPriorVersions, saveVersion, type TransactionVersion } from '../../../lib/transaction-history-store';
+import { compareAccountsAcrossHistory, selectPeriodRows, type TransactionRow, type HistoricalAccountComparison } from '../../../lib/utils/transaction-history';
 
 interface Props {
   rows: TransactionRow[];
@@ -11,9 +11,8 @@ interface Props {
 }
 interface Report {
   context: string;
-  previous: string;
-  version: TransactionVersion | null;
-  comparisons: AccountComparison[];
+  versions: TransactionVersion[];
+  comparisons: HistoricalAccountComparison[];
 }
 
 export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport }: Props) {
@@ -68,10 +67,9 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
         if (currentContext.current === started) setMessage(`Đã lưu phiên bản #${id} — ${month} (${selected.length} dòng).`);
       } else {
         setReport(null);
-        const previous = previousPeriod(month);
-        const version = await loadLatestVersion(supabase, previous);
+        const versions = await loadAllPriorVersions(supabase, month);
         if (currentContext.current !== started) return;
-        setReport({context: started, previous, version, comparisons: compareAccounts(selected, version?.rows ?? null)});
+        setReport({context: started, versions, comparisons: compareAccountsAcrossHistory(selected, versions)});
         setPage(1);
         onOpenReport();
       }
@@ -107,10 +105,10 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
       if (!visibleReport) return;
       const XLSX = await import('xlsx');
       const data = exceptions.map(row => ({
-        'Tháng này': month, 'Tháng trước': visibleReport.previous,
-        'Phiên bản nguồn': visibleReport.version?.id || '',
-        'Document ID': row.documentId, 'STK trước': row.previousAccount,
-        'STK hiện tại': row.currentAccount, 'Tên trước': row.previousName,
+        'Tháng này': month,
+        'Nguồn đối chiếu': row.sources.map(source => `${source.period} · #${source.versionId} · ${source.createdAt} · STK ${source.account} · ${source.name}`).join('\n'),
+        'Document ID': row.documentId, 'STK lịch sử': row.previousAccount,
+        'STK hiện tại': row.currentAccount, 'Tên lịch sử': row.previousName,
         'Tên hiện tại': row.currentName, 'Cảnh báo': row.issues.join('; '),
       }));
       const workbook = XLSX.utils.book_new();
@@ -141,17 +139,19 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
     {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK để kiểm tra lại.</p>}
     {showReport && visibleReport && <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <strong>Check STK · {visibleReport.previous} → {month}</strong>
-        <span>{visibleReport.version ? `Nguồn #${visibleReport.version.id} · ${visibleReport.version.created_at}` : 'Chưa có dữ liệu tháng trước'}</span>
+        <strong>Check STK · Tất cả tháng đã lưu → {month}</strong>
+        <details><summary className="cursor-pointer">{visibleReport.versions.length} tháng nguồn{visibleReport.versions.length ? ` · ${visibleReport.versions[0].period.slice(0, 7)} – ${visibleReport.versions[visibleReport.versions.length - 1].period.slice(0, 7)}` : ''}</summary>
+          <ul>{visibleReport.versions.map(version => <li key={version.id}>{version.period.slice(0, 7)} · Nguồn #{version.id} · {version.created_at}</li>)}</ul>
+        </details>
         <span>{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {visibleReport.comparisons.length - exceptions.length} khớp</span>
         <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK</button>
       </div>
       {exceptions.length > 0 && <>
         <div className="max-h-64 overflow-auto mt-2 rounded border border-primary/15">
           <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
-            {['Document ID', 'STK trước', 'STK hiện tại', 'Tên trước', 'Tên hiện tại', 'Cảnh báo'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
+            {['Document ID', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
           </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map((row, index) => <tr key={index} className="bg-amber-50/40 dark:bg-amber-950/20">
-            {[row.documentId, row.previousAccount, row.currentAccount, row.previousName, row.currentName, row.issues.join('; ')].map((value, column) => <td key={column} className="p-2 border-b tabular-nums">{value || '—'}</td>)}
+            {[row.documentId, row.previousAccount, row.currentAccount, row.previousName, row.currentName, row.sources.map(source => `${source.period} · #${source.versionId}: ${source.account || '—'} · ${source.name || '—'}`).join('\n'), row.issues.join('; ')].map((value, column) => <td key={column} className="p-2 border-b tabular-nums whitespace-pre-line">{value || '—'}</td>)}
           </tr>)}</tbody></table>
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>

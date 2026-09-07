@@ -34,3 +34,28 @@ test('missing fields and absent month history are not marked matched', () => {
   assert.ok(compareAccounts([row()], null)[0].issues.includes('Chưa có dữ liệu tháng trước'));
   assert.ok(compareAccounts([row()], [row('001', '')])[0].issues.includes('Thiếu STK tháng trước'));
 });
+
+import { compareAccountsAcrossHistory } from '../src/app/lib/utils/transaction-history';
+const snapshot = (period: string, rows: ReturnType<typeof row>[], id = period) => ({ id, period: `${period}-01`, rows, created_at: '2026-09-07T00:00:00Z' });
+
+test('all-month check finds an ID in January even when absent in July', () => {
+  const result = compareAccountsAcrossHistory([row()], [snapshot('2026-01', [row()]), snapshot('2026-07', [row('OTHER')])]);
+  assert.equal(result.length, 1);
+  assert.deepEqual(result[0].issues, []);
+  assert.equal(result[0].sources[0].period, '2026-01');
+});
+test('matching latest month cannot hide an account difference in an older month', () => {
+  const result = compareAccountsAcrossHistory([row()], [snapshot('2026-01', [row('001', '999')], '1'), snapshot('2026-07', [row()], '8')]);
+  assert.deepEqual(result[0].issues, ['2026-01 (#1): STK khác']);
+  assert.equal(result[0].sources.length, 2);
+  assert.equal(result[0].sources[1].versionId, '8');
+});
+test('historical changes across months are differences, conflicting duplicates within a month remain ambiguous', () => {
+  const result = compareAccountsAcrossHistory([row()], [snapshot('2026-01', [row(), row('001', '999')], '2')]);
+  assert.deepEqual(result[0].issues, ['2026-01 (#2): ID mâu thuẫn tháng nguồn']);
+});
+test('absent history and identity never count as matched', () => {
+  assert.deepEqual(compareAccountsAcrossHistory([row()], [])[0].issues, ['Chưa có lịch sử trước tháng đang chọn']);
+  assert.deepEqual(compareAccountsAcrossHistory([row()], [snapshot('2026-01', [row('OTHER')])])[0].issues, ['Không có ID trong các tháng đã lưu']);
+  assert.ok(compareAccountsAcrossHistory([row('', '')], [snapshot('2026-01', [row()])])[0].issues.includes('Thiếu Document ID'));
+});

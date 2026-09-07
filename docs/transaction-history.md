@@ -37,9 +37,18 @@ Do not relax these restrictions to resolve login or setup errors.
 - The full month's Transaction is saved, independent of display filters.
   Total/subtotal rows are excluded. Missing or invalid row months block saving
   and checking; valid rows from other months are excluded.
-- **Check STK** opens Reconcile, reads the highest version ID from the immediately
-  previous calendar month and compares it to the current, unsaved Transaction.
-  January reads December of the previous year. It never skips a missing month.
+- **Check STK** opens Reconcile and compares the current, unsaved Transaction to
+  every saved month strictly before the selected reporting month (including prior
+  years). Each month uses its highest version ID; superseded versions and the
+  current/future months are excluded. Missing intervening months do not stop the check.
+- A current row matches only when all historical occurrences found for its Document
+  ID agree. Any older account/name difference is flagged even if the most recent
+  occurrence matches. An ID missing from one month is normal; an ID missing from
+  all history is flagged. Conflicting duplicates within one snapshot remain ambiguous.
+- The count remains one result per current Transaction row. Each warning and Excel
+  export identifies the source month, version and historical account/name. The report
+  lists all source versions and save timestamps. Metadata is read with keyset pagination;
+  a failed source read fails the entire check rather than reporting a partial match.
 - Matching uses trimmed, uppercased **Document ID** only, never a name/account
   fallback. Account numbers are strings (leading zeros preserved). Zeros already
   lost in an upstream numeric import cannot be reconstructed.
