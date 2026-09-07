@@ -3325,6 +3325,7 @@ export function BulkPayment({
                 align="end"
                 className="w-60"
               >
+                <TableRestoreButton placement="menu" onRestore={rightPanelTab === "table" ? handleRefresh : () => updateAppData(prev => ({ ...prev }), false)} />
                 <DropdownMenuItem
                   onClick={() =>
                     window.dispatchEvent(new Event("open-ui-settings"))
@@ -3414,7 +3415,6 @@ export function BulkPayment({
         </div>
         )}
 
-        <div className="flex justify-end px-3 py-1"><TableRestoreButton onRestore={rightPanelTab === "table" ? handleRefresh : () => updateAppData(prev => ({ ...prev }), false)} /></div>
         <div hidden={rightPanelTab === "visuals"}>
           <TransactionHistoryPanel
             rows={appData.BankExport?.data || []}

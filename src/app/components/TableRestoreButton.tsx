@@ -1,12 +1,18 @@
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Settings } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui/dropdown-menu';
 import { useTableRestore } from '../hooks/useTableRestore';
 import type { OriginalField } from '../lib/utils/table-originals';
 
-export function TableRestoreButton({ fields, onRestore }: { fields?: readonly OriginalField[]; onRestore?: () => void }) {
+export function TableRestoreButton({ fields, onRestore, placement = 'settings' }: { fields?: readonly OriginalField[]; onRestore?: () => void; placement?: 'settings' | 'menu' | 'plain' }) {
   const restore = useTableRestore();
-  return <button type="button" onClick={onRestore || (() => restore(fields || []))}
-    title={onRestore ? "Tính lại bảng từ dữ liệu nguồn, bỏ chỉnh sửa riêng của bảng." : "Khôi phục toàn bộ dữ liệu của bảng trước chỉnh sửa (tất cả tháng), gồm dòng đã thêm hoặc xóa. Có thể Hoàn tác."}
-    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs text-primary hover:bg-muted active:scale-[0.98]">
-    <RefreshCw className="h-3.5 w-3.5" />Làm mới dữ liệu
-  </button>;
+  const action = onRestore || (() => restore(fields || []));
+  const title = onRestore ? 'Tính lại bảng từ dữ liệu nguồn, bỏ chỉnh sửa riêng của bảng.' : 'Khôi phục toàn bộ dữ liệu của bảng trước chỉnh sửa (tất cả tháng), gồm dòng đã thêm hoặc xóa. Có thể Hoàn tác.';
+  const content = <><RefreshCw className="h-3.5 w-3.5 shrink-0" /><span>Làm mới dữ liệu</span></>;
+  const className = 'flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-xs text-primary hover:bg-muted cursor-pointer';
+  if (placement === 'plain') return <button type="button" onClick={action} title={title} className={className}>{content}</button>;
+  const item = <DropdownMenuItem onSelect={action} title={title} className={className}>{content}</DropdownMenuItem>;
+  if (placement === 'menu') return item;
+  return <DropdownMenu><DropdownMenuTrigger asChild>
+    <button type="button" title="Cài đặt & Thao tác" aria-label="Cài đặt & Thao tác" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-primary hover:bg-muted active:scale-[0.98]"><Settings className="h-3.5 w-3.5" /></button>
+  </DropdownMenuTrigger><DropdownMenuContent align="end">{item}</DropdownMenuContent></DropdownMenu>;
 }

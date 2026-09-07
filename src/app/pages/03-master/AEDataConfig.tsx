@@ -2459,7 +2459,6 @@ export function AEDataConfig({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-              <TableRestoreButton fields={["Ae_Global_Inputs"]} />
             <div className="app-table-title-lockup min-w-0 flex-1">
               <div className="app-table-title-line">
                 <TableInitialMark
@@ -2551,6 +2550,7 @@ export function AEDataConfig({
                   align="end"
                   className="w-64 rounded-2xl border border-border/50 bg-card p-2 text-card-foreground shadow-2xl z-[999999]"
                 >
+                  <TableRestoreButton placement="menu" fields={["Ae_Global_Inputs"]} />
                   <DropdownMenuLabel className="px-3 py-2 text-[0.625rem] font-bold uppercase tracking-widest text-muted-foreground">
                     Cài đặt &amp; tiện ích
                   </DropdownMenuLabel>

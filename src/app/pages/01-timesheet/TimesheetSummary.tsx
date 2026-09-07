@@ -1280,6 +1280,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                   align="end"
                   className="w-64 border border-border shadow-xl p-2 bg-card rounded-xl z-[999999]"
                 >
+                  <TableRestoreButton placement="menu" fields={["Timesheet_InputList"]} />
                   <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 py-1.5">
                     CÀI ĐẶT & TIỆN ÍCH
                   </DropdownMenuLabel>
@@ -1349,7 +1350,6 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
 
 
         <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden p-0">
-          <TableRestoreButton fields={["Timesheet_InputList"]} />
           <TimesheetInputTable
             rows={inputRows}
             onAddRow={handleAddRow}

@@ -2080,7 +2080,6 @@ export function PivotSheet() {
               </div>
             </div>
 
-            <TableRestoreButton onRestore={() => { setEditingCell(null); void loadMasterData(true, true); }} />
             {/* Settings button & dropdown */}
             <div className="relative" ref={settingsMenuRef}>
               <button
@@ -2105,6 +2104,7 @@ export function PivotSheet() {
                   </div>
 
                   {/* ACTION BUTTONS SECTION */}
+                  <TableRestoreButton placement="plain" onRestore={() => { setIsSettingsOpen(false); setEditingCell(null); void loadMasterData(true, true); }} />
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Thao tác dữ liệu</span>
                     <div className="grid grid-cols-2 gap-1.5">

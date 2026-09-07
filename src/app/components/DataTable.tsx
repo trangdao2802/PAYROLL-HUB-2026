@@ -1,4 +1,3 @@
-import { TableRestoreButton } from './TableRestoreButton';
 import { registerTableExport, downloadTableExcel } from "../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
@@ -3289,7 +3288,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } as any
           }
         >
-          {storageKey?.startsWith("timesheet_") ? <div className="flex justify-end px-3 py-1 border-b border-border"><TableRestoreButton fields={["Timesheet_Roster"]} /></div> : null}
           {/* Selection Action Bar */}
           {selectedRowIds.size > 0 && (
             <div className="flex items-center justify-between px-4 py-2 bg-rose-50/90 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-800 shrink-0 text-rose-900 dark:text-rose-100 shadow-xs relative z-[130]">

@@ -2305,7 +2305,6 @@ export function HoldAddDashboard() {
 
   return (
     <div className="trial-balance-frame unified-table-frame h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent w-full" style={{ borderRadius: "0px" }}>
-      <div className="flex justify-end px-3 py-1"><TableRestoreButton onRestore={() => updateAppData(prev => ({ ...prev }), false)} /></div>
       {/* Toolbar */}
       <div
         className="trial-balance-header unified-table-frame-header flex-shrink-0 py-0 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)]"
@@ -2395,6 +2394,7 @@ export function HoldAddDashboard() {
                 </div>
                 
                 {/* Save and Delete action buttons inside Settings dropdown */}
+                <TableRestoreButton placement="menu" onRestore={() => updateAppData(prev => ({ ...prev }), false)} />
                 <Button
                   size="sm"
                   onClick={handleSaveBalances}
