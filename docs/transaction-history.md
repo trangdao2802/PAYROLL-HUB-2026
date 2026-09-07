@@ -1,4 +1,4 @@
-# Monthly Transaction history / Check STK
+# Monthly Transaction history / Check STK & Document ID
 
 ## Provisioning (administrator)
 
@@ -40,24 +40,29 @@ Do not relax these restrictions to resolve login or setup errors.
 - The full month's Transaction is saved, independent of display filters.
   Total/subtotal rows are excluded. Missing or invalid row months block saving
   and checking; valid rows from other months are excluded.
-- **Check STK** opens Reconcile and compares the current, unsaved Transaction to
+- **Check STK & ID** opens Reconcile and compares the current, unsaved Transaction to
   every saved month strictly before the selected reporting month (including prior
   years). Each month uses its highest version ID; superseded versions and the
   current/future months are excluded. Missing intervening months do not stop the check.
 - A current row matches only when all historical occurrences found for its Document
-  ID agree. Any older account/name difference is flagged even if the most recent
-  occurrence matches. An ID missing from one month is normal; an ID missing from
-  all history is flagged. Conflicting duplicates within one snapshot remain ambiguous.
+  ID agree. Saved `ID Number` values from older builds are read as the same field and
+  normalized to Transaction's canonical `Document ID`. Any older ID/account/name
+  difference is flagged even if the most recent occurrence matches. An ID missing
+  from one month is normal; an identity missing from all history is flagged.
+  Conflicting duplicates within one snapshot remain ambiguous.
 - The count remains one result per current Transaction row. Each warning and Excel
   export identifies the source month, version and historical account/name. The report
   lists all source versions and save timestamps. Metadata is read with keyset pagination;
   a failed source read fails the entire check rather than reporting a partial match.
-- Matching uses trimmed, uppercased **Document ID** only, never a name/account
-  fallback. Account numbers are strings (leading zeros preserved). Zeros already
-  lost in an upstream numeric import cannot be reconstructed.
+- Matching first uses trimmed, uppercased **Document ID**. When an ID changed or is
+  missing, an exact normalized name + exact account pair is used only to expose the
+  historical ID difference; that fallback is always reported as a warning and never
+  silently treated as matched. Account numbers are strings (leading zeros preserved).
+  Zeros already lost in an upstream numeric import cannot be reconstructed.
 - A name difference is reported separately; names ignore case and repeated
   spaces. Duplicate IDs with conflicting names/accounts are flagged, not guessed.
-- The report shows previous/current account and name, source version and warning.
+- The report shows historical/current Document ID, account and name, source version
+  and warning.
   Missing identity/history is not MATCHED. It has 25-row pages and exports all
   warning rows to Excel. Checking never changes Transaction, Master or the
   existing financial Reconcile calculations/statuses.

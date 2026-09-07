@@ -2,6 +2,10 @@ import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { TransactionHistoryPanel } from "./components/TransactionHistoryPanel";
 import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-excel";
+import {
+  canonicalTransactionHeaders,
+  withCanonicalTransactionDocumentId,
+} from "../../lib/utils/transaction-history";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
@@ -711,10 +715,10 @@ export function BulkPayment({
     [updateAppData],
   );
 
-  const displayBankExportData = useMemo(
-    () => bankExportData || [],
-    [bankExportData],
-  );
+  const displayBankExportData = useMemo(() => {
+    const rows = bankExportData || [];
+    return rows.map((row: any) => withCanonicalTransactionDocumentId(row));
+  }, [bankExportData]);
 
   const analysAnalytics = useMemo(() => {
     if (rightPanelTab !== "visuals" || displayBankExportData.length === 0) {
@@ -1946,20 +1950,22 @@ export function BulkPayment({
       });
     }
 
-    let cleanBaseHeaders = baseHeaders.filter((h) => {
-      const u = String(h).trim().toUpperCase();
-      return (
-        u !== "ID" &&
-        u !== "_ID" &&
-        u !== "UUID" &&
-        u !== "ROWID" &&
-        u !== "RECORDID" &&
-        !u.startsWith("_") &&
-        u !== "THÁNG BÁO CÁO" &&
-        u !== "THÁNG BÁO CÁO (SHEET 1)" &&
-        !u.includes("THÁNG BÁO CÁO")
-      );
-    });
+    let cleanBaseHeaders = canonicalTransactionHeaders(baseHeaders).filter(
+      (h) => {
+        const u = String(h).trim().toUpperCase();
+        return (
+          u !== "ID" &&
+          u !== "_ID" &&
+          u !== "UUID" &&
+          u !== "ROWID" &&
+          u !== "RECORDID" &&
+          !u.startsWith("_") &&
+          u !== "THÁNG BÁO CÁO" &&
+          u !== "THÁNG BÁO CÁO (SHEET 1)" &&
+          !u.includes("THÁNG BÁO CÁO")
+        );
+      },
+    );
 
     const isNoCol = (h: string) => {
       const u = String(h).trim().toUpperCase();
@@ -2002,12 +2008,9 @@ export function BulkPayment({
         }
       }
 
-      const isDocumentIdCol =
-        h === "DOCUMENT ID" || h === "DOC ID" || h.includes("DOCUMENT ID");
-
       return {
         key: header,
-        label: isDocumentIdCol ? "ID NUMBER" : header,
+        label: header,
         type,
         align: type === "currency" ? ("right" as const) : ("left" as const),
       };

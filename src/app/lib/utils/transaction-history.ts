@@ -1,6 +1,44 @@
 export type TransactionRow = Record<string, unknown>;
 const text = (value: unknown) => String(value ?? '').trim();
 const name = (value: unknown) => text(value).replace(/\s+/g, ' ').toUpperCase();
+const DOCUMENT_ID_KEYS = [
+  'Document ID',
+  'Doc ID',
+  'ID Number',
+  'ID NUMBER',
+  'Document ID / CCCD',
+] as const;
+
+export function transactionDocumentId(row: TransactionRow): string {
+  for (const key of DOCUMENT_ID_KEYS) {
+    const value = text(row[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+export function withCanonicalTransactionDocumentId(
+  row: TransactionRow,
+): TransactionRow {
+  const documentId = transactionDocumentId(row);
+  return row['Document ID'] === documentId
+    ? row
+    : { ...row, 'Document ID': documentId };
+}
+
+export function canonicalTransactionHeaders(headers: string[]): string[] {
+  const seen = new Set<string>();
+  return headers
+    .map(header => /^(document id|doc id|id number|document id \/ cccd)$/i.test(header.trim())
+      ? 'Document ID'
+      : header)
+    .filter(header => {
+      const normalized = header.trim().toUpperCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+}
 
 export function normalizePeriod(value: unknown): string {
   const raw = text(value).replace(/^Tháng\s*/i, '');
@@ -27,7 +65,9 @@ export function selectPeriodRows(rows: TransactionRow[], period: string): Transa
     if (!source) throw new Error('Có dòng Transaction thiếu tháng báo cáo.');
     return normalizePeriod(source) === target;
   }).map(row => ({...row, 'Tháng báo cáo': target,
-    'Document ID': text(row['Document ID']),
+    // Transaction uses Document ID as its canonical field. ID Number is kept
+    // as a read-compatible legacy alias for snapshots saved by older builds.
+    'Document ID': transactionDocumentId(row),
     'Beneficiary Account No.': text(row['Beneficiary Account No.']),
     'Beneficiary Name': text(row['Beneficiary Name']),
   }));
@@ -37,6 +77,7 @@ export function selectPeriodRows(rows: TransactionRow[], period: string): Transa
 
 export interface AccountComparison {
   documentId: string;
+  previousDocumentId: string;
   currentAccount: string;
   previousAccount: string;
   currentName: string;
@@ -47,7 +88,7 @@ export interface AccountComparison {
 function groupById(rows: TransactionRow[]): Map<string, TransactionRow[]> {
   const groups = new Map<string, TransactionRow[]>();
   for (const row of rows) {
-    const id = text(row['Document ID']).toUpperCase();
+    const id = transactionDocumentId(row).toUpperCase();
     if (id) {
       const group = groups.get(id);
       if (group) group.push(row);
@@ -66,13 +107,14 @@ export function compareAccounts(current: TransactionRow[], previous: Transaction
   const currentConflicts = new Set([...currentGroups].filter(([, rows]) => conflicting(rows)).map(([id]) => id));
   const previousConflicts = new Set([...previousGroups].filter(([, rows]) => conflicting(rows)).map(([id]) => id));
   const previousValues = new Map([...previousGroups].map(([id, rows]) => [id, {
+    documentId: [...new Set(rows.map(transactionDocumentId).filter(Boolean))].join(' | '),
     account: [...new Set(rows.map(r => text(r['Beneficiary Account No.'])))].join(' | '),
     name: previousConflicts.has(id)
       ? [...new Set(rows.map(r => text(r['Beneficiary Name'])))].join(' | ')
       : text(rows[0]['Beneficiary Name']),
   }]));
   return current.map(row => {
-    const documentId = text(row['Document ID']).toUpperCase();
+    const documentId = transactionDocumentId(row).toUpperCase();
     const currentAccount = text(row['Beneficiary Account No.']);
     const currentName = text(row['Beneficiary Name']);
     const matches = previousGroups.get(documentId) || [];
@@ -86,6 +128,7 @@ export function compareAccounts(current: TransactionRow[], previous: Transaction
     if (previousConflict) issues.push('ID mâu thuẫn tháng trước');
     if (previous === null) issues.push('Chưa có dữ liệu tháng trước');
     else if (documentId && !matches.length) issues.push('Không có ID ở tháng trước');
+    const previousDocumentId = previousValues.get(documentId)?.documentId || '';
     const previousAccount = previousValues.get(documentId)?.account || '';
     const previousName = previousValues.get(documentId)?.name || '';
     if (matches.length && !previousConflict && !currentConflict) {
@@ -94,7 +137,7 @@ export function compareAccounts(current: TransactionRow[], previous: Transaction
       if (!previousName) issues.push('Thiếu tên tháng trước');
       else if (currentName && name(currentName) !== name(previousName)) issues.push('Tên khác');
     }
-    return {documentId, currentAccount, previousAccount, currentName, previousName, issues};
+    return {documentId, previousDocumentId, currentAccount, previousAccount, currentName, previousName, issues};
   });
 }
 
@@ -105,7 +148,38 @@ export interface HistoricalSnapshot {
   rows: TransactionRow[];
 }
 export interface HistoricalAccountComparison extends AccountComparison {
-  sources: { period: string; versionId: string; createdAt: string; account: string; name: string }[];
+  sources: {
+    period: string;
+    versionId: string;
+    createdAt: string;
+    documentId: string;
+    account: string;
+    name: string;
+  }[];
+}
+
+function nameAndAccountKey(row: TransactionRow): string {
+  const account = text(row['Beneficiary Account No.']);
+  const normalizedName = name(row['Beneficiary Name']);
+  return account && normalizedName ? `${account}\u0000${normalizedName}` : '';
+}
+
+function groupByNameAndAccount(
+  rows: TransactionRow[],
+): Map<string, TransactionRow[]> {
+  const groups = new Map<string, TransactionRow[]>();
+  for (const row of rows) {
+    const key = nameAndAccountKey(row);
+    if (!key) continue;
+    const group = groups.get(key);
+    if (group) group.push(row);
+    else groups.set(key, [row]);
+  }
+  return groups;
+}
+
+function uniqueJoined(values: string[]): string {
+  return [...new Set(values.filter(Boolean))].join(' | ');
 }
 
 export function compareAccountsAcrossHistory(current: TransactionRow[], history: HistoricalSnapshot[]): HistoricalAccountComparison[] {
@@ -116,12 +190,46 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
   for (const snapshot of history) {
     const period = snapshot.period.slice(0, 7);
     const ids = groupById(snapshot.rows);
+    const identities = groupByNameAndAccount(snapshot.rows);
     const comparisons = compareAccounts(current, snapshot.rows);
     comparisons.forEach((comparison, index) => {
-      if (!ids.has(comparison.documentId)) return;
       const result = results[index];
-      result.sources.push({ period, versionId: snapshot.id, createdAt: snapshot.created_at,
-        account: comparison.previousAccount, name: comparison.previousName });
+      const directMatches = ids.get(comparison.documentId) || [];
+      const identityMatches = directMatches.length > 0
+        ? directMatches
+        : identities.get(nameAndAccountKey(current[index])) || [];
+      if (!identityMatches.length) return;
+
+      const sourceDocumentId = uniqueJoined(
+        identityMatches.map(row => transactionDocumentId(row).toUpperCase()),
+      );
+      const sourceAccount = directMatches.length > 0
+        ? comparison.previousAccount
+        : uniqueJoined(identityMatches.map(row => text(row['Beneficiary Account No.'])));
+      const sourceName = directMatches.length > 0
+        ? comparison.previousName
+        : uniqueJoined(identityMatches.map(row => text(row['Beneficiary Name'])));
+      result.sources.push({
+        period,
+        versionId: snapshot.id,
+        createdAt: snapshot.created_at,
+        documentId: sourceDocumentId,
+        account: sourceAccount,
+        name: sourceName,
+      });
+
+      if (!directMatches.length) {
+        const issue = !sourceDocumentId
+          ? 'Thiếu Document ID tháng nguồn'
+          : sourceDocumentId.includes(' | ')
+            ? `Document ID lịch sử mâu thuẫn (${sourceDocumentId})`
+            : comparison.documentId
+              ? `Document ID khác (${sourceDocumentId} → ${comparison.documentId})`
+              : '';
+        if (issue) result.issues.push(`${period} (#${snapshot.id}): ${issue}`);
+        return;
+      }
+
       for (const issue of comparison.issues) {
         if (!result.issues.includes(issue) && !issue.includes('tháng này') && issue !== 'Thiếu Document ID') {
           result.issues.push(`${period} (#${snapshot.id}): ${issue.replace('tháng trước', 'tháng nguồn')}`);
@@ -130,6 +238,7 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
     });
   }
   return results.map(result => ({ ...result,
+    previousDocumentId: uniqueJoined(result.sources.map(source => source.documentId)),
     previousAccount: [...new Set(result.sources.map(source => source.account))].join(' | '),
     previousName: [...new Set(result.sources.map(source => source.name))].join(' | '),
     issues: [...result.issues, ...(!history.length ? ['Chưa có lịch sử trước tháng đang chọn']

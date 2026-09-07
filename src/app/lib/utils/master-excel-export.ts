@@ -22,6 +22,10 @@ import {
   type WorkbookExportDefinition,
 } from "./excel-export";
 import { buildPivotFromAppData, getPivotSourceLabels } from "./pivot-utils";
+import {
+  canonicalTransactionHeaders,
+  withCanonicalTransactionDocumentId,
+} from "./transaction-history";
 
 type DataRow = Record<string, unknown>;
 
@@ -493,7 +497,9 @@ export function createMasterExportDefinition(
     appData.BankExport?.data?.length > 0
       ? appData.BankExport.data
       : appData.Bank_North_AE?.data || [];
-  const transactionRows = rawTransactions;
+  const transactionRows = rawTransactions.map(
+    withCanonicalTransactionDocumentId,
+  );
   const reconciliation = buildReconciliationRows(
     grossRows,
     deductionRows,
@@ -572,7 +578,21 @@ export function createMasterExportDefinition(
             sheetName: "Transaction",
             table: {
               storageKey: "bulk_payment",
-              columns: (appData.BankExport?.headers?.length ? appData.BankExport.headers : [...BANK_TRANSACTION_EXPORT_HEADERS]).filter(key => !key.startsWith("_") && !/^(id|uuid|rowid|recordid)$/i.test(key)).map(key => ({key, label: key === "Document ID" ? "ID NUMBER" : key, type: key === "Payment Amount" ? "currency" : "text"})),
+              columns: canonicalTransactionHeaders(
+                appData.BankExport?.headers?.length
+                  ? appData.BankExport.headers
+                  : [...BANK_TRANSACTION_EXPORT_HEADERS],
+              )
+                .filter(
+                  (key) =>
+                    !key.startsWith("_") &&
+                    !/^(id|uuid|rowid|recordid)$/i.test(key),
+                )
+                .map((key) => ({
+                  key,
+                  label: key,
+                  type: key === "Payment Amount" ? "currency" : "text",
+                })),
               rows: transactionRows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },

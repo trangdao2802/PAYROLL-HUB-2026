@@ -310,7 +310,7 @@ test("section-wide Excel actions live inside each table action icon, not the nav
   }
 });
 
-test("Transaction shows ID NUMBER on the web and both bank exports blank it", () => {
+test("Transaction shows Document ID on the web and both bank exports blank it", () => {
   const transactionPage = readFileSync(
     new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
     "utf8",
@@ -324,7 +324,9 @@ test("Transaction shows ID NUMBER on the web and both bank exports blank it", ()
     "utf8",
   );
 
-  assert.match(transactionPage, /label: isDocumentIdCol \? "ID NUMBER" : header/);
+  assert.match(transactionPage, /canonicalTransactionHeaders\(baseHeaders\)/);
+  assert.match(transactionPage, /label: header/);
+  assert.doesNotMatch(transactionPage, /label: isDocumentIdCol \? "ID NUMBER" : header/);
   assert.doesNotMatch(transactionPage, /_virtual_docId/);
   assert.match(bulkPaymentLogic, /prepareTransactionBankExportRows/);
   assert.match(masterPage, /prepareTransactionBankExportRows/);

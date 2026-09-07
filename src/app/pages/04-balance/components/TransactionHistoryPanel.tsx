@@ -110,22 +110,24 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
       const XLSX = await import('xlsx');
       const data = exceptions.map(row => ({
         'Tháng này': month,
-        'Nguồn đối chiếu': row.sources.map(source => `${source.period} · #${source.versionId} · ${source.createdAt} · STK ${source.account} · ${source.name}`).join('\n'),
-        'Document ID': row.documentId, 'STK lịch sử': row.previousAccount,
+        'Nguồn đối chiếu': row.sources.map(source => `${source.period} · #${source.versionId} · ${source.createdAt} · Document ID ${source.documentId || '—'} · STK ${source.account} · ${source.name}`).join('\n'),
+        'Document ID lịch sử': row.previousDocumentId,
+        'Document ID hiện tại': row.documentId,
+        'STK lịch sử': row.previousAccount,
         'STK hiện tại': row.currentAccount, 'Tên lịch sử': row.previousName,
         'Tên hiện tại': row.currentName, 'Cảnh báo': row.issues.join('; '),
       }));
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data), 'Check STK');
-      XLSX.writeFile(workbook, `Check-STK-${month.replace(/[^\d-]/g, '-')}.xlsx`);
-    } catch { setMessage('Không thể xuất báo cáo Check STK.'); }
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data), 'Check STK-ID');
+      XLSX.writeFile(workbook, `Check-STK-ID-${month.replace(/[^\d-]/g, '-')}.xlsx`);
+    } catch { setMessage('Không thể xuất báo cáo Check STK & ID.'); }
   }
 
   return <section aria-label="Kho Transaction theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs font-semibold">Kho Transaction · {month}</span>
       <button type="button" className={buttonClass} disabled={busy || !userId} title="Thay toàn bộ dữ liệu đã lưu của tháng đang chọn bằng Transaction hiện tại" onClick={() => void run('save')}>Lưu tháng</button>
-      <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('check')}>Check STK</button>
+      <button type="button" className={buttonClass} disabled={busy || !userId} onClick={() => void run('check')}>Check STK & ID</button>
       {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
         : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
           const { error } = await supabase.auth.signOut();
@@ -140,22 +142,22 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport 
       <span className="text-xs">Cần tài khoản được quản trị viên cấp quyền kho payroll.</span>
     </form>}
     {message && <p role="status" className="text-xs mt-2">{message}</p>}
-    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK để kiểm tra lại.</p>}
+    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
     {showReport && visibleReport && <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <strong>Check STK · Tất cả tháng đã lưu → {month}</strong>
+        <strong>Check STK & Document ID · Tất cả tháng đã lưu → {month}</strong>
         <details><summary className="cursor-pointer">{visibleReport.versions.length} tháng nguồn{visibleReport.versions.length ? ` · ${visibleReport.versions[0].period.slice(0, 7)} – ${visibleReport.versions[visibleReport.versions.length - 1].period.slice(0, 7)}` : ''}</summary>
           <ul>{visibleReport.versions.map(version => <li key={version.id}>{version.period.slice(0, 7)} · Nguồn #{version.id} · {version.created_at}</li>)}</ul>
         </details>
         <span>{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {visibleReport.comparisons.length - exceptions.length} khớp</span>
-        <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK</button>
+        <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK & ID</button>
       </div>
       {exceptions.length > 0 && <>
         <div className="max-h-64 overflow-auto mt-2 rounded border border-primary/15">
           <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
-            {['Document ID', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
+            {['Document ID lịch sử', 'Document ID hiện tại', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
           </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map((row, index) => <tr key={index} className="bg-amber-50/40 dark:bg-amber-950/20">
-            {[row.documentId, row.previousAccount, row.currentAccount, row.previousName, row.currentName, row.sources.map(source => `${source.period} · #${source.versionId}: ${source.account || '—'} · ${source.name || '—'}`).join('\n'), row.issues.join('; ')].map((value, column) => <td key={column} className="p-2 border-b tabular-nums whitespace-pre-line">{value || '—'}</td>)}
+            {[row.previousDocumentId, row.documentId, row.previousAccount, row.currentAccount, row.previousName, row.currentName, row.sources.map(source => `${source.period} · #${source.versionId}: ID ${source.documentId || '—'} · STK ${source.account || '—'} · ${source.name || '—'}`).join('\n'), row.issues.join('; ')].map((value, column) => <td key={column} className="p-2 border-b tabular-nums whitespace-pre-line">{value || '—'}</td>)}
           </tr>)}</tbody></table>
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
