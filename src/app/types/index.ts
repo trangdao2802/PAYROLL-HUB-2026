@@ -100,7 +100,7 @@ export interface AppData {
     lastSavedAt?: string;
     editCount: number;
     saveVersion: number;
-    lastAction: "generated" | "saved";
+    lastAction: "generated" | "edited" | "saved";
   };
   TrialBalanceTransactionVersion?: number;
   TrialBalanceTransactionVersions?: Record<string, number>;

@@ -276,10 +276,12 @@ export function BulkPayment({
     isSuccess,
     reportStats,
     isRefreshing,
+    hasPendingTransactionEdits,
     handleGenerateReport,
     handleClearReport,
     handleExportExcel,
     handleCellChange,
+    handleSaveTransactionEdits,
     handleDeleteRow,
     handleDeleteRows,
     handleRefresh,
@@ -3511,6 +3513,27 @@ export function BulkPayment({
                     hideSearch={true}
                     headerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-slate-800 border-[#e7dbdc] font-bold"
                     footerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-slate-800 border-[#e7dbdc] font-black text-[12.5px] md:text-[13px]"
+                    footerActionContent={
+                      <button
+                        type="button"
+                        onClick={handleSaveTransactionEdits}
+                        disabled={!hasPendingTransactionEdits}
+                        aria-label="Lưu dữ liệu Transaction sau chỉnh sửa"
+                        title={
+                          hasPendingTransactionEdits
+                            ? "Lưu toàn bộ thay đổi vừa sửa trong bảng Transaction"
+                            : "Chưa có thay đổi cần lưu"
+                        }
+                        className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-extrabold whitespace-nowrap transition-all active:scale-[0.98] ${
+                          hasPendingTransactionEdits
+                            ? "border-primary bg-primary text-foreground shadow-sm hover:brightness-95 cursor-pointer"
+                            : "border-border bg-background/60 text-muted-foreground opacity-55 cursor-not-allowed"
+                        }`}
+                      >
+                        <Save className="h-3.5 w-3.5 shrink-0" />
+                        <span>Lưu sửa</span>
+                      </button>
+                    }
                   />
                 </motion.div>
               )}

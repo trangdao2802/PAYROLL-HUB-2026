@@ -12,6 +12,9 @@ import {
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
+  commitTransactionEdits,
+  hasPendingTransactionEdits as hasPendingTransactionEditsInData,
+  markTransactionEdited,
   markTransactionGenerated,
   markTransactionSaved,
 } from "../lib/utils/transaction-activity";
@@ -1256,14 +1259,35 @@ export function useBulkPaymentLogic() {
             r["Payment Serial Number"] === row["Payment Serial Number"])
       );
       if (rowIndex === -1) return prev;
+      if (
+        String(newData[rowIndex]?.[colKey] ?? "") === String(value ?? "")
+      ) {
+        return prev;
+      }
       newData[rowIndex] = { ...newData[rowIndex], [colKey]: value };
       return {
         ...prev,
         BankExport: { ...prev.BankExport, data: newData },
-        TransactionActivity: markTransactionSaved(prev),
+        TransactionActivity: markTransactionEdited(prev),
       };
     });
   }, [updateAppData]);
+
+  const hasPendingTransactionEdits =
+    hasPendingTransactionEditsInData(appData);
+
+  const handleSaveTransactionEdits = useCallback(() => {
+    if (!hasPendingTransactionEdits) return;
+
+    updateAppData((prev) => {
+      if (!hasPendingTransactionEditsInData(prev)) return prev;
+      return {
+        ...prev,
+        TransactionActivity: commitTransactionEdits(prev),
+      };
+    }, true, true);
+    toast.success("Đã lưu dữ liệu Transaction sau chỉnh sửa.");
+  }, [hasPendingTransactionEdits, updateAppData]);
 
   const handleDeleteRow = useCallback((rowToDelete: any) => {
     updateAppData((prev) => {
@@ -1408,6 +1432,7 @@ LỆCH ACC & AE:\t${formatMoneyVND(calculationSummary.diff).replace(" ₫", "")}
     isSuccess,
     reportStats,
     isRefreshing,
+    hasPendingTransactionEdits,
 
     // Helpers
     monMatchComp,
@@ -1418,6 +1443,7 @@ LỆCH ACC & AE:\t${formatMoneyVND(calculationSummary.diff).replace(" ₫", "")}
     handleClearReport,
     handleExportExcel,
     handleCellChange,
+    handleSaveTransactionEdits,
     handleDeleteRow,
     handleDeleteRows,
     handleRefresh,

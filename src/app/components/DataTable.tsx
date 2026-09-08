@@ -305,6 +305,8 @@ interface DataTableProps {
   onResetFilters?: () => void;
   hideColumnVisibilityToggle?: boolean;
   defaultItemsPerPage?: number | typeof Infinity;
+  /** Optional compact action rendered beside the table save status. */
+  footerActionContent?: React.ReactNode;
   /** Replaces the generic saved-time badge in the table footer. */
   footerStatusContent?: React.ReactNode;
 }
@@ -1055,6 +1057,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       onResetFilters,
       hideColumnVisibilityToggle = false,
       defaultItemsPerPage,
+      footerActionContent,
       footerStatusContent,
     },
     ref,
@@ -3955,6 +3958,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 </DropdownMenuContent>
               </DropdownMenu>
               )}
+
+              {footerActionContent}
 
               <div 
                 className="flex items-center gap-1.5 hidden md:flex border-l border-slate-100 pl-3"
