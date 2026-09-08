@@ -5,7 +5,8 @@ export const TRANSACTION_HISTORY_RESOLUTIONS_KEY = '_transactionHistoryResolutio
 
 export type TransactionHistoryResolutionField =
   | 'Document ID'
-  | 'Beneficiary Account No.';
+  | 'Beneficiary Account No.'
+  | 'Beneficiary Name';
 
 export interface TransactionHistoryResolutionEntry {
   field: TransactionHistoryResolutionField;
@@ -148,7 +149,7 @@ function resolutionEntries(row: TransactionRow): TransactionHistoryResolutionEnt
   return entries.filter((entry): entry is TransactionHistoryResolutionEntry => (
     entry !== null
     && typeof entry === 'object'
-    && (entry.field === 'Document ID' || entry.field === 'Beneficiary Account No.')
+    && (entry.field === 'Document ID' || entry.field === 'Beneficiary Account No.' || entry.field === 'Beneficiary Name')
     && typeof entry.from === 'string'
     && typeof entry.to === 'string'
     && Array.isArray(entry.basedOnPeriods)
@@ -183,7 +184,7 @@ export function applyTransactionHistoryResolution(
     if (!selected.has(index)) return row;
     const from = options.field === 'Document ID'
       ? documentIdValue(row)
-      : valueText(row['Beneficiary Account No.']);
+      : valueText(row[options.field]);
     const entry: TransactionHistoryResolutionEntry = {
       field: options.field,
       from,

@@ -5,6 +5,9 @@ import { assertTransactionCheckCurrent, HistorySaveConflictError, loadLatestVers
 import { compareAccountsAcrossHistory, formatHistoryDate, selectPeriodRows, visibleHistoricalComparisons, type TransactionRow, type HistoricalAccountComparison } from '../../../lib/utils/transaction-history';
 import { applyTransactionHistoryResolution, bankAccountResolutionOptions, buildDocumentIdMajorityPlan, formatResolutionPeriods, type BankAccountResolutionOption } from '../../../lib/utils/transaction-history-resolution';
 import { replaceTransactionPeriod, sameTransactionSnapshot } from '../../../lib/utils/transaction-snapshot';
+import { buildNameResolutionGroup, nameResolutionTargets } from '../../../lib/utils/transaction-name-resolution';
+import { summarizeHistoryWarnings } from '../../../lib/utils/transaction-history-summary';
+import { TransactionHistorySourceTable, type TransactionSourceLocation } from './TransactionHistorySourceTable';
 
 interface Props {
   rows: TransactionRow[];
@@ -13,6 +16,7 @@ interface Props {
   onOpenReport: () => void;
   onReplaceRows: (rows: TransactionRow[]) => void;
   hasPendingEdits: boolean;
+  onReportStateChange?: (hasExceptions: boolean, viewingSource: boolean) => void;
 }
 interface Report extends TransactionCheckSource {
   context: string;
@@ -28,7 +32,7 @@ const markedDocumentId = (value: string, syncNote: string) => (
   value ? `${value}${syncNote ? '!' : ''}` : '—'
 );
 
-export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits }: Props) {
+export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, onReportStateChange }: Props) {
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +41,10 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<Report | null>(null);
   const [accountDecision, setAccountDecision] = useState<AccountDecision | null>(null);
+  const [nameDecision, setNameDecision] = useState<{context: string; rowIndex: number; optionKey: string} | null>(null);
+  const [sourceLocation, setSourceLocation] = useState<(TransactionSourceLocation & {context: string}) | null>(null);
+  const reportScroll = useRef<HTMLDivElement>(null);
+  const savedReportScroll = useRef({top: 0, left: 0});
   const [page, setPage] = useState(1);
   const [defaultBank, setDefaultBank] = useState('VCB');
   const operation = useRef(false);
@@ -73,6 +81,24 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     () => comparisons.filter(row => row.issues.length > 0),
     [comparisons],
   );
+  const visibleNameGroup = useMemo(() => nameDecision?.context === context && visibleReport
+    ? buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, nameDecision.rowIndex, defaultBank)
+    : null, [nameDecision, context, visibleReport, defaultBank]);
+  const nameTargets = visibleNameGroup && nameDecision ? nameResolutionTargets(visibleNameGroup, nameDecision.optionKey) : [];
+  const sourceVersion = visibleReport && sourceLocation?.context === context
+    ? [visibleReport.currentVersion, ...visibleReport.versions].find(version => version.id === sourceLocation.versionId)
+    : undefined;
+  const viewingSource = Boolean(sourceVersion);
+  const hasExceptions = exceptions.length > 0;
+  useEffect(() => {
+    onReportStateChange?.(showReport && hasExceptions, showReport && viewingSource);
+  }, [showReport, hasExceptions, viewingSource, onReportStateChange]);
+  useEffect(() => {
+    if (!viewingSource && reportScroll.current) {
+      reportScroll.current.scrollTop = savedReportScroll.current.top;
+      reportScroll.current.scrollLeft = savedReportScroll.current.left;
+    }
+  }, [viewingSource]);
   const pageCount = Math.max(1, Math.ceil(exceptions.length / 25));
   const activePage = Math.min(page, pageCount);
   const buttonClass = 'rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold whitespace-nowrap hover:bg-primary/10 disabled:opacity-50 active:scale-[0.98]';
@@ -101,6 +127,8 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     setMessage('');
     setReport(null);
     setAccountDecision(null);
+    setNameDecision(null);
+    setSourceLocation(null);
     const started = context;
     try {
       if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase URL và publishable/anon key.');
@@ -270,6 +298,93 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     }
   }
 
+  async function openSource(location: TransactionSourceLocation) {
+    if (!visibleReport || operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    const started = context;
+    try {
+      await assertTransactionCheckCurrent(supabase, visibleReport);
+      requireUnchangedContext(started);
+      savedReportScroll.current = {top: reportScroll.current?.scrollTop || 0, left: reportScroll.current?.scrollLeft || 0};
+      setSourceLocation({...location, context: started});
+    } catch (error) {
+      if (currentContext.current === started) {
+        setReport(null);
+        setMessage(`${error instanceof Error ? error.message : 'Không thể mở nguồn.'} Bấm Check STK & ID để tải lại.`);
+      }
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function resolveName() {
+    if (!visibleReport || !visibleNameGroup || !nameDecision || operation.current || hasPendingEdits || !localMatchesCloud) return;
+    const option = visibleNameGroup.options.find(item => item.key === nameDecision.optionKey);
+    const targets = nameResolutionTargets(visibleNameGroup, nameDecision.optionKey);
+    if (!option || !targets.length) return;
+    operation.current = true;
+    setBusy(true);
+    setMessage('');
+    const started = context;
+    const resolvedAt = new Date().toISOString();
+    const completed: string[] = [];
+    let nextLocalRows = rows;
+    try {
+      await assertTransactionCheckCurrent(supabase, visibleReport);
+      requireUnchangedContext(started);
+      // Update historical months first; replace local Transaction only after
+      // the current month has been saved and read back successfully.
+      const ordered = targets.filter(target => target.versionId !== visibleReport.currentVersion.id)
+        .concat(targets.filter(target => target.versionId === visibleReport.currentVersion.id));
+      for (const target of ordered) {
+        const version = [visibleReport.currentVersion, ...visibleReport.versions].find(item => item.id === target.versionId);
+        if (!version) throw new HistorySaveConflictError('Không tìm thấy tháng nguồn.');
+        const nextRows = applyTransactionHistoryResolution(version.rows, {
+          field: 'Beneficiary Name', value: option.name, rowIndexes: target.rowIndexes,
+          basedOnPeriods: [option.period], resolvedAt,
+        });
+        requireUnchangedContext(started);
+        const id = await replaceVersionIfCurrent(supabase, version, nextRows, crypto.randomUUID());
+        const saved = await loadLatestVersion(supabase, target.period);
+        if (!saved || saved.id !== id || !sameTransactionSnapshot(saved.rows, nextRows, target.period)) {
+          throw new HistorySaveConflictError('Bản lưu tên đã thay đổi hoặc chưa đọc lại được.');
+        }
+        completed.push(target.period);
+        if (version.id === visibleReport.currentVersion.id) nextLocalRows = replaceTransactionPeriod(rows, month, saved.rows);
+      }
+      requireUnchangedContext(started);
+      // Refresh automatically, using the same local rows that will be committed.
+      const fresh = await loadTransactionCheckSource(supabase, month);
+      requireUnchangedContext(started);
+      if (nextLocalRows !== rows) onReplaceRows(nextLocalRows);
+      setReport({
+        ...fresh, context: JSON.stringify([month, nextLocalRows, userId, hasPendingEdits, defaultBank]),
+        comparisons: compareAccountsAcrossHistory(selectPeriodRows(fresh.currentVersion.rows, month), fresh.versions, defaultBank),
+      });
+      setMessage(`Đã đồng bộ tên theo tháng ${formatResolutionPeriods([option.period])}: ${option.name}. Đã lưu tháng ${formatResolutionPeriods(completed)} lên Supabase.`);
+      setNameDecision(null);
+    } catch (error) {
+      if (currentContext.current === started) {
+        // A later refresh can fail after a verified current-month write.
+        if (nextLocalRows !== rows) onReplaceRows(nextLocalRows);
+        setReport(null);
+        setNameDecision(null);
+        setMessage(`${completed.length ? `Đã lưu tháng ${formatResolutionPeriods(completed)}. ` : ''}${error instanceof Error ? error.message : 'Không thể đồng bộ tên.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
+      }
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+
+  function sourceLink(value: string, location: TransactionSourceLocation, title?: string) {
+    return <button type="button" className="text-left text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary disabled:opacity-50 active:scale-[0.98]"
+      disabled={busy} title={title || `Mở Transaction nguồn · ${location.field} · dòng ${location.rowIndexes.map(index => index + 1).join(', ')}`}
+      onClick={() => void openSource(location)}>{value || '—'} <span aria-hidden="true">↗</span></button>;
+  }
+
   async function exportReport() {
     try {
       if (!visibleReport) return;
@@ -325,7 +440,8 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     </form>}
     {message && <p role="status" className="text-xs mt-2">{message}</p>}
     {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
-    {showReport && visibleReport && <div className="mt-2">
+    {showReport && sourceVersion && sourceLocation && <TransactionHistorySourceTable key={`${sourceVersion.id}-${sourceLocation.field}-${sourceLocation.rowIndexes.join(',')}`} version={sourceVersion} location={sourceLocation} onBack={() => setSourceLocation(null)} />}
+    {showReport && visibleReport && !sourceVersion && <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <strong>Check STK & Document ID · Tất cả tháng đã lưu → {month}</strong>
         <span className="rounded-full bg-primary/10 px-2 py-1 font-semibold">Tháng hiện tại: Supabase #{visibleReport.currentVersion.id} · {formatHistoryDate(visibleReport.currentVersion.created_at)}</span>
@@ -354,30 +470,42 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         </div>
       </details>
       {exceptions.length > 0 && <>
-        <div className="max-h-64 overflow-auto mt-2 rounded border border-primary/15">
+        <div ref={reportScroll} className="max-h-[55vh] overflow-auto mt-2 rounded-xl border border-primary/15">
           <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
             {['Mức kiểm tra / NH', 'Document ID lịch sử', 'Document ID hiện tại', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo', 'Giải quyết'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
           </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map(row => {
             const idPlan = buildDocumentIdMajorityPlan(row, month);
             const accountOptions = bankAccountResolutionOptions(row);
-            const historicalIdNote = row.sources.map(source => source.documentIdSyncNote).find(Boolean) || '';
+            const nameGroup = buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, row.currentRowIndex, defaultBank);
+            const currentLocation = {versionId: visibleReport.currentVersion.id, rowIndexes: [row.currentRowIndex]};
+            const historicalLinks = (field: string, getValue: (source: HistoricalAccountComparison['sources'][number]) => string) => row.sources.length
+              ? <div className="space-y-1">{row.sources.map(source => <div key={source.versionId}>
+                {sourceLink(getValue(source), {versionId: source.versionId, rowIndexes: source.rowIndexes, field})}
+                <span className="ml-1 text-[10px] text-muted-foreground">{formatResolutionPeriods([source.period])}</span>
+              </div>)}</div> : '—';
             return <tr key={row.currentRowIndex} className="bg-amber-50/40 dark:bg-amber-950/20">
               <td className="p-2 border-b"><span className="block whitespace-nowrap font-semibold">{row.bankCheck?.findings.some(item => item.severity === 'error') ? 'Cần sửa' : 'Cần đối chiếu'}</span><span className="text-[10px] text-muted-foreground">{row.bankCheck?.bank || 'Chưa rõ NH'}{row.bankCheck?.bankAssumed ? ' · mặc định' : ''}</span></td>
-              <td className="p-2 border-b tabular-nums whitespace-pre-line" title={historicalIdNote ? `! Đồng bộ theo ${historicalIdNote}` : undefined}>{markedDocumentId(row.previousDocumentId, historicalIdNote)}</td>
-              <td className="p-2 border-b tabular-nums whitespace-pre-line" title={row.currentDocumentIdSyncNote ? `! Đồng bộ theo ${row.currentDocumentIdSyncNote}` : undefined}>{markedDocumentId(row.documentId, row.currentDocumentIdSyncNote)}</td>
-              {[row.previousAccount, row.currentAccount, row.previousName, row.currentName].map((value, column) => <td key={column} className="p-2 border-b tabular-nums whitespace-pre-line">{value || '—'}</td>)}
+              <td className="p-2 border-b tabular-nums">{historicalLinks('Document ID', source => markedDocumentId(source.documentId, source.documentIdSyncNote))}</td>
+              <td className="p-2 border-b tabular-nums">{sourceLink(markedDocumentId(row.documentId, row.currentDocumentIdSyncNote), {...currentLocation, field: 'Document ID'}, row.currentDocumentIdSyncNote ? `! Đồng bộ theo ${row.currentDocumentIdSyncNote} · Mở nguồn` : undefined)}</td>
+              <td className="p-2 border-b tabular-nums">{historicalLinks('Beneficiary Account No.', source => source.account)}</td>
+              <td className="p-2 border-b tabular-nums">{sourceLink(row.currentAccount, {...currentLocation, field: 'Beneficiary Account No.'})}</td>
+              <td className="p-2 border-b">{historicalLinks('Beneficiary Name', source => source.name)}</td>
+              <td className="p-2 border-b">{sourceLink(row.currentName, {...currentLocation, field: 'Beneficiary Name'})}</td>
               <td className="p-2 border-b tabular-nums whitespace-pre-line">
                 <div className="space-y-1.5">{row.sources.map(source => <div key={`${source.period}-${source.versionId}`}>
-                  <div>{source.period} · #{source.versionId} · {formatHistoryDate(source.createdAt)}: ID {markedDocumentId(source.documentId, source.documentIdSyncNote)} · STK {source.account || '—'} · {source.name || '—'}</div>
+                  <div>{sourceLink(`${formatResolutionPeriods([source.period])} · #${source.versionId}`, {versionId: source.versionId, rowIndexes: source.rowIndexes, field: 'Document ID'}, `Transaction ${source.period} · lưu ${formatHistoryDate(source.createdAt)}`)}</div>
                   {source.documentIdSyncNote && <div className="mt-0.5 inline-flex rounded-full bg-primary/20 px-2 py-0.5 font-semibold text-foreground">! Đồng bộ theo {source.documentIdSyncNote}</div>}
                 </div>)}</div>
               </td>
-              <td className="p-2 border-b tabular-nums whitespace-pre-line">{row.issues.join('; ') || '—'}</td>
+              <td className="p-2 border-b min-w-40 max-w-64"><span>{summarizeHistoryWarnings(row)}</span>
+                <details className="mt-1 text-[10px] text-muted-foreground"><summary className="cursor-pointer">Chi tiết</summary><p className="mt-1 whitespace-pre-line">{row.issues.join('\n')}</p></details>
+              </td>
               <td className="p-2 border-b">
                 <div className="flex min-w-max flex-col items-start gap-1.5">
                   {idPlan && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Đồng bộ ID thành ${idPlan.targetDocumentId} theo ${idPlan.supportLabel}`} onClick={() => void resolveDocumentId(row)}>Đồng bộ ID</button>}
+                  {nameGroup && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} onClick={() => setNameDecision({context, rowIndex: row.currentRowIndex, optionKey: ''})}>Đồng bộ tên</button>}
                   {accountOptions.map(source => <button key={`${source.versionId}-${source.account}`} type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Chọn STK cho tháng ${formatResolutionPeriods([source.period])}`} onClick={() => setAccountDecision({context, comparison: row, source})}>Chọn STK {formatResolutionPeriods([source.period])}</button>)}
-                  {!idPlan && accountOptions.length === 0 && <span className="text-[10px] text-muted-foreground">{row.bankCheck?.blocksSync ? 'Đối chiếu chứng từ ngân hàng trước khi đồng bộ' : '—'}</span>}
+                  {!idPlan && !nameGroup && accountOptions.length === 0 && <span className="text-[10px] text-muted-foreground">{row.bankCheck?.blocksSync ? 'Cần xác minh' : '—'}</span>}
                 </div>
               </td>
             </tr>;
@@ -386,6 +514,32 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
       </>}
     </div>}
+    <Dialog open={Boolean(visibleNameGroup)} onOpenChange={open => { if (!open && !busy) setNameDecision(null); }}>
+      <DialogContent className="!max-w-lg !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Đồng bộ tên theo tháng nào?</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">Chọn tháng có tên đúng. Tên này sẽ được lưu vào các dòng cùng ID, ngân hàng và STK trong những tháng liệt kê bên dưới.</DialogDescription>
+        </DialogHeader>
+        {visibleNameGroup && <div className="space-y-3 text-xs">
+          <p className="font-semibold tabular-nums">ID {visibleNameGroup.documentId} · {visibleNameGroup.bank} · STK {visibleNameGroup.account}</p>
+          <fieldset disabled={busy} className="max-h-52 space-y-2 overflow-auto">
+            <legend className="mb-2 font-semibold">Tháng lấy tên</legend>
+            {visibleNameGroup.options.map(option => <label key={option.key} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 ${nameDecision?.optionKey === option.key ? 'border-primary bg-primary/10' : 'border-primary/20'}`}>
+              <input type="radio" name="name-source-month" value={option.key} checked={nameDecision?.optionKey === option.key} onChange={() => setNameDecision(value => value ? {...value, optionKey: option.key} : null)} />
+              <span><span className="block font-bold">Tháng {formatResolutionPeriods([option.period])}{option.versionId === visibleReport?.currentVersion.id ? ' · hiện tại' : ''}</span><span>{option.name}</span></span>
+            </label>)}
+          </fieldset>
+          {nameTargets.length > 0 && <div className="rounded-xl border border-primary/20 p-2.5">
+            <p className="font-semibold">Các tháng sẽ cập nhật</p>
+            <ul className="mt-1 max-h-36 space-y-1 overflow-auto">{nameTargets.map(target => <li key={target.versionId}>Tháng {formatResolutionPeriods([target.period])} · {target.rowIndexes.length} dòng: {target.names.map(name => name || '(trống)').join(' / ')} → {visibleNameGroup.options.find(option => option.key === nameDecision?.optionKey)?.name}</li>)}</ul>
+          </div>}
+          <div className="flex justify-end gap-2">
+            <button type="button" className={buttonClass} disabled={busy} onClick={() => setNameDecision(null)}>Hủy</button>
+            <button type="button" className={buttonClass} disabled={busy || !nameTargets.length || !localMatchesCloud} onClick={() => void resolveName()}>Lưu đồng bộ</button>
+          </div>
+        </div>}
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(visibleAccountDecision)} onOpenChange={open => { if (!open) setAccountDecision(null); }}>
       <DialogContent className="!max-w-md !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
         <DialogHeader>

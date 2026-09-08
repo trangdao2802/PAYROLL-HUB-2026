@@ -379,6 +379,12 @@ export function BulkPayment({
   const [reconcileFilterStatus, setReconcileFilterStatus] = useState<
     "ALL" | "MATCHED" | "VARIANCE" | "MISSING_INFO" | "DUPLICATE" | ""
   >("");
+  const [historyHasExceptions, setHistoryHasExceptions] = useState(false);
+  const [viewingHistorySource, setViewingHistorySource] = useState(false);
+  const handleHistoryReportStateChange = useCallback((hasExceptions: boolean, viewingSource: boolean) => {
+    setHistoryHasExceptions(hasExceptions);
+    setViewingHistorySource(viewingSource);
+  }, []);
   const [reconcileSelectedBU, setReconcileSelectedBU] = useState<string>("ALL");
   const [reconcileSearchQuery, setReconcileSearchQuery] = useState<string>("");
   const [showNorthOnly, setShowNorthOnly] = useState(false);
@@ -1775,7 +1781,7 @@ export function BulkPayment({
 
   const shouldShowFilterDiv = activeIssueCategoriesCount > 1;
 
-  const effectiveReconcileFilterStatus = reconcileFilterStatus !== "" 
+  const effectiveReconcileFilterStatus = historyHasExceptions && reconcileFilterStatus === "MATCHED" ? "ALL" : reconcileFilterStatus !== ""
     ? reconcileFilterStatus 
     : (reconciliationAudit.varianceCount > 0 ? "VARIANCE" 
        : reconciliationAudit.duplicateCount > 0 ? "DUPLICATE" 
@@ -1784,6 +1790,7 @@ export function BulkPayment({
 
   const filteredTransactionAudits = useMemo(() => {
     return reconciliationAudit.transactionAuditList.filter((item) => {
+      if (historyHasExceptions && item.status === "MATCHED") return false;
       if (reconcileSelectedBU !== "ALL" && item.bu !== reconcileSelectedBU) {
         return false;
       }
@@ -1817,6 +1824,7 @@ export function BulkPayment({
     });
   }, [
     reconciliationAudit.transactionAuditList,
+    historyHasExceptions,
     reconcileSelectedBU,
     effectiveReconcileFilterStatus,
     reconcileSearchQuery,
@@ -3440,10 +3448,12 @@ export function BulkPayment({
             showReport={rightPanelTab === "reconcile"}
             onOpenReport={() => setRightPanelTab("reconcile")}
             onReplaceRows={handleReplaceTransactionHistoryRows}
+            onReportStateChange={handleHistoryReportStateChange}
           />
         </div>
         {/* Dynamic Display based on empty status & current selected tab */}
-        {displayBankExportData.length === 0 ? (
+        {historyHasExceptions && !viewingHistorySource && reconciliationAudit.matchedCount > 0 && <p className="px-3 py-1 text-[10px] text-muted-foreground">Đã ẩn {reconciliationAudit.matchedCount} dòng đối chiếu tiền khớp để tập trung kiểm tra STK và ID.</p>}
+        {viewingHistorySource ? null : displayBankExportData.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-primary/10 bg-slate-50/20 p-8 select-none">
             <div className="max-w-xl w-full flex flex-col items-center text-center">
               <h3 className="font-serif text-2xl text-slate-800 font-bold mb-2">
@@ -3539,7 +3549,7 @@ export function BulkPayment({
                 </motion.div>
               )}
 
-              {rightPanelTab === "reconcile" && (
+              {rightPanelTab === "reconcile" && (!historyHasExceptions || reconciliationAudit.transactionAuditList.some(item => item.status !== "MATCHED")) && (
                 <motion.div
                   key="panel-reconcile"
                   initial={{ opacity: 0 }}
@@ -3582,7 +3592,7 @@ export function BulkPayment({
                           id: "MATCHED",
                           label: `✅ Khớp (${reconciliationAudit.matchedCount})`,
                         },
-                      ].map((tab) => (
+                      ].filter(tab => !historyHasExceptions || tab.id !== "MATCHED").map((tab) => (
                         <button
                           key={tab.id}
                           onClick={() =>
@@ -3634,7 +3644,7 @@ export function BulkPayment({
                     className="reconcile-table-region table-body-region flex-1 min-h-0 relative rounded-none bg-white overflow-auto custom-scrollbar"
                     style={{ borderRadius: "0px" }}
                   >
-                    <table className="w-full min-w-max text-left border-separate border-spacing-0 text-[11px] font-sans">
+                    <table aria-label="Đối chiếu tiền Reconcile" className="w-full min-w-max text-left border-separate border-spacing-0 text-[11px] font-sans">
                       <thead 
                         className="sticky top-0 text-slate-800 z-30 shadow-sm"
                         style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}

@@ -58,3 +58,25 @@ informed by the sources; they are not statements that VCB has rejected an accoun
 Tests cover updated saves, refreshed prior months, stale donors, a newly added
 historical month, concurrent changes during reads, JSONB key order, mixed-month
 row indexes, account/name findings, and precedence of explicitly saved edits.
+
+## Manual name choice and source navigation
+
+- **Đồng bộ tên** is offered when the same Document ID, bank and exact numeric
+  account have different names across the checked months. The user must choose
+  a source month/name; no choice is preselected. The dialog lists the target
+  months, row counts and old/new names before **Lưu đồng bộ**.
+- Name/owner warnings still block automatic ID/account synchronization, but do
+  not prevent this explicit name correction. Different IDs, banks or accounts
+  are never merged. Empty/malformed names cannot be chosen as the source.
+- Each affected month is saved to Supabase and read back. The audit records the
+  previous name, selected month and time; name aliases are updated, amounts and
+  identifiers are preserved. Verified current-month changes also update local
+  Transaction. On partial failure, the message lists completed months and asks
+  for a fresh check before retrying; this is not an atomic multi-month write.
+- ID, account, name and month links open the exact saved Transaction source
+  table, on the referenced row and highlighted column. This source view is read
+  only and does not replace local Transaction. **Quay lại Reconcile** restores
+  the report page and scroll position. Opening a stale source requires rechecking.
+- Warnings in the table are deduplicated short labels; **Chi tiết** and Excel
+  export retain full explanations. Fully matched financial rows below are hidden
+  while the historical report has exceptions; financial exceptions remain visible.
