@@ -1,6 +1,9 @@
 -- Shared payroll workspace. Provision named Supabase Auth users, then add their
 -- UUIDs to transaction_history_members as an administrator. Never grant anon access.
 begin;
+create schema if not exists payroll_private;
+revoke all on schema payroll_private from public, anon;
+grant usage on schema payroll_private to authenticated;
 create table public.transaction_history_members (
   user_id uuid primary key references auth.users(id)
 );
@@ -29,7 +32,7 @@ create policy read_transaction_history on public.transaction_monthly_versions
 
 -- One insert commits the entire snapshot. Old versions cannot be updated/deleted
 -- by the app. A retry with the same request UUID returns the original version.
-create function public.append_transaction_version(p_period date, p_rows jsonb, p_request_id uuid)
+create function payroll_private.append_transaction_version(p_period date, p_rows jsonb, p_request_id uuid)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare version_id bigint; item jsonb; declared_period text;
 begin
@@ -42,14 +45,6 @@ begin
   end if;
   if jsonb_array_length(p_rows) = 0 then raise exception 'Empty snapshot'; end if;
   for item in select value from jsonb_array_elements(p_rows) loop
-    if jsonb_typeof(item) <> 'object' or item = 'null'::jsonb then
-      raise exception 'Invalid transaction row';
-    end if;
-    if jsonb_typeof(item->'Beneficiary Account No.') is distinct from 'string'
-      or jsonb_typeof(item->'Document ID') is distinct from 'string'
-      or jsonb_typeof(item->'Beneficiary Name') is distinct from 'string' then
-      raise exception 'Transaction identity fields must be strings';
-    end if;
     declared_period := coalesce(nullif(trim(item->>'Tháng báo cáo'), ''), nullif(trim(item->>'_fileMonth'), ''));
     declared_period := regexp_replace(declared_period, '^Tháng\s*', '', 'i');
     if declared_period is null or not (
@@ -70,6 +65,12 @@ begin
   return version_id;
 end;
 $$;
-revoke all on function public.append_transaction_version(date, jsonb, uuid) from public, anon, authenticated;
+revoke all on function payroll_private.append_transaction_version(date, jsonb, uuid) from public, anon;
+grant execute on function payroll_private.append_transaction_version(date, jsonb, uuid) to authenticated;
+create function public.append_transaction_version(p_period date, p_rows jsonb, p_request_id uuid)
+returns bigint language sql security invoker set search_path = '' as $$
+  select payroll_private.append_transaction_version(p_period, p_rows, p_request_id);
+$$;
+revoke all on function public.append_transaction_version(date, jsonb, uuid) from public, anon;
 grant execute on function public.append_transaction_version(date, jsonb, uuid) to authenticated;
 commit;

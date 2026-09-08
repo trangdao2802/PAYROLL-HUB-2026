@@ -18,7 +18,8 @@ test('monthly history enforces membership, atomic month replacement, period and 
       grant execute on function auth.uid() to authenticated, anon;
       insert into auth.users values ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000002');
     `);
-    await db.exec(readFileSync(new URL('../supabase/migrations/202609070001_transaction_history.sql', import.meta.url), 'utf8'));
+    await db.exec(readFileSync(new URL('../supabase/migrations/20260907034930_transaction_monthly_history.sql', import.meta.url), 'utf8'));
+    await db.exec(readFileSync(new URL('../supabase/migrations/20260907050303_repair_transaction_history_snapshot_validation.sql', import.meta.url), 'utf8'));
     await db.exec(`insert into public.transaction_history_members values ('00000000-0000-0000-0000-000000000001');
       set role authenticated;
       select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);`);
@@ -26,6 +27,8 @@ test('monthly history enforces membership, atomic month replacement, period and 
     const request = '10000000-0000-0000-0000-000000000001';
     const append = (period: string, payload: string, id = request) => db.query<{id: number}>(
       'select public.append_transaction_version($1::date, $2::jsonb, $3::uuid) as id', [period, payload, id]);
+    await assert.rejects(append('2026-01-01', '[null]'), /Invalid transaction row/);
+    await assert.rejects(append('2026-01-01', rows.replace('"001234"', '1234')), /identity fields must be strings/);
     const first = await append('2026-01-01', rows);
     assert.deepEqual((await append('2026-01-01', rows)).rows, first.rows);
     await append('2026-01-01', rows, '10000000-0000-0000-0000-000000000002');
@@ -33,7 +36,7 @@ test('monthly history enforces membership, atomic month replacement, period and 
     assert.equal(saved.rows.length, 2);
     assert.equal(saved.rows[0].rows[0]['Beneficiary Account No.'], '001234');
     await db.exec('reset role');
-    await db.exec(readFileSync(new URL('../supabase/migrations/20260907110103_replace_transaction_month.sql', import.meta.url), 'utf8'));
+    await db.exec(readFileSync(new URL('../supabase/migrations/20260907110442_replace_transaction_month.sql', import.meta.url), 'utf8'));
     await db.exec('set role authenticated');
     const feb = rows.replace('2026-01', '2026-02');
     await append('2026-02-01', feb, '20000000-0000-0000-0000-000000000001');

@@ -5,9 +5,13 @@
 This feature is for one shared payroll workspace per Supabase project. It does
 not grant access to every signed-in user and does not support multiple tenants.
 
-1. Review and run `supabase/migrations/202609070001_transaction_history.sql`
-   on the application's Supabase project. The migration is adapted from the
-   user-supplied SQL; it has not been applied to production by this change.
+1. For a new Supabase project, review and apply the committed migrations in order:
+   - `supabase/migrations/20260907034930_transaction_monthly_history.sql`
+   - `supabase/migrations/20260907050303_repair_transaction_history_snapshot_validation.sql`
+   - `supabase/migrations/20260907110442_replace_transaction_month.sql`
+
+   These versions are already applied to the application's production project.
+   For an existing project, compare migration history before applying changes.
 2. Provision named Supabase Auth email/password accounts. Add approved user UUIDs:
 
    ```sql
@@ -30,8 +34,8 @@ Do not relax these restrictions to resolve login or setup errors.
 
 ## Workflow
 
-- In Transaction, use **Đăng nhập kho**, select the month and **Lưu tháng**. Apply `supabase/migrations/20260907110103_replace_transaction_month.sql`
-  after the initial migration. Each successful save replaces all saved versions of
+- In Transaction, use **Đăng nhập kho**, select the month and **Lưu tháng**. The final
+  migration above enables month replacement. Each successful save replaces all saved versions of
   that month with the current full snapshot. Other months stay unchanged. Validation
   or write failure rolls back the entire save. Existing history is not removed by
   the migration itself. A retry of the current request returns its saved ID; a
@@ -90,3 +94,13 @@ Database tests also force a delete failure to verify full rollback. Build and fo
 The private receipts table intentionally has no client policies (RPC owner only).
 Existing project-wide advisor warnings remain outside this change; see
 [Supabase database advisors](https://supabase.com/docs/guides/database/database-advisors).
+
+## Migration history synchronization (2026-09-08)
+
+The GitHub Supabase check failed with `Remote migration versions not found in local
+migrations directory.` The repository had two different version IDs and omitted the
+snapshot validation repair. All three migration files now contain the original SQL
+recorded in production's `supabase_migrations.schema_migrations`, with matching
+version IDs. This restores Git history alignment without replaying migrations or
+rewriting production migration records. Database tests apply all three migrations
+in order and cover validation before and after month replacement.
