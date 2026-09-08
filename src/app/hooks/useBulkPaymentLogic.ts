@@ -14,10 +14,14 @@ import { toast } from "sonner";
 import {
   commitTransactionEdits,
   hasPendingTransactionEdits as hasPendingTransactionEditsInData,
-  markTransactionEdited,
   markTransactionGenerated,
   markTransactionSaved,
 } from "../lib/utils/transaction-activity";
+import {
+  applyTransactionDraftCellEdit,
+  saveTransactionDraft,
+  type TransactionDraft,
+} from "../lib/utils/transaction-draft";
 import { calculateReconciliationTotals } from "../lib/utils/reconciliation-sync";
 import {
   BANK_TRANSACTION_EXPORT_HEADERS,
@@ -160,6 +164,13 @@ export function useBulkPaymentLogic() {
   const [progress, setProgress] = useState(0);
   const [isSuccess, setIsSuccess] = useState(false);
   const isRefreshing = false;
+  const savedBankExportRows = appData.BankExport.data;
+  const [transactionDraft, setTransactionDraft] =
+    useState<TransactionDraft | null>(null);
+  const activeTransactionDraft =
+    transactionDraft?.sourceRows === savedBankExportRows
+      ? transactionDraft
+      : null;
 
   const [reportStats, setReportStats] = useState<{
     sheet1Totals: Record<string, number>;
@@ -1249,49 +1260,55 @@ export function useBulkPaymentLogic() {
 
   // 8. DATA TABLE ROW & CELL EDIT HANDLERS
   const handleCellChange = useCallback((row: any, colKey: string, value: any) => {
-    updateAppData((prev) => {
-      const newData = [...prev.BankExport.data];
-      const rowIndex = newData.findIndex(
-        (r) =>
-          (r.id && row.id && r.id === row.id) ||
-          r === row ||
-          (r["Payment Serial Number"] &&
-            r["Payment Serial Number"] === row["Payment Serial Number"])
-      );
-      if (rowIndex === -1) return prev;
-      if (
-        String(newData[rowIndex]?.[colKey] ?? "") === String(value ?? "")
-      ) {
-        return prev;
-      }
-      newData[rowIndex] = { ...newData[rowIndex], [colKey]: value };
-      return {
-        ...prev,
-        BankExport: { ...prev.BankExport, data: newData },
-        TransactionActivity: markTransactionEdited(prev),
-      };
-    });
-  }, [updateAppData]);
+    setTransactionDraft((currentDraft) =>
+      applyTransactionDraftCellEdit(
+        savedBankExportRows,
+        currentDraft,
+        row,
+        colKey,
+        value,
+      ),
+    );
+  }, [savedBankExportRows]);
 
   const hasPendingTransactionEdits =
-    hasPendingTransactionEditsInData(appData);
+    Boolean(activeTransactionDraft) || hasPendingTransactionEditsInData(appData);
 
   const handleSaveTransactionEdits = useCallback(() => {
     if (!hasPendingTransactionEdits) return;
 
-    updateAppData((prev) => {
-      if (!hasPendingTransactionEditsInData(prev)) return prev;
-      return {
-        ...prev,
-        TransactionActivity: commitTransactionEdits(prev),
-      };
-    }, true, true);
-    toast.success("Đã lưu dữ liệu Transaction sau chỉnh sửa.");
-  }, [hasPendingTransactionEdits, updateAppData]);
+    if (activeTransactionDraft) {
+      updateAppData(
+        (prev) => saveTransactionDraft(prev, activeTransactionDraft) || prev,
+        true,
+        true,
+      );
+      setTransactionDraft(null);
+    } else {
+      // Compatibility for edits made by the immediately preceding release,
+      // where cell changes were already written into BankExport before Save.
+      updateAppData((prev) => {
+        if (!hasPendingTransactionEditsInData(prev)) return prev;
+        return {
+          ...prev,
+          TransactionActivity: commitTransactionEdits(prev),
+        };
+      }, true, true);
+    }
+
+    toast.success(
+      "Đã lưu Transaction. Reconcile và Đồng bộ sẽ dùng dữ liệu vừa sửa.",
+    );
+  }, [activeTransactionDraft, hasPendingTransactionEdits, updateAppData]);
 
   const handleDeleteRow = useCallback((rowToDelete: any) => {
     updateAppData((prev) => {
-      const data = prev.BankExport.data;
+      const includesDraft =
+        Boolean(activeTransactionDraft) &&
+        prev.BankExport.data === activeTransactionDraft?.sourceRows;
+      const data = includesDraft
+        ? activeTransactionDraft!.rows
+        : prev.BankExport.data;
       const rowIndex = data.findIndex(
         (r) =>
           r === rowToDelete ||
@@ -1311,14 +1328,28 @@ export function useBulkPaymentLogic() {
       return {
         ...prev,
         BankExport: { ...prev.BankExport, data: updatedData },
-        TransactionActivity: markTransactionSaved(prev),
+        TransactionActivity: includesDraft
+          ? commitTransactionEdits(
+              prev,
+              new Date().toISOString(),
+              activeTransactionDraft!.editCount + 1,
+            )
+          : markTransactionSaved(prev),
       };
     });
-  }, [updateAppData]);
+    setTransactionDraft(null);
+  }, [activeTransactionDraft, updateAppData]);
 
   const handleDeleteRows = useCallback((rowsToDelete: any[]) => {
     updateAppData((prev) => {
-      const data = [...prev.BankExport.data];
+      const includesDraft =
+        Boolean(activeTransactionDraft) &&
+        prev.BankExport.data === activeTransactionDraft?.sourceRows;
+      const data = [
+        ...(includesDraft
+          ? activeTransactionDraft!.rows
+          : prev.BankExport.data),
+      ];
       let hasChanges = false;
       
       // We identify rows by original reference or unique fields before any deletion happens
@@ -1343,10 +1374,17 @@ export function useBulkPaymentLogic() {
       return {
         ...prev,
         BankExport: { ...prev.BankExport, data: updatedData },
-        TransactionActivity: markTransactionSaved(prev),
+        TransactionActivity: includesDraft
+          ? commitTransactionEdits(
+              prev,
+              new Date().toISOString(),
+              activeTransactionDraft!.editCount + 1,
+            )
+          : markTransactionSaved(prev),
       };
     });
-  }, [updateAppData]);
+    setTransactionDraft(null);
+  }, [activeTransactionDraft, updateAppData]);
 
   const handleRefresh = useCallback(() => restoreTable(["BankExport"]), [restoreTable]);
 
@@ -1424,7 +1462,7 @@ LỆCH ACC & AE:\t${formatMoneyVND(calculationSummary.diff).replace(" ₫", "")}
     calculationSummary,
     dynamicReportStats,
     remainingHoldByMonth,
-    bankExportData: appData.BankExport.data,
+    bankExportData: activeTransactionDraft?.rows || savedBankExportRows,
     
     // Process States
     isGenerating,

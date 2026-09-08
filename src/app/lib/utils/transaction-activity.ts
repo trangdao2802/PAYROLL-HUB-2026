@@ -34,12 +34,13 @@ export function hasPendingTransactionEdits(appData: AppData): boolean {
 export function commitTransactionEdits(
   appData: AppData,
   savedAt = new Date().toISOString(),
+  editCountDelta = 0,
 ): AppData["TransactionActivity"] {
   const current = appData.TransactionActivity;
   return {
     generatedAt: current?.generatedAt || savedAt,
     lastSavedAt: savedAt,
-    editCount: current?.editCount || 0,
+    editCount: (current?.editCount || 0) + Math.max(0, editCountDelta),
     saveVersion: (current?.saveVersion || 0) + 1,
     lastAction: "saved",
   };
