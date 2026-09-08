@@ -17,7 +17,7 @@ export function clearMasterTableData(
     ...previous,
     [table]: emptyTable(previous[table]),
     ...(table === "Hold_AE" ? { HoldCarrySnapshots: {} } : {}),
-    ...(table === "BankExport" ? { ReconciliationByMonth: {} } : {}),
+    ...(table === "BankExport" ? { ReconciliationByMonth: {}, TransactionMonthCache: undefined } : {}),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -32,6 +32,7 @@ export function clearMasterPageData(previous: AppData): AppData {
     Bank_North_AE: emptyTable(previous.Bank_North_AE),
     SoSanh_AE: emptyTable(previous.SoSanh_AE),
     BankExport: emptyTable(previous.BankExport),
+    TransactionMonthCache: undefined,
     ReconciliationByMonth: {},
     HoldCarrySnapshots: {},
     CustomReport: emptyTable(previous.CustomReport),

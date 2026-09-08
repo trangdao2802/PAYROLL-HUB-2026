@@ -1235,6 +1235,7 @@ export function useBulkPaymentLogic() {
     updateAppData((prev) => ({
       ...prev,
       BankExport: { ...prev.BankExport, data: [] },
+      TransactionMonthCache: undefined,
     }));
     setReportStats(null);
     toast.success("Đã xóa dữ liệu bảng kê");

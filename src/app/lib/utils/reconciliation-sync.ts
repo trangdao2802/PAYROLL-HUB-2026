@@ -284,21 +284,49 @@ export function syncReportingMonthReconciliation(
   const month = `${String(normalizedMonth.month).padStart(2, "0")}.${normalizedMonth.year}`;
   const generatedAt = new Date().toISOString();
   const totals = calculateReconciliationTotals(appData, month);
-  const bankExportRows = buildBankExportRowsForMonth(appData, month);
-  if (bankExportRows.length === 0) return appData;
+  const period = normalizedMonth.key;
+  const months = {...appData.TransactionMonthCache?.months};
+  const currentTable = appData.BankExport || {headers: [], data: []};
+  const groups = new Map<string, any[]>();
+  for (const row of currentTable.data) {
+    const rowPeriod = parseMonthPeriod(row['Tháng báo cáo'] || row._fileMonth)?.key;
+    if (!rowPeriod) continue;
+    const group = groups.get(rowPeriod) || [];
+    group.push(row);
+    groups.set(rowPeriod, group);
+  }
+  for (const [rowPeriod, rows] of groups) {
+    months[rowPeriod] = {
+      table: groups.size === 1 ? currentTable : {...currentTable, data: rows},
+      activity: appData.TransactionActivity,
+    };
+  }
+  // Keep an intentionally emptied month empty when navigating away and back.
+  if (!currentTable.data.length && appData.TransactionMonthCache?.activePeriod) {
+    months[appData.TransactionMonthCache.activePeriod] = {
+      table: currentTable, activity: appData.TransactionActivity,
+    };
+  }
+  const existing = months[period];
+  // Only untouched generated data may be refreshed from Bank AE. Saved edits
+  // and legacy snapshots without activity metadata remain authoritative.
+  const keepExisting = existing && existing.activity?.lastAction !== 'generated';
+  const table = keepExisting ? existing.table : {...currentTable, data: buildBankExportRowsForMonth(appData, month)};
+  const activity = keepExisting ? existing.activity : markTransactionGenerated(appData, generatedAt);
 
   return {
     ...appData,
     globalMonth: month,
-    BankExport: {
-      ...(appData.BankExport || { headers: [], data: [] }),
-      data: bankExportRows,
+    BankExport: table,
+    TransactionMonthCache: {
+      activePeriod: period,
+      months: {...months, [period]: {table, activity}},
     },
     ReconciliationByMonth: {
       ...(appData.ReconciliationByMonth || {}),
       [month]: { ...totals, generatedAt },
     },
-    TransactionActivity: markTransactionGenerated(appData, generatedAt),
+    TransactionActivity: activity,
     updatedAt: generatedAt,
   };
 }

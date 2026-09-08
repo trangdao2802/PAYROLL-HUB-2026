@@ -111,6 +111,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         retry.current = null;
         const latest = await loadLatestVersion(supabase, month);
         if (!latest || latest.id !== id) throw new HistorySaveConflictError('Tháng vừa có phiên bản mới hơn trên Supabase. Bấm Check STK & ID để lấy dữ liệu mới nhất.');
+        if (!sameTransactionSnapshot(selected, latest.rows, month)) throw new HistorySaveConflictError('Dữ liệu đọc lại từ Supabase chưa khớp Transaction vừa lưu. Bấm Lưu tháng lại trước khi Check STK & ID.');
         if (currentContext.current === started) {
           setReport(null);
           setMessage(`Đã lưu tháng ${month} lên Supabase: ${selected.length} dòng (#${id}). Check STK & ID sẽ tải lại phiên bản mới nhất.`);

@@ -44,6 +44,13 @@ Do not relax these restrictions to resolve login or setup errors.
 - The full month's Transaction is saved, independent of display filters.
   Total/subtotal rows are excluded. Missing or invalid row months block saving
   and checking; valid rows from other months are excluded.
+- After **Lưu sửa**, automatic month reconciliation retains the complete edited
+  Transaction instead of rebuilding it from Bank AE. Local monthly snapshots
+  preserve the rows and save activity when switching months or reopening the app.
+  Untouched generated months may still refresh from Bank AE; explicit Transaction
+  and Master clears discard these retained snapshots. **Lưu tháng** rereads and
+  compares the saved contents before reporting success. **Check STK & ID** only
+  reads Supabase and cannot replace local Transaction rows.
 - **Check STK & ID** opens Reconcile and loads the latest saved current month from
   Supabase after **Lưu sửa → Lưu tháng**. It compares that snapshot to
   every saved month strictly before the selected reporting month (including prior

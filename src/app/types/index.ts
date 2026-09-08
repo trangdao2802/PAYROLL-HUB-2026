@@ -102,6 +102,11 @@ export interface AppData {
     saveVersion: number;
     lastAction: "generated" | "edited" | "saved";
   };
+  /** Local working Transaction snapshots, retained when the reporting month changes. */
+  TransactionMonthCache?: {
+    activePeriod: string;
+    months: Record<string, {table: TableData; activity?: AppData['TransactionActivity']}>;
+  };
   TrialBalanceTransactionVersion?: number;
   TrialBalanceTransactionVersions?: Record<string, number>;
   TrialBalanceRefreshedAt?: string;
