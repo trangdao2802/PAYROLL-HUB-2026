@@ -1,3 +1,5 @@
+import { documentIdResolutionNote } from './transaction-history-resolution';
+
 export type TransactionRow = Record<string, unknown>;
 const text = (value: unknown) => String(value ?? '').trim();
 const name = (value: unknown) => text(value).replace(/\s+/g, ' ').toUpperCase();
@@ -148,13 +150,19 @@ export interface HistoricalSnapshot {
   rows: TransactionRow[];
 }
 export interface HistoricalAccountComparison extends AccountComparison {
+  currentRowIndex: number;
+  currentRowIndexes: number[];
+  currentDocumentIdVote: string;
+  currentDocumentIdSyncNote: string;
   sources: {
     period: string;
     versionId: string;
     createdAt: string;
     documentId: string;
+    documentIdSyncNote: string;
     account: string;
     name: string;
+    rowIndexes: number[];
   }[];
 }
 
@@ -207,12 +215,24 @@ function uniqueJoined(values: string[]): string {
 }
 
 export function compareAccountsAcrossHistory(current: TransactionRow[], history: HistoricalSnapshot[]): HistoricalAccountComparison[] {
-  const results = compareAccounts(current, []).map(row => ({
+  const currentIdentities = groupByNameAndAccount(current);
+  const currentIndexes = new Map(current.map((item, index) => [item, index]));
+  const results = compareAccounts(current, []).map((row, currentRowIndex) => ({
     ...row, issues: row.issues.filter(issue => issue !== 'Không có ID ở tháng trước'),
+    currentRowIndex,
+    currentRowIndexes: (currentIdentities.get(nameAndAccountKey(current[currentRowIndex])) || [current[currentRowIndex]])
+      .map(item => currentIndexes.get(item))
+      .filter((index): index is number => index !== undefined),
+    currentDocumentIdVote: uniqueJoined(
+      (currentIdentities.get(nameAndAccountKey(current[currentRowIndex])) || [current[currentRowIndex]])
+        .map(item => transactionDocumentId(item).toUpperCase()),
+    ),
+    currentDocumentIdSyncNote: documentIdResolutionNote(current[currentRowIndex]),
     sources: [] as HistoricalAccountComparison['sources'],
   }));
   for (const snapshot of history) {
     const period = snapshot.period.slice(0, 7);
+    const snapshotIndexes = new Map(snapshot.rows.map((item, index) => [item, index]));
     const ids = groupById(snapshot.rows);
     const identities = groupByNameAndAccount(snapshot.rows);
     const comparisons = compareAccounts(current, snapshot.rows);
@@ -238,8 +258,12 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
         versionId: snapshot.id,
         createdAt: snapshot.created_at,
         documentId: sourceDocumentId,
+        documentIdSyncNote: uniqueJoined(identityMatches.map(documentIdResolutionNote)),
         account: sourceAccount,
         name: sourceName,
+        rowIndexes: identityMatches
+          .map(row => snapshotIndexes.get(row))
+          .filter((index): index is number => index !== undefined),
       });
 
       if (!directMatches.length) {

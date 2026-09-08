@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { loadLatestVersion, saveVersion } from '../src/app/lib/transaction-history-store';
+import { loadLatestVersion, replaceVersionIfCurrent, saveVersion } from '../src/app/lib/transaction-history-store';
 
 function clientFixture({member = true, signedIn = true, historyError = false} = {}) {
   const calls: unknown[][] = [];
@@ -45,6 +45,54 @@ test('saving calls the atomic RPC with unchanged request id and whole snapshot',
   assert.deepEqual(calls.at(-1), ['rpc', 'append_transaction_version', {
     p_period: '2026-01-01', p_rows: rows, p_request_id: 'request-uuid',
   }]);
+});
+
+function replacementClient(latestId = '7') {
+  const calls: unknown[][] = [];
+  const client = {
+    auth: {getUser: async () => ({data: {user: {id: 'member-id'}}, error: null})},
+    from(table: string) {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        order: () => query,
+        limit: () => query,
+        maybeSingle: async () => ({
+          data: table === 'transaction_history_members'
+            ? {user_id: 'member-id'}
+            : {id: latestId, period: '2026-01-01', created_at: '2026-09-08T00:00:00Z', rows: [{old: true}]},
+          error: null,
+        }),
+      };
+      return query;
+    },
+    rpc: async (fn: string, args: unknown) => {
+      calls.push([fn, args]);
+      return {data: 8, error: null};
+    },
+  } as unknown as SupabaseClient;
+  return {client, calls};
+}
+
+test('resolution replaces a historical month only while its checked version is still latest', async () => {
+  const expected = {
+    id: '7', period: '2026-01-01', created_at: '2026-09-07T00:00:00Z', rows: [{old: true}],
+  };
+  const fresh = replacementClient();
+  assert.equal(await replaceVersionIfCurrent(
+    fresh.client,
+    expected,
+    [{'Document ID': '001'}],
+    'request-uuid',
+  ), '8');
+  assert.equal(fresh.calls.length, 1);
+
+  const stale = replacementClient('9');
+  await assert.rejects(
+    replaceVersionIfCurrent(stale.client, expected, [{'Document ID': '001'}], 'request-uuid'),
+    /đã thay đổi/,
+  );
+  assert.equal(stale.calls.length, 0);
 });
 
 import { loadAllPriorVersions } from '../src/app/lib/transaction-history-store';

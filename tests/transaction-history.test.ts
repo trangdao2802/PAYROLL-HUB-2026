@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { canonicalTransactionHeaders, compareAccounts, formatHistoryDate, previousPeriod, selectPeriodRows, visibleHistoricalComparisons } from '../src/app/lib/utils/transaction-history';
+import { applyTransactionHistoryResolution } from '../src/app/lib/utils/transaction-history-resolution';
 
 const row = (id = '001', account = '001234', name = 'Employee One', month = '01.2026') => ({
   'Document ID': id, 'Beneficiary Account No.': account, 'Beneficiary Name': name, 'Tháng báo cáo': month,
@@ -113,4 +114,22 @@ test('saved-source dates use the compact DD/MM/YY format', () => {
   assert.equal(formatHistoryDate('2026-09-07T06:59:37.849758+00:00'), '07/09/26');
   assert.equal(formatHistoryDate('not-a-date'), 'not-a-date');
   assert.equal(formatHistoryDate(''), '');
+});
+test('history comparison exposes exact source rows and the display-only sync note', () => {
+  const resolvedRows = applyTransactionHistoryResolution([row('OLD')], {
+    field: 'Document ID',
+    value: '001',
+    rowIndexes: [0],
+    basedOnPeriods: ['2026-02', '2026-03'],
+    resolvedAt: '2026-09-08T00:00:00.000Z',
+  });
+  const result = compareAccountsAcrossHistory(
+    [row(), row()],
+    [snapshot('2026-01', resolvedRows as ReturnType<typeof row>[])],
+  );
+
+  assert.deepEqual(result[0].sources[0].rowIndexes, [0]);
+  assert.equal(result[0].sources[0].documentIdSyncNote, '02, 03/26');
+  assert.deepEqual(result[0].currentRowIndexes, [0, 1]);
+  assert.equal(result[0].currentDocumentIdVote, '001');
 });

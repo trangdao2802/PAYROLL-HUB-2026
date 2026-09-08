@@ -5,6 +5,7 @@ import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-e
 import {
   canonicalTransactionHeaders,
   withCanonicalTransactionDocumentId,
+  type TransactionRow,
 } from "../../lib/utils/transaction-history";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
@@ -711,6 +712,17 @@ export function BulkPayment({
               },
             };
       }, true, true);
+    },
+    [updateAppData],
+  );
+
+  const handleReplaceTransactionHistoryRows = useCallback(
+    (nextRows: TransactionRow[]) => {
+      updateAppData((prev) => ({
+        ...prev,
+        BankExport: {...prev.BankExport, data: nextRows},
+        TransactionActivity: markTransactionSaved(prev),
+      }), true, true);
     },
     [updateAppData],
   );
@@ -3424,6 +3436,7 @@ export function BulkPayment({
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}
             onOpenReport={() => setRightPanelTab("reconcile")}
+            onReplaceRows={handleReplaceTransactionHistoryRows}
           />
         </div>
         {/* Dynamic Display based on empty status & current selected tab */}

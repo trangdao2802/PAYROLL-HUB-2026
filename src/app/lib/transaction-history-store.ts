@@ -28,6 +28,22 @@ export async function loadLatestVersion(client: SupabaseClient, period: string):
 
 export class HistorySaveConflictError extends Error {}
 
+export async function replaceVersionIfCurrent(
+  client: SupabaseClient,
+  expected: TransactionVersion,
+  rows: TransactionRow[],
+  requestId: string,
+): Promise<string> {
+  const period = expected.period.slice(0, 7);
+  const latest = await loadLatestVersion(client, period);
+  if (!latest || latest.id !== expected.id) {
+    throw new HistorySaveConflictError(
+      `Dữ liệu tháng ${period} đã thay đổi. Hãy Check STK & ID lại trước khi đồng bộ.`,
+    );
+  }
+  return saveVersion(client, period, rows, requestId);
+}
+
 /** Pin the latest saved snapshot for every earlier saved month. */
 export async function loadAllPriorVersions(client: SupabaseClient, period: string): Promise<TransactionVersion[]> {
   await requireHistoryMember(client);
