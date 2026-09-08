@@ -3434,6 +3434,7 @@ export function BulkPayment({
 
         <div hidden={rightPanelTab === "visuals"}>
           <TransactionHistoryPanel
+            hasPendingEdits={hasPendingTransactionEdits}
             rows={appData.BankExport?.data || []}
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}

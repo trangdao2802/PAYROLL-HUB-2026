@@ -44,10 +44,7 @@ export async function replaceVersionIfCurrent(
   return saveVersion(client, period, rows, requestId);
 }
 
-/** Pin the latest saved snapshot for every earlier saved month. */
-export async function loadAllPriorVersions(client: SupabaseClient, period: string): Promise<TransactionVersion[]> {
-  await requireHistoryMember(client);
-  const before = `${normalizePeriod(period)}-01`;
+async function latestVersionIds(client: SupabaseClient, before: string): Promise<Map<string, string>> {
   const latest = new Map<string, string>();
   let cursor: string | undefined;
   while (true) {
@@ -62,6 +59,10 @@ export async function loadAllPriorVersions(client: SupabaseClient, period: strin
     if (nextCursor === cursor) throw new Error('Không thể tải đầy đủ lịch sử Transaction. Hãy thử lại.');
     cursor = nextCursor;
   }
+  return latest;
+}
+
+async function loadPinnedVersions(client: SupabaseClient, latest: Map<string, string>): Promise<TransactionVersion[]> {
   const versions: TransactionVersion[] = [];
   const ids = [...latest.values()];
   for (let offset = 0; offset < ids.length; offset += 4) {
@@ -75,6 +76,50 @@ export async function loadAllPriorVersions(client: SupabaseClient, period: strin
     versions.push(...batch);
   }
   return versions.sort((a, b) => a.period.localeCompare(b.period));
+}
+
+/** Pin the latest saved snapshot for every earlier saved month. */
+export async function loadAllPriorVersions(client: SupabaseClient, period: string): Promise<TransactionVersion[]> {
+  await requireHistoryMember(client);
+  return loadPinnedVersions(client, await latestVersionIds(client, `${normalizePeriod(period)}-01`));
+}
+
+function afterPeriod(period: string): string {
+  const [year, month] = normalizePeriod(period).split('-').map(Number);
+  return new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
+}
+
+function sameVersionIds(left: Map<string, string>, right: Map<string, string>): boolean {
+  return left.size === right.size && [...left].every(([period, id]) => right.get(period) === id);
+}
+
+export interface TransactionCheckSource {
+  currentVersion: TransactionVersion;
+  versions: TransactionVersion[];
+}
+
+/** Every check reads current and prior months from Supabase afresh, including a consistency check. */
+export async function loadTransactionCheckSource(client: SupabaseClient, period: string): Promise<TransactionCheckSource> {
+  await requireHistoryMember(client);
+  const currentPeriod = `${normalizePeriod(period)}-01`;
+  const latest = await latestVersionIds(client, afterPeriod(period));
+  if (!latest.has(currentPeriod)) throw new Error(`Tháng ${normalizePeriod(period)} chưa được lưu trên Supabase. Bấm Lưu sửa rồi Lưu tháng trước khi Check STK & ID.`);
+  const snapshots = await loadPinnedVersions(client, latest);
+  if (!sameVersionIds(latest, await latestVersionIds(client, afterPeriod(period)))) {
+    throw new HistorySaveConflictError('Dữ liệu Supabase vừa được cập nhật trong lúc kiểm tra. Bấm Check STK & ID để lấy phiên bản mới nhất.');
+  }
+  const currentVersion = snapshots.find(snapshot => snapshot.period === currentPeriod);
+  if (!currentVersion) throw new Error('Không đọc được dữ liệu tháng đang chọn từ Supabase.');
+  return {currentVersion, versions: snapshots.filter(snapshot => snapshot.period < currentPeriod)};
+}
+
+/** Recheck donors as well as targets before copying any ID/account from a displayed report. */
+export async function assertTransactionCheckCurrent(client: SupabaseClient, source: TransactionCheckSource): Promise<void> {
+  await requireHistoryMember(client);
+  const expected = new Map([source.currentVersion, ...source.versions].map(version => [version.period, version.id]));
+  if (!sameVersionIds(expected, await latestVersionIds(client, afterPeriod(source.currentVersion.period.slice(0, 7))))) {
+    throw new HistorySaveConflictError('Dữ liệu Supabase đã thay đổi sau lần kiểm tra. Bấm Check STK & ID lại trước khi đồng bộ.');
+  }
 }
 
 export async function saveVersion(client: SupabaseClient, period: string, rows: TransactionRow[], requestId: string): Promise<string> {

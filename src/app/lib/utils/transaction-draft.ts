@@ -1,6 +1,7 @@
 import type { AppData } from "../../types";
 import { commitTransactionEdits } from "./transaction-activity";
 import type { TransactionRow } from "./transaction-history";
+import { editTransactionField, protectSavedTransactionIdentity } from './transaction-saved-fields';
 
 export interface TransactionDraft {
   sourceRows: TransactionRow[];
@@ -46,7 +47,7 @@ export function applyTransactionDraftCellEdit(
   }
 
   const rows = [...workingRows];
-  rows[rowIndex] = { ...rows[rowIndex], [field]: value };
+  rows[rowIndex] = editTransactionField(rows[rowIndex], field, value);
   return {
     sourceRows: savedRows,
     rows,
@@ -63,7 +64,8 @@ export function saveTransactionDraft(
 
   return {
     ...appData,
-    BankExport: { ...appData.BankExport, data: draft.rows },
+    BankExport: { ...appData.BankExport, data: draft.rows.map((row, index) =>
+      row === draft.sourceRows[index] ? row : protectSavedTransactionIdentity(row)) },
     TransactionActivity: commitTransactionEdits(
       appData,
       savedAt,

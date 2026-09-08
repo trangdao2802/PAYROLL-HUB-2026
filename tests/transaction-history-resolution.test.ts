@@ -102,3 +102,14 @@ test('bank-account decisions are offered once for each unambiguous mismatched mo
   );
   assert.equal(formatResolutionPeriods(['2025-12', '2026-01', '2026-03']), '12/25 · 01, 03/26');
 });
+
+test('copying the latest saved account updates legacy account fields used by reconciliation', () => {
+  const resolved = applyTransactionHistoryResolution([
+    {'Document ID': 'EMP-1', 'Beneficiary Account No.': '0099887766', 'Bank Account Number': '0099887766'},
+  ], {
+    field: 'Beneficiary Account No.', value: '0011223344', rowIndexes: [0],
+    basedOnPeriods: ['2026-08'], resolvedAt: '2026-09-08T00:00:00Z',
+  });
+  assert.equal(resolved[0]['Beneficiary Account No.'], '0011223344');
+  assert.equal(resolved[0]['Bank Account Number'], '0011223344');
+});

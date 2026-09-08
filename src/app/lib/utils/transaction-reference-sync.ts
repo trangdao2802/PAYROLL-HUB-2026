@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { parseMoneyToNumber, removeVietnameseTones } from "./data-utils";
 import { parseMonthPeriod } from "./bulk-payment-analytics";
+import { isSavedTransactionField } from './transaction-saved-fields';
 
 export const TRANSACTION_REFERENCE_AUDIT_KEY =
   "_transactionReferenceAudit" as const;
@@ -372,6 +373,7 @@ function planTransactionRepairsFromRawTimesheet(
     (["idNumber", "fullName", "bankAccountNumber"] as const).forEach(
       (field) => {
         const currentField = writableTargetField(nextRow, field);
+        if (isSavedTransactionField(nextRow, currentField.key)) return;
         const nextValue = referenceValues[field];
         if (!fieldDiffers(field, currentField.value, nextValue)) return;
         corrections.push({

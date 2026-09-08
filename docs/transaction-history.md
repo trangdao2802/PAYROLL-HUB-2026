@@ -44,7 +44,8 @@ Do not relax these restrictions to resolve login or setup errors.
 - The full month's Transaction is saved, independent of display filters.
   Total/subtotal rows are excluded. Missing or invalid row months block saving
   and checking; valid rows from other months are excluded.
-- **Check STK & ID** opens Reconcile and compares the current, unsaved Transaction to
+- **Check STK & ID** opens Reconcile and loads the latest saved current month from
+  Supabase after **Lưu sửa → Lưu tháng**. It compares that snapshot to
   every saved month strictly before the selected reporting month (including prior
   years). Each month uses its highest version ID; superseded versions and the
   current/future months are excluded. Missing intervening months do not stop the check.
@@ -63,8 +64,8 @@ Do not relax these restrictions to resolve login or setup errors.
   historical ID difference; that fallback is always reported as a warning and never
   silently treated as matched. Account numbers are strings (leading zeros preserved).
   Zeros already lost in an upstream numeric import cannot be reconstructed.
-- A name difference is reported separately; names ignore case and repeated
-  spaces. Duplicate IDs with conflicting names/accounts are flagged, not guessed.
+- A name difference is reported separately; comparisons ignore case, Vietnamese
+  diacritics and repeated spaces. Duplicate IDs with conflicting names/accounts are flagged, not guessed.
 - The report shows historical/current Document ID, account and name, source version
   and warning.
   Missing identity/history is not MATCHED. It has 25-row pages and exports all
@@ -72,6 +73,10 @@ Do not relax these restrictions to resolve login or setup errors.
   existing financial Reconcile calculations/statuses.
 - Changing month, source data or signed-in identity invalidates old results;
   delayed responses from another context are discarded.
+
+Latest-cloud reads, bank checks and the official VCB source review are documented
+in [Bank account checks](bank-account-check.md). The report is an internal data
+comparison and does not certify bank ownership, KYC or active account status.
 
 ## Verification
 

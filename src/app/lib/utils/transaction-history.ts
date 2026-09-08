@@ -1,8 +1,9 @@
 import { documentIdResolutionNote } from './transaction-history-resolution';
+import { normalizeBeneficiaryName, reviewBankAccounts, transactionBank, type BankAccountReview } from './transaction-bank-check';
 
 export type TransactionRow = Record<string, unknown>;
 const text = (value: unknown) => String(value ?? '').trim();
-const name = (value: unknown) => text(value).replace(/\s+/g, ' ').toUpperCase();
+const name = normalizeBeneficiaryName;
 const DOCUMENT_ID_KEYS = [
   'Document ID',
   'Doc ID',
@@ -150,11 +151,13 @@ export interface HistoricalSnapshot {
   rows: TransactionRow[];
 }
 export interface HistoricalAccountComparison extends AccountComparison {
+  bankCheck?: BankAccountReview;
   currentRowIndex: number;
   currentRowIndexes: number[];
   currentDocumentIdVote: string;
   currentDocumentIdSyncNote: string;
   sources: {
+    bankCheck?: BankAccountReview;
     period: string;
     versionId: string;
     createdAt: string;
@@ -172,7 +175,8 @@ export function visibleHistoricalComparisons(
   comparisons: HistoricalAccountComparison[],
 ): HistoricalAccountComparison[] {
   return comparisons.filter(
-    comparison => !comparison.issues.includes(MISSING_HISTORICAL_ID_ISSUE),
+    comparison => !comparison.issues.includes(MISSING_HISTORICAL_ID_ISSUE)
+      || Boolean(comparison.bankCheck?.findings.length),
   );
 }
 
@@ -190,18 +194,19 @@ export function formatHistoryDate(value: unknown): string {
   return isValid ? `${day}/${month}/${year.slice(-2)}` : raw;
 }
 
-function nameAndAccountKey(row: TransactionRow): string {
+function nameAndAccountKey(row: TransactionRow, defaultBank = ''): string {
   const account = text(row['Beneficiary Account No.']);
   const normalizedName = name(row['Beneficiary Name']);
-  return account && normalizedName ? `${account}\u0000${normalizedName}` : '';
+  return account && normalizedName ? JSON.stringify([transactionBank(row, defaultBank).bank, account, normalizedName]) : '';
 }
 
 function groupByNameAndAccount(
   rows: TransactionRow[],
+  defaultBank = '',
 ): Map<string, TransactionRow[]> {
   const groups = new Map<string, TransactionRow[]>();
   for (const row of rows) {
-    const key = nameAndAccountKey(row);
+    const key = nameAndAccountKey(row, defaultBank);
     if (!key) continue;
     const group = groups.get(key);
     if (group) group.push(row);
@@ -214,17 +219,19 @@ function uniqueJoined(values: string[]): string {
   return [...new Set(values.filter(Boolean))].join(' | ');
 }
 
-export function compareAccountsAcrossHistory(current: TransactionRow[], history: HistoricalSnapshot[]): HistoricalAccountComparison[] {
-  const currentIdentities = groupByNameAndAccount(current);
+export function compareAccountsAcrossHistory(current: TransactionRow[], history: HistoricalSnapshot[], defaultBank = ''): HistoricalAccountComparison[] {
+  const bankChecks = reviewBankAccounts(current, history, defaultBank);
+  const currentIdentities = groupByNameAndAccount(current, defaultBank);
   const currentIndexes = new Map(current.map((item, index) => [item, index]));
   const results = compareAccounts(current, []).map((row, currentRowIndex) => ({
     ...row, issues: row.issues.filter(issue => issue !== 'Không có ID ở tháng trước'),
+    bankCheck: bankChecks[currentRowIndex],
     currentRowIndex,
-    currentRowIndexes: (currentIdentities.get(nameAndAccountKey(current[currentRowIndex])) || [current[currentRowIndex]])
+    currentRowIndexes: (currentIdentities.get(nameAndAccountKey(current[currentRowIndex], defaultBank)) || [current[currentRowIndex]])
       .map(item => currentIndexes.get(item))
       .filter((index): index is number => index !== undefined),
     currentDocumentIdVote: uniqueJoined(
-      (currentIdentities.get(nameAndAccountKey(current[currentRowIndex])) || [current[currentRowIndex]])
+      (currentIdentities.get(nameAndAccountKey(current[currentRowIndex], defaultBank)) || [current[currentRowIndex]])
         .map(item => transactionDocumentId(item).toUpperCase()),
     ),
     currentDocumentIdSyncNote: documentIdResolutionNote(current[currentRowIndex]),
@@ -233,15 +240,20 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
   for (const snapshot of history) {
     const period = snapshot.period.slice(0, 7);
     const snapshotIndexes = new Map(snapshot.rows.map((item, index) => [item, index]));
+    // A donor account must also be checked against other IDs, months and current rows.
+    const sourceBankChecks = reviewBankAccounts(snapshot.rows, [
+      ...history.filter(version => version !== snapshot),
+      {id: '', period: 'Hiện tại', created_at: '', rows: current},
+    ], defaultBank);
     const ids = groupById(snapshot.rows);
-    const identities = groupByNameAndAccount(snapshot.rows);
+    const identities = groupByNameAndAccount(snapshot.rows, defaultBank);
     const comparisons = compareAccounts(current, snapshot.rows);
     comparisons.forEach((comparison, index) => {
       const result = results[index];
       const directMatches = ids.get(comparison.documentId) || [];
       const identityMatches = directMatches.length > 0
         ? directMatches
-        : identities.get(nameAndAccountKey(current[index])) || [];
+        : identities.get(nameAndAccountKey(current[index], defaultBank)) || [];
       if (!identityMatches.length) return;
 
       const sourceDocumentId = uniqueJoined(
@@ -254,6 +266,8 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
         ? comparison.previousName
         : uniqueJoined(identityMatches.map(row => text(row['Beneficiary Name'])));
       result.sources.push({
+        bankCheck: identityMatches.map(row => sourceBankChecks[snapshotIndexes.get(row)!])
+          .find(check => check.blocksSync),
         period,
         versionId: snapshot.id,
         createdAt: snapshot.created_at,
@@ -289,7 +303,7 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
     previousDocumentId: uniqueJoined(result.sources.map(source => source.documentId)),
     previousAccount: [...new Set(result.sources.map(source => source.account))].join(' | '),
     previousName: [...new Set(result.sources.map(source => source.name))].join(' | '),
-    issues: [...result.issues, ...(!history.length ? ['Chưa có lịch sử trước tháng đang chọn']
+    issues: [...result.issues, ...result.bankCheck.findings.map(item => item.message), ...(!history.length ? ['Chưa có lịch sử trước tháng đang chọn']
       : result.documentId && !result.sources.length ? [MISSING_HISTORICAL_ID_ISSUE] : [])],
   }));
 }

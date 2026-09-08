@@ -1,4 +1,5 @@
 import type { TransactionRow } from './transaction-history';
+import { editTransactionField, protectSavedTransactionIdentity } from './transaction-saved-fields';
 
 export const TRANSACTION_HISTORY_RESOLUTIONS_KEY = '_transactionHistoryResolutions';
 
@@ -15,6 +16,7 @@ export interface TransactionHistoryResolutionEntry {
 }
 
 interface ResolutionSource {
+  bankCheck?: {blocksSync: boolean};
   period: string;
   versionId: string;
   documentId: string;
@@ -23,6 +25,7 @@ interface ResolutionSource {
 }
 
 interface ResolutionComparison {
+  bankCheck?: {blocksSync: boolean};
   documentId: string;
   currentAccount: string;
   currentRowIndex: number;
@@ -98,6 +101,7 @@ export function buildDocumentIdMajorityPlan(
   comparison: ResolutionComparison,
   currentPeriod: string,
 ): DocumentIdMajorityPlan | null {
+  if (comparison.bankCheck?.blocksSync || comparison.sources.some(source => source.bankCheck?.blocksSync)) return null;
   const records: DocumentIdResolutionTarget[] = [{
     location: 'current',
     period: normalizeResolutionPeriod(currentPeriod),
@@ -187,23 +191,18 @@ export function applyTransactionHistoryResolution(
       basedOnPeriods: options.basedOnPeriods.map(normalizeResolutionPeriod),
       resolvedAt: options.resolvedAt,
     };
-    const next: TransactionRow = {
+    const next = editTransactionField({
       ...row,
-      [options.field]: options.value,
       [TRANSACTION_HISTORY_RESOLUTIONS_KEY]: [...resolutionEntries(row), entry],
-    };
-    if (options.field === 'Document ID') {
-      for (const alias of ['Doc ID', 'ID Number', 'ID NUMBER', 'Document ID / CCCD']) {
-        if (alias in row) next[alias] = options.value;
-      }
-    }
-    return next;
+    }, options.field, options.value);
+    return protectSavedTransactionIdentity(next);
   });
 }
 
 export function bankAccountResolutionOptions(
   comparison: ResolutionComparison,
 ): BankAccountResolutionOption[] {
+  if (comparison.bankCheck?.blocksSync) return [];
   const currentAccount = valueText(comparison.currentAccount);
   if (!currentAccount) return [];
   const seen = new Set<string>();

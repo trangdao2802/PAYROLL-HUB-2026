@@ -149,3 +149,27 @@ test("Reconcile sync uses the edited Transaction values only after Save", () => 
   });
   assert.equal(afterSave.grossRows[0]["ID Number"], "EDITED-ID");
 });
+
+test('saved account edits remain authoritative when duplicate IDs trigger Raw Timesheet repair', () => {
+  const rows = [
+    {id: 'a', 'Document ID': 'DUPLICATE', 'ID Number': 'DUPLICATE', 'Beneficiary Name': 'NGUYEN VAN AN', 'Beneficiary Account No.': '001234'},
+    {id: 'b', 'Document ID': 'DUPLICATE', 'Beneficiary Name': 'TRAN VAN BINH', 'Beneficiary Account No.': '005678'},
+  ];
+  const draft = applyTransactionDraftCellEdit(rows, null, rows[0], 'Beneficiary Account No.', '009999')!;
+  const saved = saveTransactionDraft({...appData, BankExport: {headers: [], data: rows}}, draft)!;
+  const result = applyTransactionReferenceSync({
+    transactionRows: saved.BankExport.data,
+    grossRows: [{'ID Number': 'DUPLICATE', 'Full name': 'NGUYEN VAN AN', 'Bank Account Number': '001234'}],
+    deductionRows: [],
+    rawTimesheetRows: [{'ID Number': 'RAW-ID', 'Full name': 'NGUYEN VAN AN', 'Bank Account Number': '001234'}],
+  });
+  assert.equal(result.transactionRows[0]['Beneficiary Account No.'], '009999');
+  assert.equal(result.grossRows[0]['Bank Account Number'], '009999');
+});
+
+test('editing Document ID updates legacy aliases before the saved values are used by sync', () => {
+  const rows = [{...savedRows[0], 'ID Number': 'OLD-ID'}];
+  const draft = applyTransactionDraftCellEdit(rows, null, rows[0], 'Document ID', 'NEW-ID')!;
+  const saved = saveTransactionDraft({...appData, BankExport: {headers: [], data: rows}}, draft)!;
+  assert.equal(saved.BankExport.data[0]['ID Number'], 'NEW-ID');
+});
