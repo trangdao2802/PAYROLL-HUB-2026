@@ -6,7 +6,8 @@ import { compareAccountsAcrossHistory, formatHistoryDate, selectPeriodRows, visi
 import { applyTransactionHistoryResolution, bankAccountResolutionOptions, buildDocumentIdMajorityPlan, formatResolutionPeriods, type BankAccountResolutionOption } from '../../../lib/utils/transaction-history-resolution';
 import { replaceTransactionPeriod, sameTransactionSnapshot } from '../../../lib/utils/transaction-snapshot';
 import { buildNameResolutionGroup, nameResolutionTargets } from '../../../lib/utils/transaction-name-resolution';
-import { summarizeHistoryWarnings } from '../../../lib/utils/transaction-history-summary';
+import { Settings2 } from 'lucide-react';
+import { TransactionHistoryTable } from './TransactionHistoryTable';
 import { TransactionHistorySourceTable, type TransactionSourceLocation } from './TransactionHistorySourceTable';
 
 interface Props {
@@ -37,6 +38,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<Report | null>(null);
@@ -415,47 +417,78 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   }
 
   return <section aria-label="Kho Transaction theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold">Kho Transaction · {month}</span>
+    <div className="flex items-center gap-2" role="group" aria-label="Thao tác Check STK và ID">
       <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Lưu Transaction đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn" onClick={() => void run('save')}>Lưu tháng</button>
       <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Tải phiên bản mới nhất của tháng này và các tháng trước từ Supabase" onClick={() => void run('check')}>Check STK & ID</button>
-      <label className="flex items-center gap-1 text-[10px] text-muted-foreground">NH khi để trống
-        <select aria-label="Ngân hàng mặc định khi dòng chưa ghi ngân hàng" disabled={busy} className="rounded-lg border border-primary/20 bg-background px-2 py-1 text-foreground" value={defaultBank} onChange={event => setDefaultBank(event.target.value)}>
-          <option value="VCB">Vietcombank</option><option value="">Chưa xác định</option>
-        </select>
-      </label>
-      {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
-        : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
-          const { error } = await supabase.auth.signOut();
-          setMessage(error ? error.message : 'Đã đăng xuất kho.');
-        }}>Đăng xuất kho</button>}
+      <button type="button" aria-label="Cài đặt Check STK & ID" title="Cài đặt Check STK & ID" onClick={() => setSettingsOpen(true)} className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10 active:scale-[0.98]">
+        <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
       {busy && <span role="status" className="text-xs">Đang xử lý…</span>}
     </div>
-    {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Transaction trước khi Lưu tháng hoặc Check STK & ID.</p>}
+    {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Bấm Lưu sửa trong Transaction trước khi Lưu tháng hoặc Check STK & ID.</p>}
+    {!userId && <p className="mt-1 text-[10px] text-muted-foreground">Đăng nhập trong cài đặt để lưu và kiểm tra.</p>}
+    {message && !settingsOpen && <p role="status" className="text-xs mt-2">{message}</p>}
+    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
+    {showReport && sourceVersion && sourceLocation && <TransactionHistorySourceTable key={`${sourceVersion.id}-${sourceLocation.field}-${sourceLocation.rowIndexes.join(',')}`} version={sourceVersion} location={sourceLocation} onBack={() => setSourceLocation(null)} />}
+    {showReport && visibleReport && !sourceVersion && <div className="mt-2">
+      {!localMatchesCloud && <p role="status" className="mb-2 text-xs text-primary">Bản trên máy khác Supabase. Lưu tháng để dùng bản trên máy, hoặc mở cài đặt để tải bản đã lưu trước khi đồng bộ.</p>}
+      {exceptions.length === 0 && <p role="status" className="text-xs text-muted-foreground">Không có dữ liệu cần kiểm tra.</p>}
+      {exceptions.length > 0 && <>
+        <div ref={reportScroll} className="max-h-[55vh] overflow-auto mt-2 rounded-xl border border-primary/15">
+          <TransactionHistoryTable rows={exceptions} currentVersion={visibleReport.currentVersion} month={month} page={activePage} sourceLink={sourceLink} renderActions={row => {
+            const idPlan = buildDocumentIdMajorityPlan(row, month);
+            const accountOptions = bankAccountResolutionOptions(row);
+            const nameGroup = buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, row.currentRowIndex, defaultBank);
+            return (
+                <div className="flex min-w-max flex-col items-start gap-1.5">
+                  {idPlan && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Đồng bộ ID thành ${idPlan.targetDocumentId} theo ${idPlan.supportLabel}`} onClick={() => void resolveDocumentId(row)}>Đồng bộ ID</button>}
+                  {nameGroup && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} onClick={() => setNameDecision({context, rowIndex: row.currentRowIndex, optionKey: ''})}>Đồng bộ tên</button>}
+                  {accountOptions.map(source => <button key={`${source.versionId}-${source.account}`} type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Chọn STK cho tháng ${formatResolutionPeriods([source.period])}`} onClick={() => setAccountDecision({context, comparison: row, source})}>Chọn STK {formatResolutionPeriods([source.period])}</button>)}
+                  {!idPlan && !nameGroup && accountOptions.length === 0 && <span className="text-[10px] text-muted-foreground">{row.bankCheck?.blocksSync ? 'Cần xác minh' : '—'}</span>}
+                </div>
+            );
+          }} />
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
+      </>}
+    </div>}
+    <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+      <DialogContent className="!max-w-lg max-h-[85vh] overflow-y-auto !rounded-2xl !border-primary/20 !bg-card p-5 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold normal-case not-italic">Cài đặt Check STK & ID</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">Transaction tháng {month || 'đang chọn'} · dữ liệu lưu trên Supabase.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-xs">
+          {message && <p role="status">{message}</p>}
+          <label className="flex flex-wrap items-center justify-between gap-2">Ngân hàng khi dòng để trống
+            <select aria-label="Ngân hàng mặc định khi dòng chưa ghi ngân hàng" disabled={busy} className="rounded-lg border border-primary/20 bg-background px-2 py-1" value={defaultBank} onChange={event => setDefaultBank(event.target.value)}>
+              <option value="VCB">Vietcombank</option><option value="">Chưa xác định</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
+              : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
+                const { error } = await supabase.auth.signOut();
+                setMessage(error ? error.message : 'Đã đăng xuất kho.');
+              }}>Đăng xuất kho</button>}
+            <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} onClick={() => {setSettingsOpen(false); void run('load');}}>Tải bản đã lưu</button>
+            <button type="button" className={buttonClass} disabled={busy || !visibleReport || !exceptions.length} onClick={() => void exportReport()}>Xuất Check STK & ID</button>
+          </div>
     {loginOpen && !userId && <form className="flex flex-wrap items-end gap-2 mt-2" onSubmit={event => {event.preventDefault(); void login();}}>
       <label className="text-xs">Email<input type="email" required autoComplete="username" className="block rounded border p-1 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
       <label className="text-xs">Mật khẩu<input type="password" required autoComplete="current-password" className="block rounded border p-1 text-foreground bg-background" value={password} onChange={event => setPassword(event.target.value)} /></label>
       <button className={buttonClass} disabled={busy}>Đăng nhập</button>
       <span className="text-xs">Cần tài khoản được quản trị viên cấp quyền kho payroll.</span>
     </form>}
-    {message && <p role="status" className="text-xs mt-2">{message}</p>}
-    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
-    {showReport && sourceVersion && sourceLocation && <TransactionHistorySourceTable key={`${sourceVersion.id}-${sourceLocation.field}-${sourceLocation.rowIndexes.join(',')}`} version={sourceVersion} location={sourceLocation} onBack={() => setSourceLocation(null)} />}
-    {showReport && visibleReport && !sourceVersion && <div className="mt-2">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <strong>Check STK & Document ID · Tất cả tháng đã lưu → {month}</strong>
-        <span className="rounded-full bg-primary/10 px-2 py-1 font-semibold">Tháng hiện tại: Supabase #{visibleReport.currentVersion.id} · {formatHistoryDate(visibleReport.currentVersion.created_at)}</span>
-        <details><summary className="cursor-pointer">{visibleReport.versions.length} tháng nguồn{visibleReport.versions.length ? ` · ${visibleReport.versions[0].period.slice(0, 7)} – ${visibleReport.versions[visibleReport.versions.length - 1].period.slice(0, 7)}` : ''}</summary>
-          <ul>{visibleReport.versions.map(version => <li key={version.id}>{version.period.slice(0, 7)} · Nguồn #{version.id} · {formatHistoryDate(version.created_at)}</li>)}</ul>
-        </details>
-        <span>{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {comparisons.length - exceptions.length} khớp dữ liệu · {visibleReport.comparisons.length - comparisons.length} ID mới ẩn</span>
-        <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK & ID</button>
-      </div>
-      <p className="mt-2 text-[10px] text-muted-foreground">Mỗi lần Check tải lại phiên bản Supabase mới nhất. Kết quả là đối chiếu dữ liệu, chưa xác minh chủ tài khoản hoặc trạng thái tài khoản với ngân hàng.</p>
-      {!localMatchesCloud && <div role="status" className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2 text-xs">
-        <span>Transaction trên máy khác bản Supabase đang kiểm tra. Lưu tháng để dùng dữ liệu trên máy, hoặc tải bản đã lưu trước khi đồng bộ.</span>
-        <button type="button" className={buttonClass} disabled={busy || hasPendingEdits} onClick={() => void run('load')}>Tải bản đã lưu</button>
-      </div>}
+
+          {visibleReport && <details className="rounded-xl border border-primary/15 p-3">
+            <summary className="cursor-pointer font-semibold">Kết quả và nguồn dữ liệu</summary>
+            <p className="mt-2">{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {comparisons.length - exceptions.length} khớp dữ liệu · {visibleReport.comparisons.length - comparisons.length} ID mới ẩn</p>
+            <p className="mt-1">Hiện tại: Supabase #{visibleReport.currentVersion.id} · {formatHistoryDate(visibleReport.currentVersion.created_at)}</p>
+            <ul className="mt-1">{visibleReport.versions.map(version => <li key={version.id}>{formatResolutionPeriods([version.period])} · #{version.id} · {formatHistoryDate(version.created_at)}</li>)}</ul>
+            {!localMatchesCloud && <p className="mt-2 text-primary">Bản trên máy khác Supabase. Tải bản đã lưu để dùng dữ liệu đang kiểm tra, hoặc Lưu tháng để dùng bản trên máy.</p>}
+          </details>}
+          <p className="text-[10px] text-muted-foreground">Check tải lại bản Supabase mới nhất. Đây là đối chiếu dữ liệu, chưa xác minh chủ hoặc trạng thái tài khoản với ngân hàng.</p>
       <details className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-[10px] text-muted-foreground">
         <summary className="cursor-pointer font-semibold text-foreground">Quy tắc STK · Nguồn Vietcombank · 08/09/26</summary>
         <div className="mt-2 space-y-1.5">
@@ -469,51 +502,10 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
           </p>
         </div>
       </details>
-      {exceptions.length > 0 && <>
-        <div ref={reportScroll} className="max-h-[55vh] overflow-auto mt-2 rounded-xl border border-primary/15">
-          <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
-            {['Mức kiểm tra / NH', 'Document ID lịch sử', 'Document ID hiện tại', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo', 'Giải quyết'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
-          </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map(row => {
-            const idPlan = buildDocumentIdMajorityPlan(row, month);
-            const accountOptions = bankAccountResolutionOptions(row);
-            const nameGroup = buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, row.currentRowIndex, defaultBank);
-            const currentLocation = {versionId: visibleReport.currentVersion.id, rowIndexes: [row.currentRowIndex]};
-            const historicalLinks = (field: string, getValue: (source: HistoricalAccountComparison['sources'][number]) => string) => row.sources.length
-              ? <div className="space-y-1">{row.sources.map(source => <div key={source.versionId}>
-                {sourceLink(getValue(source), {versionId: source.versionId, rowIndexes: source.rowIndexes, field})}
-                <span className="ml-1 text-[10px] text-muted-foreground">{formatResolutionPeriods([source.period])}</span>
-              </div>)}</div> : '—';
-            return <tr key={row.currentRowIndex} className="bg-amber-50/40 dark:bg-amber-950/20">
-              <td className="p-2 border-b"><span className="block whitespace-nowrap font-semibold">{row.bankCheck?.findings.some(item => item.severity === 'error') ? 'Cần sửa' : 'Cần đối chiếu'}</span><span className="text-[10px] text-muted-foreground">{row.bankCheck?.bank || 'Chưa rõ NH'}{row.bankCheck?.bankAssumed ? ' · mặc định' : ''}</span></td>
-              <td className="p-2 border-b tabular-nums">{historicalLinks('Document ID', source => markedDocumentId(source.documentId, source.documentIdSyncNote))}</td>
-              <td className="p-2 border-b tabular-nums">{sourceLink(markedDocumentId(row.documentId, row.currentDocumentIdSyncNote), {...currentLocation, field: 'Document ID'}, row.currentDocumentIdSyncNote ? `! Đồng bộ theo ${row.currentDocumentIdSyncNote} · Mở nguồn` : undefined)}</td>
-              <td className="p-2 border-b tabular-nums">{historicalLinks('Beneficiary Account No.', source => source.account)}</td>
-              <td className="p-2 border-b tabular-nums">{sourceLink(row.currentAccount, {...currentLocation, field: 'Beneficiary Account No.'})}</td>
-              <td className="p-2 border-b">{historicalLinks('Beneficiary Name', source => source.name)}</td>
-              <td className="p-2 border-b">{sourceLink(row.currentName, {...currentLocation, field: 'Beneficiary Name'})}</td>
-              <td className="p-2 border-b tabular-nums whitespace-pre-line">
-                <div className="space-y-1.5">{row.sources.map(source => <div key={`${source.period}-${source.versionId}`}>
-                  <div>{sourceLink(`${formatResolutionPeriods([source.period])} · #${source.versionId}`, {versionId: source.versionId, rowIndexes: source.rowIndexes, field: 'Document ID'}, `Transaction ${source.period} · lưu ${formatHistoryDate(source.createdAt)}`)}</div>
-                  {source.documentIdSyncNote && <div className="mt-0.5 inline-flex rounded-full bg-primary/20 px-2 py-0.5 font-semibold text-foreground">! Đồng bộ theo {source.documentIdSyncNote}</div>}
-                </div>)}</div>
-              </td>
-              <td className="p-2 border-b min-w-40 max-w-64"><span>{summarizeHistoryWarnings(row)}</span>
-                <details className="mt-1 text-[10px] text-muted-foreground"><summary className="cursor-pointer">Chi tiết</summary><p className="mt-1 whitespace-pre-line">{row.issues.join('\n')}</p></details>
-              </td>
-              <td className="p-2 border-b">
-                <div className="flex min-w-max flex-col items-start gap-1.5">
-                  {idPlan && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Đồng bộ ID thành ${idPlan.targetDocumentId} theo ${idPlan.supportLabel}`} onClick={() => void resolveDocumentId(row)}>Đồng bộ ID</button>}
-                  {nameGroup && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} onClick={() => setNameDecision({context, rowIndex: row.currentRowIndex, optionKey: ''})}>Đồng bộ tên</button>}
-                  {accountOptions.map(source => <button key={`${source.versionId}-${source.account}`} type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Chọn STK cho tháng ${formatResolutionPeriods([source.period])}`} onClick={() => setAccountDecision({context, comparison: row, source})}>Chọn STK {formatResolutionPeriods([source.period])}</button>)}
-                  {!idPlan && !nameGroup && accountOptions.length === 0 && <span className="text-[10px] text-muted-foreground">{row.bankCheck?.blocksSync ? 'Cần xác minh' : '—'}</span>}
-                </div>
-              </td>
-            </tr>;
-          })}</tbody></table>
+
         </div>
-        <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
-      </>}
-    </div>}
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(visibleNameGroup)} onOpenChange={open => { if (!open && !busy) setNameDecision(null); }}>
       <DialogContent className="!max-w-lg !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
         <DialogHeader>
