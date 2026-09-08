@@ -158,6 +158,30 @@ export interface HistoricalAccountComparison extends AccountComparison {
   }[];
 }
 
+export const MISSING_HISTORICAL_ID_ISSUE = 'Không có ID trong các tháng đã lưu';
+
+export function visibleHistoricalComparisons(
+  comparisons: HistoricalAccountComparison[],
+): HistoricalAccountComparison[] {
+  return comparisons.filter(
+    comparison => !comparison.issues.includes(MISSING_HISTORICAL_ID_ISSUE),
+  );
+}
+
+export function formatHistoryDate(value: unknown): string {
+  const raw = text(value);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return raw;
+
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const isValid = date.getUTCFullYear() === Number(year)
+    && date.getUTCMonth() === Number(month) - 1
+    && date.getUTCDate() === Number(day);
+
+  return isValid ? `${day}/${month}/${year.slice(-2)}` : raw;
+}
+
 function nameAndAccountKey(row: TransactionRow): string {
   const account = text(row['Beneficiary Account No.']);
   const normalizedName = name(row['Beneficiary Name']);
@@ -242,6 +266,6 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
     previousAccount: [...new Set(result.sources.map(source => source.account))].join(' | '),
     previousName: [...new Set(result.sources.map(source => source.name))].join(' | '),
     issues: [...result.issues, ...(!history.length ? ['Chưa có lịch sử trước tháng đang chọn']
-      : result.documentId && !result.sources.length ? ['Không có ID trong các tháng đã lưu'] : [])],
+      : result.documentId && !result.sources.length ? [MISSING_HISTORICAL_ID_ISSUE] : [])],
   }));
 }

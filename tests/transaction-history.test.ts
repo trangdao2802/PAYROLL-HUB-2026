@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canonicalTransactionHeaders, compareAccounts, previousPeriod, selectPeriodRows } from '../src/app/lib/utils/transaction-history';
+import { canonicalTransactionHeaders, compareAccounts, formatHistoryDate, previousPeriod, selectPeriodRows, visibleHistoricalComparisons } from '../src/app/lib/utils/transaction-history';
 
 const row = (id = '001', account = '001234', name = 'Employee One', month = '01.2026') => ({
   'Document ID': id, 'Beneficiary Account No.': account, 'Beneficiary Name': name, 'Tháng báo cáo': month,
@@ -97,4 +97,20 @@ test('absent history and identity never count as matched', () => {
   assert.deepEqual(compareAccountsAcrossHistory([row()], [])[0].issues, ['Chưa có lịch sử trước tháng đang chọn']);
   assert.deepEqual(compareAccountsAcrossHistory([row()], [snapshot('2026-01', [row('OTHER', '007777', 'Other Employee')])])[0].issues, ['Không có ID trong các tháng đã lưu']);
   assert.ok(compareAccountsAcrossHistory([row('', '')], [snapshot('2026-01', [row()])])[0].issues.includes('Thiếu Document ID'));
+});
+test('reconcile display hides IDs absent from every saved month', () => {
+  const comparisons = compareAccountsAcrossHistory(
+    [row(), row('NEW', '008888', 'New Employee')],
+    [snapshot('2026-01', [row()])],
+  );
+
+  assert.deepEqual(
+    visibleHistoricalComparisons(comparisons).map(result => result.documentId),
+    ['001'],
+  );
+});
+test('saved-source dates use the compact DD/MM/YY format', () => {
+  assert.equal(formatHistoryDate('2026-09-07T06:59:37.849758+00:00'), '07/09/26');
+  assert.equal(formatHistoryDate('not-a-date'), 'not-a-date');
+  assert.equal(formatHistoryDate(''), '');
 });

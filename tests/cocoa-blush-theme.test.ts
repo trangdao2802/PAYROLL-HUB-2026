@@ -15,17 +15,17 @@ test("Cocoa Blush palette registers the supplied brown, blue, pink and beige the
     "#433837",
     "#E6CED6",
     "#D2B6BD",
-    "#DADAE5",
+    "#DCDDE8",
     "#EBCEAA",
     "#A38E96",
   ]) {
     assert.ok(theme.includes(color), `missing palette colour ${color}`);
   }
 
-  assert.match(theme, /accent: COCOA_BLUSH_PALETTE\.cocoa/);
+  assert.match(theme, /accent: COCOA_BLUSH_PALETTE\.powderBlue/);
   assert.match(theme, /stripeColor1: COCOA_BLUSH_PALETTE\.blush/);
-  assert.match(theme, /stripeColor2: COCOA_BLUSH_PALETTE\.powderBlue/);
-  assert.match(theme, /tableHeaderBg: COCOA_BLUSH_PALETTE\.dustyPink/);
-  assert.match(theme, /tableColumnHeaderBg: COCOA_BLUSH_PALETTE\.warmBeige/);
+  assert.match(theme, /stripeColor2: COCOA_BLUSH_PALETTE\.warmBeige/);
+  assert.match(theme, /tableHeaderBg: COCOA_BLUSH_PALETTE\.cocoa/);
+  assert.match(theme, /tableColumnHeaderBg: COCOA_BLUSH_PALETTE\.cocoa/);
   assert.match(main, /registerCocoaBlushPaletteTheme\(\)/);
 });
