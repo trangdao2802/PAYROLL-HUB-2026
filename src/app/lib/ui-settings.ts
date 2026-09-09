@@ -242,6 +242,34 @@ const COCOA_BLUSH_BLUSH = "#E6CED6";
 const COCOA_BLUSH_DUSTY_PINK = "#D2B6BD";
 const COCOA_BLUSH_WARM_BEIGE = "#EBCEAA";
 
+const FRENCH_MATCHA_PRESET_ID = "french_matcha_palette";
+const LEGACY_FRENCH_MATCHA = {
+  bg: "#F7F2EC",
+  accent: "#601D40",
+  text: "#601D40",
+  border: "#949E86",
+  stripeColor1: "#FFD6EC",
+  stripeColor2: "#CAE5F0",
+  gridLineColor: "rgba(96, 29, 64, 0.14)",
+  tableHeaderBg: "#949E86",
+  tableFooterBg: "#FFA873",
+  tableColumnHeaderBg: "#FFF5B5",
+  tableDataBg: "#F7F2EC",
+} as const;
+const CLOUDY_PUDDING = {
+  bg: "#F2F3F4",
+  accent: "#27292C",
+  text: "#27292C",
+  border: "#AFB0B0",
+  stripeColor1: "#F7EDF0",
+  stripeColor2: "#E4ECF3",
+  gridLineColor: "rgba(39, 41, 44, 0.16)",
+  tableHeaderBg: "#DDE4E6",
+  tableFooterBg: "#F7EDF0",
+  tableColumnHeaderBg: "#F7F7EC",
+  tableDataBg: "#F2F3F4",
+} as const;
+
 function sameValue(value: unknown, expected: string) {
   return (
     typeof value === "string" &&
@@ -279,6 +307,34 @@ export function migrateCocoaBlushContrast(settings: UiSettings): UiSettings {
     tableFooterBg: COCOA_BLUSH_BLUSH,
     tableColumnHeaderBg: COCOA_BLUSH_WARM_BEIGE,
     gridLineColor: "rgba(90, 69, 66, 0.16)",
+  };
+}
+
+/**
+ * Move saved French Tips/Matcha settings to the softer moodboard palette.
+ * Only the untouched preset values are migrated so custom edits are kept.
+ */
+export function migrateFrenchMatchaPalette(settings: UiSettings): UiSettings {
+  const isLegacyFrenchMatcha =
+    settings.preset === FRENCH_MATCHA_PRESET_ID &&
+    sameValue(settings.bg, LEGACY_FRENCH_MATCHA.bg) &&
+    sameValue(settings.accent, LEGACY_FRENCH_MATCHA.accent) &&
+    sameValue(settings.text, LEGACY_FRENCH_MATCHA.text) &&
+    sameValue(settings.border, LEGACY_FRENCH_MATCHA.border) &&
+    sameValue(settings.stripeColor1, LEGACY_FRENCH_MATCHA.stripeColor1) &&
+    sameValue(settings.stripeColor2, LEGACY_FRENCH_MATCHA.stripeColor2) &&
+    sameValue(settings.gridLineColor, LEGACY_FRENCH_MATCHA.gridLineColor) &&
+    sameValue(settings.tableHeaderBg, LEGACY_FRENCH_MATCHA.tableHeaderBg) &&
+    sameValue(settings.tableFooterBg, LEGACY_FRENCH_MATCHA.tableFooterBg) &&
+    sameValue(settings.tableColumnHeaderBg, LEGACY_FRENCH_MATCHA.tableColumnHeaderBg) &&
+    sameValue(settings.tableDataBg, LEGACY_FRENCH_MATCHA.tableDataBg);
+
+  if (!isLegacyFrenchMatcha) return settings;
+
+  return {
+    ...settings,
+    preset: FRENCH_MATCHA_PRESET_ID,
+    ...CLOUDY_PUDDING,
   };
 }
 
@@ -966,6 +1022,7 @@ export async function loadUiSettings(): Promise<UiSettings> {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
     let result = { ...defaultSettings, ...sObj };
     result = migrateCocoaBlushContrast(result);
+    result = migrateFrenchMatchaPalette(result);
     // Move previous default accents to Lila Rose while preserving deliberate
     // custom colors and every other preset.
     if (
