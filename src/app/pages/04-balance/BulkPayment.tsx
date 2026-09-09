@@ -3415,6 +3415,13 @@ export function BulkPayment({
                   </>
                 ) : (
                   <>
+                    <DropdownMenuItem
+                      onClick={() => window.dispatchEvent(new Event("open-transaction-settings"))}
+                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-primary/10 text-slate-700 hover:text-primary font-bold text-xs"
+                    >
+                      <Settings className="w-4 h-4 text-primary shrink-0" />
+                      <span>Cài đặt Transaction</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-2 py-1">
                       Thao tác dữ liệu

@@ -45,6 +45,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<Report | null>(null);
@@ -63,6 +64,11 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const context = useMemo(() => JSON.stringify([month, rows, userId, hasPendingEdits, defaultBank]), [month, rows, userId, hasPendingEdits, defaultBank]);
   const currentContext = useRef(context);
   useEffect(() => { currentContext.current = context; }, [context]);
+  useEffect(() => {
+    const openSettings = () => setSettingsOpen(true);
+    window.addEventListener('open-transaction-settings', openSettings);
+    return () => window.removeEventListener('open-transaction-settings', openSettings);
+  }, []);
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
     let live = true;
@@ -458,25 +464,9 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
       <span className="text-xs font-semibold">Kho Transaction · {month}</span>
       <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Lưu Transaction đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn" onClick={() => void run('save')}>Lưu tháng</button>
       <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Tải phiên bản mới nhất của tháng này và các tháng trước từ Supabase" onClick={() => void run('check')}>Check STK & ID</button>
-      <label className="flex items-center gap-1 text-[10px] text-muted-foreground">NH khi để trống
-        <select aria-label="Ngân hàng mặc định khi dòng chưa ghi ngân hàng" disabled={busy} className="rounded-lg border border-primary/20 bg-background px-2 py-1 text-foreground" value={defaultBank} onChange={event => setDefaultBank(event.target.value)}>
-          <option value="VCB">Vietcombank</option><option value="">Chưa xác định</option>
-        </select>
-      </label>
-      {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
-        : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
-          const { error } = await supabase.auth.signOut();
-          setMessage(error ? error.message : 'Đã đăng xuất kho.');
-        }}>Đăng xuất kho</button>}
       {busy && <span role="status" className="text-xs">Đang xử lý…</span>}
     </div>
     {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Transaction trước khi Lưu tháng hoặc Check STK & ID.</p>}
-    {loginOpen && !userId && <form className="flex flex-wrap items-end gap-2 mt-2" onSubmit={event => {event.preventDefault(); void login();}}>
-      <label className="text-xs">Email<input type="email" required autoComplete="username" className="block rounded border p-1 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
-      <label className="text-xs">Mật khẩu<input type="password" required autoComplete="current-password" className="block rounded border p-1 text-foreground bg-background" value={password} onChange={event => setPassword(event.target.value)} /></label>
-      <button className={buttonClass} disabled={busy}>Đăng nhập</button>
-      <span className="text-xs">Cần tài khoản được quản trị viên cấp quyền kho payroll.</span>
-    </form>}
     {message && <p role="status" className="text-xs mt-2">{message}</p>}
     {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
     {showReport && sourceVersion && sourceLocation && <TransactionHistorySourceTable key={`${sourceVersion.id}-${sourceLocation.field}-${sourceLocation.rowIndexes.join(',')}`} version={sourceVersion} location={sourceLocation} onBack={() => setSourceLocation(null)} />}
@@ -553,6 +543,40 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
       </>}
     </div>}
+    <Dialog open={settingsOpen} onOpenChange={open => { if (!busy) { setSettingsOpen(open); if (!open) setLoginOpen(false); } }}>
+      <DialogContent className="!max-w-md !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Cài đặt Transaction</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">Các tuỳ chọn kết nối và dữ liệu mặc định của riêng bảng Transaction.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 text-xs">
+          <label className="block space-y-1.5">
+            <span className="font-semibold">Ngân hàng mặc định khi dòng chưa ghi ngân hàng</span>
+            <select aria-label="Ngân hàng mặc định khi dòng chưa ghi ngân hàng" disabled={busy} className="w-full rounded-lg border border-primary/20 bg-background px-3 py-2 text-foreground" value={defaultBank} onChange={event => setDefaultBank(event.target.value)}>
+              <option value="VCB">Vietcombank</option><option value="">Chưa xác định</option>
+            </select>
+          </label>
+          <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+            <p className="font-semibold">Kho dữ liệu Supabase</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">Đăng nhập để lưu tháng và kiểm tra dữ liệu Transaction đã lưu.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
+                : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
+                  const { error } = await supabase.auth.signOut();
+                  setMessage(error ? error.message : 'Đã đăng xuất kho.');
+                }}>Đăng xuất kho</button>}
+              {userId && <span className="text-[10px] text-emerald-700">Đã kết nối</span>}
+            </div>
+            {loginOpen && !userId && <form className="mt-3 space-y-2" onSubmit={event => {event.preventDefault(); void login();}}>
+              <label className="block">Email<input type="email" required autoComplete="username" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
+              <label className="block">Mật khẩu<input type="password" required autoComplete="current-password" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={password} onChange={event => setPassword(event.target.value)} /></label>
+              <button className={buttonClass} disabled={busy}>Đăng nhập</button>
+              <p className="text-[10px] text-muted-foreground">Cần tài khoản được quản trị viên cấp quyền kho payroll.</p>
+            </form>}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={Boolean(visibleDocumentIdGroup)} onOpenChange={open => { if (!open && !busy) setDocumentIdDecision(null); }}>
       <DialogContent className="!max-w-lg !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
         <DialogHeader>
