@@ -36,7 +36,7 @@ test('roster migration repairs the existing schema and Setup supports both fresh
       ma_nv text, unique_id text unique); insert into public.roster_cham_cong(ma_nv, unique_id) values ('001','shift-1');`);
     const payload = {id:'local-1', chargeToCenterMkt:'NORTH', _pivotOverride:{hours:2}};
     await assert.rejects(db.query('update public.roster_cham_cong set raw_data=$1::jsonb where unique_id=$2', [JSON.stringify(payload), 'shift-1']), {code:'42703'});
-    const sql = readFileSync(new URL('../supabase/migrations/20260909191000_roster_raw_data.sql', import.meta.url),'utf8');
+    const sql = readFileSync(new URL('../supabase/migrations/20260909184211_roster_raw_data.sql', import.meta.url),'utf8');
     await db.exec(sql); await db.exec(sql);
     await db.query('update public.roster_cham_cong set raw_data=$1::jsonb where unique_id=$2', [JSON.stringify(payload),'shift-1']);
     assert.deepEqual((await db.query<{ma_nv:string;raw_data:unknown}>('select ma_nv,raw_data from public.roster_cham_cong')).rows, [{ma_nv:'001',raw_data:payload}]);

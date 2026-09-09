@@ -15,7 +15,7 @@ test('identity sync atomically rechecks donors, writes chosen months, rejects st
       grant usage on schema public, auth to authenticated, anon;
       grant execute on function auth.uid() to authenticated, anon;
       insert into auth.users values ('00000000-0000-0000-0000-000000000001');`);
-    for (const name of ['20260907034930_transaction_monthly_history', '20260907050303_repair_transaction_history_snapshot_validation', '20260907110442_replace_transaction_month', '20260909190000_atomic_identity_sync']) await db.exec(migration(name));
+    for (const name of ['20260907034930_transaction_monthly_history', '20260907050303_repair_transaction_history_snapshot_validation', '20260907110442_replace_transaction_month', '20260909184213_atomic_identity_sync']) await db.exec(migration(name));
     await db.exec(`insert into public.transaction_history_members values ('00000000-0000-0000-0000-000000000001');
       set role authenticated;
       select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);`);
