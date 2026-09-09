@@ -16,18 +16,19 @@ export const COCOA_BLUSH_PRESET_ID = "cocoa_blush_palette";
 export const COCOA_BLUSH_PRESET: TastePreset = {
   id: COCOA_BLUSH_PRESET_ID,
   name: "Cocoa Blush · Nâu, xanh, hồng & be (Palette ảnh)",
-  // The powder blue is sampled from the supplied accent swatch. Cocoa remains
-  // the header surface so the pale accent stays readable in dense tables.
+  // Cocoa is the readable UI accent. The powder blue remains part of the
+  // palette through the page surface so the pastel reference is preserved
+  // without making labels, controls, and table headings disappear.
   bg: COCOA_BLUSH_PALETTE.canvas,
-  accent: COCOA_BLUSH_PALETTE.powderBlue,
+  accent: COCOA_BLUSH_PALETTE.cocoa,
   text: COCOA_BLUSH_PALETTE.ink,
   border: COCOA_BLUSH_PALETTE.taupe,
   stripeColor1: COCOA_BLUSH_PALETTE.blush,
-  stripeColor2: COCOA_BLUSH_PALETTE.warmBeige,
-  gridLineColor: "rgba(90, 69, 66, 0.12)",
-  tableHeaderBg: COCOA_BLUSH_PALETTE.cocoa,
-  tableFooterBg: COCOA_BLUSH_PALETTE.dustyPink,
-  tableColumnHeaderBg: COCOA_BLUSH_PALETTE.cocoa,
+  stripeColor2: COCOA_BLUSH_PALETTE.powderBlue,
+  gridLineColor: "rgba(90, 69, 66, 0.16)",
+  tableHeaderBg: COCOA_BLUSH_PALETTE.dustyPink,
+  tableFooterBg: COCOA_BLUSH_PALETTE.blush,
+  tableColumnHeaderBg: COCOA_BLUSH_PALETTE.warmBeige,
   tableDataBg: COCOA_BLUSH_PALETTE.canvas,
   tableFont: "var(--font-main)",
   tableRadius: "14px",

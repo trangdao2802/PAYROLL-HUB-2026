@@ -234,6 +234,54 @@ export const defaultSettings: UiSettings = {
 
 export const UI_SETTINGS_KEY = "PayrollApp_UiSettings_HushedElegance_v8";
 
+const COCOA_BLUSH_PRESET_ID = "cocoa_blush_palette";
+const LEGACY_COCOA_BLUSH_ACCENT = "#DCDDE8";
+const COCOA_BLUSH_ACCENT = "#5A4542";
+const COCOA_BLUSH_POWDER_BLUE = "#DCDDE8";
+const COCOA_BLUSH_BLUSH = "#E6CED6";
+const COCOA_BLUSH_DUSTY_PINK = "#D2B6BD";
+const COCOA_BLUSH_WARM_BEIGE = "#EBCEAA";
+
+function sameValue(value: unknown, expected: string) {
+  return (
+    typeof value === "string" &&
+    value.trim().toUpperCase() === expected.trim().toUpperCase()
+  );
+}
+
+/**
+ * The first Cocoa Blush release used powder blue as --primary. That made the
+ * settings panel and table controls too light to read. Migrate only the
+ * untouched values from that release; deliberate user edits remain intact.
+ */
+export function migrateCocoaBlushContrast(settings: UiSettings): UiSettings {
+  const isLegacyCocoaBlush =
+    settings.preset === COCOA_BLUSH_PRESET_ID &&
+    sameValue(settings.bg, "#F8F4EE") &&
+    sameValue(settings.accent, LEGACY_COCOA_BLUSH_ACCENT) &&
+    sameValue(settings.text, "#433837") &&
+    sameValue(settings.border, "#A38E96") &&
+    sameValue(settings.stripeColor1, "#E6CED6") &&
+    sameValue(settings.stripeColor2, "#EBCEAA") &&
+    sameValue(settings.gridLineColor, "rgba(90, 69, 66, 0.12)") &&
+    sameValue(settings.tableHeaderBg, "#5A4542") &&
+    sameValue(settings.tableFooterBg, "#D2B6BD") &&
+    sameValue(settings.tableColumnHeaderBg, "#5A4542") &&
+    sameValue(settings.tableDataBg, "#F8F4EE");
+
+  if (!isLegacyCocoaBlush) return settings;
+
+  return {
+    ...settings,
+    accent: COCOA_BLUSH_ACCENT,
+    stripeColor2: COCOA_BLUSH_POWDER_BLUE,
+    tableHeaderBg: COCOA_BLUSH_DUSTY_PINK,
+    tableFooterBg: COCOA_BLUSH_BLUSH,
+    tableColumnHeaderBg: COCOA_BLUSH_WARM_BEIGE,
+    gridLineColor: "rgba(90, 69, 66, 0.16)",
+  };
+}
+
 function isValidColor(color: unknown): boolean {
   if (typeof color !== "string") return false;
   const c = color.trim();
@@ -916,7 +964,8 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
 export async function loadUiSettings(): Promise<UiSettings> {
   const sanitize = (s: unknown): UiSettings => {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
-    const result = { ...defaultSettings, ...sObj };
+    let result = { ...defaultSettings, ...sObj };
+    result = migrateCocoaBlushContrast(result);
     // Move previous default accents to Lila Rose while preserving deliberate
     // custom colors and every other preset.
     if (
