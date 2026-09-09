@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { describeSupabaseSyncError } from './utils/supabase-sync-errors';
 import {
   createStableTimesheetRowId,
   dedupeTimesheetRosterRows,
@@ -21,6 +23,7 @@ CREATE TABLE IF NOT EXISTS roster_cham_cong (
   notes TEXT,
   charge_to_center_mkt TEXT,
   unique_id TEXT UNIQUE,
+  raw_data JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -51,6 +54,7 @@ CREATE TABLE IF NOT EXISTS thang_luong (
 -- Ensure column exists if table was already created
 DO $$ 
 BEGIN 
+  ALTER TABLE public.roster_cham_cong ADD COLUMN IF NOT EXISTS raw_data JSONB;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='roster_cham_cong' AND column_name='charge_to_center_mkt') THEN
     ALTER TABLE roster_cham_cong ADD COLUMN charge_to_center_mkt TEXT;
   END IF;
@@ -99,6 +103,20 @@ CREATE POLICY "Allow all for anon on thang_luong" ON thang_luong FOR ALL USING (
 -- Reload schema cache for PostgREST
 NOTIFY pgrst, 'reload schema';
 `;
+
+const SYNC_COLUMNS = {
+  roster_cham_cong: 'l07,center,business,ma_nv,full_name,ngay,type,class,gio_vao,gio_ra,duration,notes,charge_to_center_mkt,unique_id,raw_data',
+  nhan_vien: 'ma_nv,ho_ten,bank_number_acc',
+  thang_luong: 's_code,academic_price,base_salary,total_salary,deduction_hours,unique_id,raw_data',
+} as const;
+
+/** Detect a schema mismatch before Sync & Save writes its first table. */
+export async function preflightTimesheetSync(tables: (keyof typeof SYNC_COLUMNS)[], client: SupabaseClient = supabase) {
+  for (const table of tables) {
+    const {error} = await client.from(table).select(SYNC_COLUMNS[table], {head: true}).limit(1);
+    if (error) throw describeSupabaseSyncError(table, error);
+  }
+}
 
 export async function clearSupabaseData() {
   await clearSupabaseRosterData();
@@ -190,10 +208,7 @@ export async function syncEmployeesToSupabase(
     const chunk = mappedRows.slice(i, i + chunkSize);
     const { error } = await supabase.from("nhan_vien").upsert(chunk, { onConflict: "ma_nv" });
     if (error) {
-      if (error.message.includes('relation "nhan_vien" does not exist')) {
-        throw new Error("Bảng 'nhan_vien' chưa tồn tại trên Supabase. Vui lòng chạy SQL setup trong phần cấu hình Supabase.");
-      }
-      throw new Error(`Lỗi đồng bộ Nhân viên [${error.code}]: ${error.message}`);
+      throw describeSupabaseSyncError('nhan_vien', error);
     }
     successCount += chunk.length;
     if (onProgress) onProgress(successCount, total);
@@ -234,10 +249,7 @@ export async function syncSalaryScalesToSupabase(
     const chunk = mappedRows.slice(i, i + chunkSize);
     const { error } = await supabase.from("thang_luong").upsert(chunk, { onConflict: "s_code" });
     if (error) {
-      if (error.message.includes('relation "thang_luong" does not exist')) {
-        throw new Error("Bảng 'thang_luong' chưa tồn tại trên Supabase. Vui lòng chạy SQL setup trong phần cấu hình Supabase.");
-      }
-      throw new Error(`Lỗi đồng bộ Thang lương [${error.code}]: ${error.message}`);
+      throw describeSupabaseSyncError('thang_luong', error);
     }
     successCount += chunk.length;
     if (onProgress) onProgress(successCount, total);
@@ -377,32 +389,7 @@ export async function syncRosterToSupabase(
     const { error } = response!;
 
     if (error) {
-      if (error.code === '23503' || error.message.includes("violates foreign key constraint") || error.message.includes("ma_nv_fkey")) {
-        throw new Error("Đồng bộ thất bại: Dữ liệu điểm danh chứa mã nhân viên không tồn tại trong danh sách nhân viên của bạn, vi phạm ràng buộc khóa ngoại 'roster_cham_cong_ma_nv_fkey' của Supabase. Vui lòng vào tab Cấu hình Supabase (hoặc tab Setup), sao chép và CHẠY LẠI SQL Setup Script trong SQL Editor của Supabase để tự động loại bỏ ràng buộc khóa ngoại này.");
-      }
-
-      if (error.message.includes("unique_nv_ngay") || (error.details && error.details.includes("unique_nv_ngay"))) {
-        throw new Error("Bảng của bạn đang có ràng buộc trùng lặp 'unique_nv_ngay' (giới hạn mỗi nhân viên chỉ được có 1 dòng công/ngày). Ràng buộc này không phù hợp với Roster có nhiều ca. Vui lòng copy và chạy lại SQL Setup Script trong phần cấu hình Supabase để tự động loại bỏ ràng buộc này.");
-      }
-
-      if (error.message.includes('relation "roster_cham_cong" does not exist')) {
-        throw new Error("Bảng 'roster_cham_cong' chưa tồn tại trên Supabase. Vui lòng chạy script SQL setup trong phần cấu hình Supabase của bạn.");
-      }
-
-      if (error.message.includes("charge_to_center_mkt")) {
-        throw new Error("Thiếu cột 'charge_to_center_mkt' trong bảng Supabase. Vui lòng chạy lại script SQL setup để cập nhật cấu trúc bảng.");
-      }
-
-      if (error.code === 'PGRST204') {
-        throw new Error(`Thiếu cột trong bảng Supabase: ${error.message}`);
-      }
-      
-      if (error.message.includes("Failed to fetch") || error.message.includes("fetch")) {
-        throw new Error("Không thể kết nối tới Supabase (Failed to fetch). Vui lòng kiểm tra lại URL Supabase trong phần Settings và đảm bảo Project của bạn đang hoạt động (không bị tạm dừng).");
-      }
-
-      const detail = error.details || error.hint || "";
-      throw new Error(`Supabase Error [${error.code}]: ${error.message}${detail ? " - " + detail : ""}`);
+      throw describeSupabaseSyncError('roster_cham_cong', error);
     }
 
     successCount += chunk.length;

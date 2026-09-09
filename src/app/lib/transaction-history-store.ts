@@ -98,6 +98,25 @@ export interface TransactionCheckSource {
   versions: TransactionVersion[];
 }
 
+/** Lock/recheck donors and targets, then commit all selected months together. */
+export async function replaceTransactionVersionsAtomically(
+  client: SupabaseClient,
+  source: TransactionCheckSource,
+  changes: {version: TransactionVersion; rows: TransactionRow[]}[],
+): Promise<{period: string; id: string}[]> {
+  await requireHistoryMember(client);
+  if (!changes.length) throw new Error('Chưa chọn tháng cập nhật.');
+  const {data, error} = await client.rpc('replace_transaction_versions', {
+    p_expected: [source.currentVersion, ...source.versions].map(version => ({period: version.period, id: version.id})),
+    p_changes: changes.map(change => ({
+      period: change.version.period, rows: change.rows, request_id: crypto.randomUUID(),
+    })),
+  });
+  if (error?.code === 'P0002') throw new HistorySaveConflictError(error.message);
+  if (error) throw new Error(error.message);
+  return data as {period: string; id: string}[];
+}
+
 /** Every check reads current and prior months from Supabase afresh, including a consistency check. */
 export async function loadTransactionCheckSource(client: SupabaseClient, period: string): Promise<TransactionCheckSource> {
   await requireHistoryMember(client);

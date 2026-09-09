@@ -1,3 +1,4 @@
+import { SupabaseSchemaError } from '../../lib/utils/supabase-sync-errors';
 import { useTableRestore } from '../../hooks/useTableRestore';
 import { buildCenterTable } from "../../lib/utils/center-table";
 import { getDynamicEmployeeColumns } from "../../constants/timesheet-columns";
@@ -51,6 +52,7 @@ import TimesheetSummaryPage from "./TimesheetSummary";
 import { useNavigate } from "react-router";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { 
+  preflightTimesheetSync,
   syncRosterToSupabase, 
   syncEmployeesToSupabase, 
   syncSalaryScalesToSupabase, 
@@ -537,6 +539,7 @@ export function TimesheetHub() {
   const [totalSyncRows, setTotalSyncRows] = useState(0);
   const [syncedRowsCount, setSyncedRowsCount] = useState(0);
   const [showSqlDialog, setShowSqlDialog] = useState(false);
+  const [syncSchemaError, setSyncSchemaError] = useState('');
   
 
   useEffect(() => {
@@ -1474,6 +1477,11 @@ export function TimesheetHub() {
     setSyncProgress(0);
 
     try {
+      await preflightTimesheetSync([
+        ...(rosterData.length ? ['roster_cham_cong' as const] : []),
+        ...(staffData.length ? ['nhan_vien' as const] : []),
+        ...(salaryData.length ? ['thang_luong' as const] : []),
+      ]);
       let overallSuccessCount = 0;
       const totalToSync = rosterData.length + staffData.length + salaryData.length;
 
@@ -1528,15 +1536,8 @@ export function TimesheetHub() {
       console.error("Supabase Sync Error:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
       toast.error(`Đồng bộ thất bại: ${errMsg}`);
-      if (
-        errMsg.includes("chưa tồn tại") || 
-        errMsg.includes("relation") || 
-        errMsg.includes("does not exist") ||
-        errMsg.includes("Thiếu cột") ||
-        errMsg.includes("unique_nv_ngay") ||
-        errMsg.includes("ràng buộc") ||
-        errMsg.includes("trùng lặp")
-      ) {
+      if (err instanceof SupabaseSchemaError) {
+        setSyncSchemaError(err.message);
         setShowSqlDialog(true);
       }
     } finally {
@@ -2348,7 +2349,7 @@ export function TimesheetHub() {
             <DialogHeader>
               <DialogTitle className="text-2xl font-black uppercase tracking-wider">Thiết lập & Cập nhật Supabase</DialogTitle>
               <DialogDescription className="text-primary-foreground/80 font-medium text-[11px] leading-relaxed">
-                Bảng 'roster_cham_cong' chưa tồn tại, thiếu cột (như charge_to_center_mkt) hoặc đang bị ràng buộc cũ (như unique_nv_ngay - giới hạn mỗi người 1 ca/ngày). Vui lòng copy toàn bộ script bên dưới và chạy trong SQL Editor của Supabase để cập nhật cấu trúc bảng chính xác nhất.
+                {syncSchemaError || 'Cấu trúc dữ liệu Supabase cần cập nhật.'} Chạy script trong đúng dự án Supabase, sau đó thử Sync & Save lại.
               </DialogDescription>
             </DialogHeader>
           </div>

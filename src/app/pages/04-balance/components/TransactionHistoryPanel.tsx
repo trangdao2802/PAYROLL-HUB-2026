@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../../lib/supabaseClient';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
-import { assertTransactionCheckCurrent, HistorySaveConflictError, loadLatestVersion, loadTransactionCheckSource, replaceVersionIfCurrent, saveVersion, type TransactionCheckSource } from '../../../lib/transaction-history-store';
+import { HistorySaveConflictError, loadLatestVersion, loadTransactionCheckSource, replaceTransactionVersionsAtomically, saveVersion, type TransactionCheckSource } from '../../../lib/transaction-history-store';
 import { compareAccountsAcrossHistory, formatHistoryDate, selectPeriodRows, visibleHistoricalComparisons, type TransactionRow, type HistoricalAccountComparison } from '../../../lib/utils/transaction-history';
-import { applyTransactionHistoryResolution, bankAccountResolutionOptions, buildDocumentIdResolutionGroup, documentIdResolutionTargets, formatResolutionPeriods, type BankAccountResolutionOption } from '../../../lib/utils/transaction-history-resolution';
+import { formatResolutionPeriods, type TransactionHistoryResolutionField } from '../../../lib/utils/transaction-history-resolution';
 import { replaceTransactionPeriod, sameTransactionSnapshot } from '../../../lib/utils/transaction-snapshot';
-import { buildNameResolutionGroup, nameResolutionTargets } from '../../../lib/utils/transaction-name-resolution';
-import { summarizeHistoryWarnings } from '../../../lib/utils/transaction-history-summary';
+import { createIdentityResolutionBuilder, IDENTITY_FIELDS, identityResolutionTargets, planIdentityResolution } from '../../../lib/utils/transaction-identity-resolution';
 import { syncTransactionEmployeesToSupabase } from '../../../lib/utils/transaction-employee-sync';
-import { TransactionHistorySourceTable, type TransactionSourceLocation } from './TransactionHistorySourceTable';
+import { TransactionHistoryTable } from './TransactionHistoryTable';
 
 interface Props {
   rows: TransactionRow[];
@@ -23,10 +22,12 @@ interface Report extends TransactionCheckSource {
   context: string;
   comparisons: HistoricalAccountComparison[];
 }
-interface AccountDecision {
+interface IdentityDecision {
   context: string;
-  comparison: HistoricalAccountComparison;
-  source: BankAccountResolutionOption;
+  rowIndex: number;
+  field: TransactionHistoryResolutionField;
+  optionKey: string;
+  selectedVersionIds: string[];
 }
 
 function employeeSyncMessage(summary: Awaited<ReturnType<typeof syncTransactionEmployeesToSupabase>>): string {
@@ -49,12 +50,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [report, setReport] = useState<Report | null>(null);
-  const [documentIdDecision, setDocumentIdDecision] = useState<{context: string; rowIndex: number; optionKey: string} | null>(null);
-  const [accountDecision, setAccountDecision] = useState<AccountDecision | null>(null);
-  const [nameDecision, setNameDecision] = useState<{context: string; rowIndex: number; optionKey: string} | null>(null);
-  const [sourceLocation, setSourceLocation] = useState<(TransactionSourceLocation & {context: string}) | null>(null);
-  const reportScroll = useRef<HTMLDivElement>(null);
-  const savedReportScroll = useRef({top: 0, left: 0});
+  const [decision, setDecision] = useState<IdentityDecision | null>(null);
   const [page, setPage] = useState(1);
   const [defaultBank, setDefaultBank] = useState('VCB');
   const operation = useRef(false);
@@ -86,17 +82,15 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const visibleReport = report?.context === context ? report : null;
   const localMatchesCloud = useMemo(() => Boolean(visibleReport
     && sameTransactionSnapshot(rows, visibleReport.currentVersion.rows, month)), [visibleReport, rows, month]);
-  const visibleAccountDecision = accountDecision?.context === context && visibleReport
-    ? accountDecision
-    : null;
-  const visibleDocumentIdGroup = useMemo(() => {
-    if (!documentIdDecision || documentIdDecision.context !== context || !visibleReport) return null;
-    const comparison = visibleReport.comparisons.find(item => item.currentRowIndex === documentIdDecision.rowIndex);
-    return comparison ? buildDocumentIdResolutionGroup(comparison, month) : null;
-  }, [documentIdDecision, context, visibleReport, month]);
-  const documentIdTargets = visibleDocumentIdGroup && documentIdDecision
-    ? documentIdResolutionTargets(visibleDocumentIdGroup, documentIdDecision.optionKey)
-    : [];
+  const buildResolution = useMemo(() => visibleReport
+    ? createIdentityResolutionBuilder(visibleReport.currentVersion, visibleReport.versions, defaultBank)
+    : null, [visibleReport, defaultBank]);
+  const visibleGroup = useMemo(() => decision?.context === context && buildResolution
+    ? buildResolution(decision.rowIndex, decision.field) : null, [decision, context, buildResolution]);
+  const targets = visibleGroup && decision ? identityResolutionTargets(visibleGroup, decision.optionKey) : [];
+  const selectedTargets = targets.filter(target => decision?.selectedVersionIds.includes(target.versionId));
+  const chosenOption = visibleGroup?.options.find(option => option.key === decision?.optionKey);
+  const chosenField = IDENTITY_FIELDS.find(item => item.field === decision?.field);
   const comparisons = useMemo(() => visibleReport
     ? visibleHistoricalComparisons(visibleReport.comparisons)
     : [], [visibleReport]);
@@ -104,24 +98,14 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     () => comparisons.filter(row => row.issues.length > 0),
     [comparisons],
   );
-  const visibleNameGroup = useMemo(() => nameDecision?.context === context && visibleReport
-    ? buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, nameDecision.rowIndex, defaultBank)
-    : null, [nameDecision, context, visibleReport, defaultBank]);
-  const nameTargets = visibleNameGroup && nameDecision ? nameResolutionTargets(visibleNameGroup, nameDecision.optionKey) : [];
-  const sourceVersion = visibleReport && sourceLocation?.context === context
-    ? [visibleReport.currentVersion, ...visibleReport.versions].find(version => version.id === sourceLocation.versionId)
-    : undefined;
-  const viewingSource = Boolean(sourceVersion);
   const hasExceptions = exceptions.length > 0;
   useEffect(() => {
-    onReportStateChange?.(showReport && hasExceptions, showReport && viewingSource);
-  }, [showReport, hasExceptions, viewingSource, onReportStateChange]);
-  useEffect(() => {
-    if (!viewingSource && reportScroll.current) {
-      reportScroll.current.scrollTop = savedReportScroll.current.top;
-      reportScroll.current.scrollLeft = savedReportScroll.current.left;
-    }
-  }, [viewingSource]);
+    onReportStateChange?.(showReport && hasExceptions, false);
+  }, [showReport, hasExceptions, onReportStateChange]);
+  const resolutionGroups = useMemo(() => new Map(exceptions.map(row => [row.currentRowIndex,
+    IDENTITY_FIELDS.map(item => ({...item, group: buildResolution?.(row.currentRowIndex, item.field)}))
+      .filter(item => item.group),
+  ])), [exceptions, buildResolution]);
   const pageCount = Math.max(1, Math.ceil(exceptions.length / 25));
   const activePage = Math.min(page, pageCount);
   const buttonClass = 'rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold whitespace-nowrap hover:bg-primary/10 disabled:opacity-50 active:scale-[0.98]';
@@ -137,7 +121,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     setReport({
       context: started,
       ...source,
-      comparisons: compareAccountsAcrossHistory(selectPeriodRows(source.currentVersion.rows, month), source.versions, defaultBank),
+      comparisons: compareAccountsAcrossHistory(source.currentVersion.rows, source.versions, defaultBank),
     });
     setPage(1);
     return true;
@@ -149,10 +133,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     setBusy(true);
     setMessage('');
     setReport(null);
-    setDocumentIdDecision(null);
-    setAccountDecision(null);
-    setNameDecision(null);
-    setSourceLocation(null);
+    setDecision(null);
     const started = context;
     try {
       if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase URL và publishable/anon key.');
@@ -164,10 +145,12 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         const latest = await loadLatestVersion(supabase, month);
         if (!latest || latest.id !== id) throw new HistorySaveConflictError('Tháng vừa có phiên bản mới hơn trên Supabase. Bấm Check STK & ID để lấy dữ liệu mới nhất.');
         if (!sameTransactionSnapshot(selected, latest.rows, month)) throw new HistorySaveConflictError('Dữ liệu đọc lại từ Supabase chưa khớp Transaction vừa lưu. Bấm Lưu tháng lại trước khi Check STK & ID.');
-        const employeeSync = await syncTransactionEmployeesToSupabase(supabase, latest.rows);
+        let employeeMessage: string;
+        try { employeeMessage = employeeSyncMessage(await syncTransactionEmployeesToSupabase(supabase, latest.rows)); }
+        catch (error) { employeeMessage = `Tháng đã lưu; danh mục nhân viên chưa cập nhật: ${error instanceof Error ? error.message : 'Lỗi kết nối'}`; }
         if (currentContext.current === started) {
           setReport(null);
-          setMessage(`Đã lưu tháng ${month} lên Supabase: ${selected.length} dòng (#${id}). ${employeeSyncMessage(employeeSync)} Check STK & ID sẽ tải lại phiên bản mới nhất.`);
+          setMessage(`Đã lưu tháng ${month} lên Supabase: ${selected.length} dòng (#${id}). ${employeeMessage} Check STK & ID sẽ tải lại phiên bản mới nhất.`);
         }
       } else if (action === 'load') {
         const latest = await loadLatestVersion(supabase, month);
@@ -206,228 +189,56 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     }
   }
 
-  async function resolveDocumentId() {
-    if (!visibleReport || !visibleDocumentIdGroup || !documentIdDecision || operation.current || hasPendingEdits || !localMatchesCloud) return;
-    const option = visibleDocumentIdGroup.options.find(item => item.key === documentIdDecision.optionKey);
-    const targets = documentIdResolutionTargets(visibleDocumentIdGroup, documentIdDecision.optionKey);
-    if (!option || !targets.length) return;
+  async function resolveIdentity() {
+    if (!visibleReport || !visibleGroup || !decision || !chosenOption
+      || operation.current || hasPendingEdits || !localMatchesCloud || !selectedTargets.length) return;
     operation.current = true;
     setBusy(true);
     setMessage('');
     const started = context;
-    const resolvedAt = new Date().toISOString();
+    let committed = false;
     let nextLocalRows = rows;
-    const completed: string[] = [];
+    const periods = selectedTargets.map(target => target.period);
     try {
-      await assertTransactionCheckCurrent(supabase, visibleReport);
+      const plan = planIdentityResolution([visibleReport.currentVersion, ...visibleReport.versions],
+        visibleGroup, decision.optionKey, decision.selectedVersionIds, new Date().toISOString());
       requireUnchangedContext(started);
-      const ordered = targets.filter(target => target.location === 'history')
-        .concat(targets.filter(target => target.location === 'current'));
-      for (const target of ordered) {
-        const version = target.location === 'current'
-          ? visibleReport.currentVersion
-          : visibleReport.versions.find(item => item.id === target.versionId);
-        if (!version) throw new Error(`Không tìm thấy nguồn tháng ${target.period}. Hãy kiểm tra lại.`);
-        const nextRows = applyTransactionHistoryResolution(version.rows, {
-          field: 'Document ID',
-          value: option.documentId,
-          rowIndexes: target.rowIndexes,
-          basedOnPeriods: [option.period],
-          resolvedAt,
-        });
-        requireUnchangedContext(started);
-        const savedRows = target.location === 'current' ? selectPeriodRows(nextRows, month) : nextRows;
-        const id = await replaceVersionIfCurrent(supabase, version, savedRows, crypto.randomUUID());
-        const saved = await loadLatestVersion(supabase, target.period);
-        if (!saved || saved.id !== id || !sameTransactionSnapshot(saved.rows, savedRows, target.period)) {
-          throw new HistorySaveConflictError(`Bản lưu Document ID tháng ${target.period} đã thay đổi hoặc chưa đọc lại được.`);
-        }
-        completed.push(target.period);
-        if (target.location === 'current') nextLocalRows = replaceTransactionPeriod(rows, month, saved.rows);
-      }
+      const saved = await replaceTransactionVersionsAtomically(supabase, visibleReport, plan);
+      committed = true;
       requireUnchangedContext(started);
       const fresh = await loadTransactionCheckSource(supabase, month);
       requireUnchangedContext(started);
-      const employeeSync = await syncTransactionEmployeesToSupabase(supabase, fresh.currentVersion.rows);
-      requireUnchangedContext(started);
-      if (nextLocalRows !== rows) {
-        onReplaceRows(nextLocalRows);
-        setReport(null);
-      } else {
-        setReport({
-          ...fresh,
-          context: started,
-          comparisons: compareAccountsAcrossHistory(selectPeriodRows(fresh.currentVersion.rows, month), fresh.versions, defaultBank),
-        });
-      }
-      setDocumentIdDecision(null);
-      if (currentContext.current === started) {
-        setMessage(`Đã đồng bộ Document ID thành ${option.documentId} theo tháng ${formatResolutionPeriods([option.period])}. Đã lưu tháng ${formatResolutionPeriods(completed)} lên Supabase. ${employeeSyncMessage(employeeSync)}`);
-      }
-    } catch (error) {
-      if (currentContext.current === started) {
-        if (nextLocalRows !== rows) onReplaceRows(nextLocalRows);
-        setReport(null);
-        setDocumentIdDecision(null);
-        setMessage(`${completed.length ? `Đã lưu tháng ${formatResolutionPeriods(completed)}. ` : ''}${error instanceof Error ? error.message : 'Không thể đồng bộ Document ID.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
-      }
-    } finally {
-      operation.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function resolveBankAccount(use: 'current' | 'history') {
-    if (!visibleReport || !visibleAccountDecision || operation.current || hasPendingEdits || !localMatchesCloud) return;
-    operation.current = true;
-    setBusy(true);
-    setMessage('');
-    const started = context;
-    const { comparison, source } = visibleAccountDecision;
-    if (comparison.bankCheck?.blocksSync || (use === 'history' && source.bankCheck?.blocksSync)) {
-      operation.current = false;
-      setBusy(false);
-      return;
-    }
-    setAccountDecision(null);
-    try {
-      await assertTransactionCheckCurrent(supabase, visibleReport);
-      requireUnchangedContext(started);
-      if (use === 'current') {
-        const version = visibleReport.versions.find(item => item.id === source.versionId);
-        if (!version) throw new Error(`Không tìm thấy nguồn tháng ${source.period}. Hãy kiểm tra lại.`);
-        const nextRows = applyTransactionHistoryResolution(version.rows, {
-          field: 'Beneficiary Account No.',
-          value: comparison.currentAccount,
-          rowIndexes: source.rowIndexes,
-          basedOnPeriods: [month],
-          resolvedAt: new Date().toISOString(),
-        });
-        await replaceVersionIfCurrent(supabase, version, nextRows, crypto.randomUUID());
-      } else {
-        const nextRows = applyTransactionHistoryResolution(visibleReport.currentVersion.rows, {
-          field: 'Beneficiary Account No.',
-          value: source.account,
-          rowIndexes: comparison.currentRowIndexes,
-          basedOnPeriods: [source.period],
-          resolvedAt: new Date().toISOString(),
-        });
-        await replaceVersionIfCurrent(
-          supabase,
-          visibleReport.currentVersion,
-          selectPeriodRows(nextRows, month),
-          crypto.randomUUID(),
-        );
-        requireUnchangedContext(started);
-        onReplaceRows(replaceTransactionPeriod(rows, month, nextRows));
-        setReport(null);
-      }
-      const current = await loadLatestVersion(supabase, month);
-      if (!current) throw new HistorySaveConflictError('Không đọc lại được tháng hiện tại sau khi đồng bộ STK.');
-      const employeeSync = await syncTransactionEmployeesToSupabase(supabase, current.rows);
-      if (use === 'current') {
-        if (await refreshReport(started)) setMessage(`Đã dùng STK hiện tại ${comparison.currentAccount} cho tháng ${formatResolutionPeriods([source.period])}. ${employeeSyncMessage(employeeSync)}`);
-      } else {
-        setMessage(`Đã dùng STK quá khứ ${source.account} cho tháng hiện tại ${formatResolutionPeriods([month])}. ${employeeSyncMessage(employeeSync)}`);
-      }
-    } catch (error) {
-      if (currentContext.current === started) {
-        setReport(null);
-        setMessage(`${error instanceof Error ? error.message : 'Không thể đồng bộ STK.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
-      }
-    } finally {
-      operation.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function openSource(location: TransactionSourceLocation) {
-    if (!visibleReport || operation.current) return;
-    operation.current = true;
-    setBusy(true);
-    const started = context;
-    try {
-      await assertTransactionCheckCurrent(supabase, visibleReport);
-      requireUnchangedContext(started);
-      savedReportScroll.current = {top: reportScroll.current?.scrollTop || 0, left: reportScroll.current?.scrollLeft || 0};
-      setSourceLocation({...location, context: started});
-    } catch (error) {
-      if (currentContext.current === started) {
-        setReport(null);
-        setMessage(`${error instanceof Error ? error.message : 'Không thể mở nguồn.'} Bấm Check STK & ID để tải lại.`);
-      }
-    } finally {
-      operation.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function resolveName() {
-    if (!visibleReport || !visibleNameGroup || !nameDecision || operation.current || hasPendingEdits || !localMatchesCloud) return;
-    const option = visibleNameGroup.options.find(item => item.key === nameDecision.optionKey);
-    const targets = nameResolutionTargets(visibleNameGroup, nameDecision.optionKey);
-    if (!option || !targets.length) return;
-    operation.current = true;
-    setBusy(true);
-    setMessage('');
-    const started = context;
-    const resolvedAt = new Date().toISOString();
-    const completed: string[] = [];
-    let nextLocalRows = rows;
-    try {
-      await assertTransactionCheckCurrent(supabase, visibleReport);
-      requireUnchangedContext(started);
-      // Update historical months first; replace local Transaction only after
-      // the current month has been saved and read back successfully.
-      const ordered = targets.filter(target => target.versionId !== visibleReport.currentVersion.id)
-        .concat(targets.filter(target => target.versionId === visibleReport.currentVersion.id));
-      for (const target of ordered) {
-        const version = [visibleReport.currentVersion, ...visibleReport.versions].find(item => item.id === target.versionId);
-        if (!version) throw new HistorySaveConflictError('Không tìm thấy tháng nguồn.');
-        const nextRows = applyTransactionHistoryResolution(version.rows, {
-          field: 'Beneficiary Name', value: option.name, rowIndexes: target.rowIndexes,
-          basedOnPeriods: [option.period], resolvedAt,
-        });
-        requireUnchangedContext(started);
-        const id = await replaceVersionIfCurrent(supabase, version, nextRows, crypto.randomUUID());
-        const saved = await loadLatestVersion(supabase, target.period);
-        if (!saved || saved.id !== id || !sameTransactionSnapshot(saved.rows, nextRows, target.period)) {
-          throw new HistorySaveConflictError('Bản lưu tên đã thay đổi hoặc chưa đọc lại được.');
+      for (const change of plan) {
+        const period = change.version.period.slice(0, 7);
+        const version = [fresh.currentVersion, ...fresh.versions].find(item => item.period.slice(0, 7) === period);
+        const receipt = saved.find(item => item.period.slice(0, 7) === period);
+        if (!version || version.id !== receipt?.id || !sameTransactionSnapshot(version.rows, change.rows, period)) {
+          throw new HistorySaveConflictError(`Tháng ${formatResolutionPeriods([period])} chưa đọc lại được hoặc vừa có thay đổi mới.`);
         }
-        completed.push(target.period);
-        if (version.id === visibleReport.currentVersion.id) nextLocalRows = replaceTransactionPeriod(rows, month, saved.rows);
       }
-      requireUnchangedContext(started);
-      // Refresh automatically, using the same local rows that will be committed.
-      const fresh = await loadTransactionCheckSource(supabase, month);
-      requireUnchangedContext(started);
-      const employeeSync = await syncTransactionEmployeesToSupabase(supabase, fresh.currentVersion.rows);
+      if (plan.some(change => change.version.id === visibleReport.currentVersion.id)) {
+        nextLocalRows = replaceTransactionPeriod(rows, month, fresh.currentVersion.rows);
+      }
+      let employeeMessage: string;
+      try { employeeMessage = employeeSyncMessage(await syncTransactionEmployeesToSupabase(supabase, fresh.currentVersion.rows)); }
+      catch (error) { employeeMessage = `Các tháng đã lưu; danh mục nhân viên chưa cập nhật: ${error instanceof Error ? error.message : 'Lỗi kết nối'}`; }
       requireUnchangedContext(started);
       if (nextLocalRows !== rows) onReplaceRows(nextLocalRows);
-      setReport({
-        ...fresh, context: JSON.stringify([month, nextLocalRows, userId, hasPendingEdits, defaultBank]),
-        comparisons: compareAccountsAcrossHistory(selectPeriodRows(fresh.currentVersion.rows, month), fresh.versions, defaultBank),
-      });
-      setMessage(`Đã đồng bộ tên theo tháng ${formatResolutionPeriods([option.period])}: ${option.name}. Đã lưu tháng ${formatResolutionPeriods(completed)} lên Supabase. ${employeeSyncMessage(employeeSync)}`);
-      setNameDecision(null);
+      setReport({...fresh, context: JSON.stringify([month, nextLocalRows, userId, hasPendingEdits, defaultBank]),
+        comparisons: compareAccountsAcrossHistory(fresh.currentVersion.rows, fresh.versions, defaultBank)});
+      setDecision(null);
+      setMessage(`Đã đồng bộ ${chosenField?.label}: ${chosenOption.value} theo ${formatResolutionPeriods([chosenOption.period])}. Đã lưu tháng ${formatResolutionPeriods(periods)} lên Supabase. ${employeeMessage}`);
     } catch (error) {
       if (currentContext.current === started) {
-        // A later refresh can fail after a verified current-month write.
         if (nextLocalRows !== rows) onReplaceRows(nextLocalRows);
         setReport(null);
-        setNameDecision(null);
-        setMessage(`${completed.length ? `Đã lưu tháng ${formatResolutionPeriods(completed)}. ` : ''}${error instanceof Error ? error.message : 'Không thể đồng bộ tên.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
+        setDecision(null);
+        setMessage(`${committed ? `Đã lưu tháng ${formatResolutionPeriods(periods)}. ` : ''}${error instanceof Error ? error.message : 'Không thể xác nhận kết quả lưu.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
       }
     } finally {
       operation.current = false;
       setBusy(false);
     }
-  }
-
-  function sourceLink(value: string, location: TransactionSourceLocation, title?: string) {
-    return <button type="button" className="text-left text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary disabled:opacity-50 active:scale-[0.98]"
-      disabled={busy} title={title || `Mở Transaction nguồn · ${location.field} · dòng ${location.rowIndexes.map(index => index + 1).join(', ')}`}
-      onClick={() => void openSource(location)}>{value || '—'} <span aria-hidden="true">↗</span></button>;
   }
 
   async function exportReport() {
@@ -469,79 +280,45 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Transaction trước khi Lưu tháng hoặc Check STK & ID.</p>}
     {message && <p role="status" className="text-xs mt-2">{message}</p>}
     {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
-    {showReport && sourceVersion && sourceLocation && <TransactionHistorySourceTable key={`${sourceVersion.id}-${sourceLocation.field}-${sourceLocation.rowIndexes.join(',')}`} version={sourceVersion} location={sourceLocation} onBack={() => setSourceLocation(null)} />}
-    {showReport && visibleReport && !sourceVersion && <div className="mt-2">
+    {showReport && visibleReport && <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <strong>Check STK & Document ID · Tất cả tháng đã lưu → {month}</strong>
-        <span className="rounded-full bg-primary/10 px-2 py-1 font-semibold">Tháng hiện tại: Supabase #{visibleReport.currentVersion.id} · {formatHistoryDate(visibleReport.currentVersion.created_at)}</span>
-        <details><summary className="cursor-pointer">{visibleReport.versions.length} tháng nguồn{visibleReport.versions.length ? ` · ${visibleReport.versions[0].period.slice(0, 7)} – ${visibleReport.versions[visibleReport.versions.length - 1].period.slice(0, 7)}` : ''}</summary>
-          <ul>{visibleReport.versions.map(version => <li key={version.id}>{version.period.slice(0, 7)} · Nguồn #{version.id} · {formatHistoryDate(version.created_at)}</li>)}</ul>
-        </details>
-        <span>{visibleReport.comparisons.length} dòng · {exceptions.length} cần kiểm tra · {comparisons.length - exceptions.length} khớp dữ liệu · {visibleReport.comparisons.length - comparisons.length} ID mới ẩn</span>
-        <button type="button" className={buttonClass} disabled={!exceptions.length} onClick={() => void exportReport()}>Xuất Check STK & ID</button>
+        <strong>Check STK & ID · {month}</strong>
+        <span>{exceptions.length} cần kiểm tra · {comparisons.length - exceptions.length} khớp</span>
+        <button type="button" className={buttonClass} disabled={!exceptions.length || busy} onClick={() => void exportReport()}>Xuất kết quả</button>
       </div>
-      <p className="mt-2 text-[10px] text-muted-foreground">Mỗi lần Check tải lại phiên bản Supabase mới nhất. Kết quả là đối chiếu dữ liệu, chưa xác minh chủ tài khoản hoặc trạng thái tài khoản với ngân hàng.</p>
       {!localMatchesCloud && <div role="status" className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2 text-xs">
-        <span>Transaction trên máy khác bản Supabase đang kiểm tra. Lưu tháng để dùng dữ liệu trên máy, hoặc tải bản đã lưu trước khi đồng bộ.</span>
+        <span>Transaction trên máy khác bản đang kiểm tra. Lưu tháng để dùng dữ liệu trên máy, hoặc tải bản đã lưu trước khi đồng bộ.</span>
         <button type="button" className={buttonClass} disabled={busy || hasPendingEdits} onClick={() => void run('load')}>Tải bản đã lưu</button>
       </div>}
-      <details className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-[10px] text-muted-foreground">
-        <summary className="cursor-pointer font-semibold text-foreground">Quy tắc STK · Nguồn Vietcombank · 08/09/26</summary>
-        <div className="mt-2 space-y-1.5">
-          <p>Đối chiếu ngân hàng + STK + tên + Document ID; giữ số 0 đầu. Tên bỏ khác biệt hoa/thường, dấu tiếng Việt và khoảng trắng khi so sánh, giữ nguyên dữ liệu đã nhập.</p>
-          <p>STK trùng tên người khác cần xác minh: VCB có tài khoản chung và số tài khoản đã đóng có thể được cấp lại. Một người có thể dùng nhiều tài khoản; nickname cần xác nhận khả năng dùng trên kênh chi lương.</p>
-          <p>Document ID trong payroll có thể là mã nhân sự, không mặc định là CCCD. Điều kiện tuổi, giấy tờ còn hiệu lực, sinh trắc học và tình trạng hoạt động cần hồ sơ/xác nhận ngân hàng.</p>
-          <p className="flex flex-wrap gap-3">
-            <a className="underline" href="https://www.vietcombank.com.vn/vi-VN/KHCN/SPDV/Dich-vu-tai-khoan/Tai-khoan-thanh-toan" target="_blank" rel="noreferrer">Điều kiện mở tài khoản</a>
-            <a className="underline" href="https://www.vietcombank.com.vn/-/media/Project/VCB-Sites/VCB/KHCN/Bieu-mau-Bieu-phi-KHCN/Bieu-mau/Dich-vu-tai-khoan/Tai-khoan-thanh-toan/16122025-DKDK-mo-va-su--dung-TKTT-truc-tuyen.pdf" target="_blank" rel="noreferrer">Điều khoản VCB</a>
-            <a className="underline" href="https://www.vietcombank.com.vn/vi-VN/KHCN/Truy-cap-nhanh/Tin-noi-bat/Articles/chuyen-tien-lien-ngan-hang-toi-nickname-tai-khoan-vietcombank-that-de-dang" target="_blank" rel="noreferrer">Nickname tài khoản</a>
-          </p>
+      <details className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs">
+        <summary className="cursor-pointer font-semibold">Quy tắc & nguồn · {visibleReport.versions.length} tháng</summary>
+        <div className="mt-2 space-y-1.5 text-muted-foreground">
+          <p>Chọn ID khi cùng tên + STK; chọn tên khi cùng ID + STK; chọn STK khi cùng ID + tên. Các dòng phải cùng ngân hàng và không mâu thuẫn trong cùng tháng.</p>
+          <p>Ô trống có thể được bổ sung từ tháng có giá trị đúng. Trùng một thông tin hoặc khác từ hai thông tin cần xác minh, không tự gộp nhân viên.</p>
+          <p>Tên được so sánh sau khi bỏ khác biệt hoa/thường, dấu và khoảng trắng. ID và STK giữ nguyên số 0 đầu. Dữ liệu lỗi, số mũ hoặc nickname không được dùng làm nguồn STK.</p>
+          <p>Hộp thoại cho chọn giá trị nguồn và các tháng cập nhật. Nếu thông tin thay đổi hợp lệ theo tháng, bỏ chọn tháng đó hoặc chọn Giữ nguyên. Chỉ trường đã chọn được đồng bộ.</p>
+          <p>Mỗi lần Check tải dữ liệu Supabase mới nhất. Đây là đối chiếu dữ liệu, chưa xác minh tài khoản với ngân hàng.</p>
+          <p>Hiện tại: #{visibleReport.currentVersion.id} · {formatHistoryDate(visibleReport.currentVersion.created_at)}. {visibleReport.comparisons.length - comparisons.length} dòng chưa tìm thấy lịch sử và không có cảnh báo được ẩn.</p>
+          <p>Nguồn: {visibleReport.versions.map(version => `${formatResolutionPeriods([version.period])} (#${version.id})`).join(' · ') || 'Chưa có tháng trước'}</p>
         </div>
       </details>
-      {exceptions.length > 0 && <>
-        <div ref={reportScroll} className="max-h-[55vh] overflow-auto mt-2 rounded-xl border border-primary/15">
-          <table className="w-full text-xs text-left"><thead className="sticky top-0 bg-card"><tr>
-            {['Mức kiểm tra / NH', 'Document ID lịch sử', 'Document ID hiện tại', 'STK lịch sử', 'STK hiện tại', 'Tên lịch sử', 'Tên hiện tại', 'Nguồn đối chiếu', 'Cảnh báo', 'Giải quyết'].map(header => <th key={header} className="p-2 border-b">{header}</th>)}
-          </tr></thead><tbody>{exceptions.slice((activePage - 1) * 25, activePage * 25).map(row => {
-            const idGroup = buildDocumentIdResolutionGroup(row, month);
-            const accountOptions = bankAccountResolutionOptions(row);
-            const nameGroup = buildNameResolutionGroup(visibleReport.currentVersion, visibleReport.versions, row.currentRowIndex, defaultBank);
-            const currentLocation = {versionId: visibleReport.currentVersion.id, rowIndexes: [row.currentRowIndex]};
-            const historicalLinks = (field: string, getValue: (source: HistoricalAccountComparison['sources'][number]) => string) => row.sources.length
-              ? <div className="space-y-1">{row.sources.map(source => <div key={source.versionId}>
-                {sourceLink(getValue(source), {versionId: source.versionId, rowIndexes: source.rowIndexes, field})}
-                <span className="ml-1 text-[10px] text-muted-foreground">{formatResolutionPeriods([source.period])}</span>
-              </div>)}</div> : '—';
-            return <tr key={row.currentRowIndex} className="bg-amber-50/40 dark:bg-amber-950/20">
-              <td className="p-2 border-b"><span className="block whitespace-nowrap font-semibold">{row.bankCheck?.findings.some(item => item.severity === 'error') ? 'Cần sửa' : 'Cần đối chiếu'}</span><span className="text-[10px] text-muted-foreground">{row.bankCheck?.bank || 'Chưa rõ NH'}{row.bankCheck?.bankAssumed ? ' · mặc định' : ''}</span></td>
-              <td className="p-2 border-b tabular-nums">{historicalLinks('Document ID', source => markedDocumentId(source.documentId, source.documentIdSyncNote))}</td>
-              <td className="p-2 border-b tabular-nums">{sourceLink(markedDocumentId(row.documentId, row.currentDocumentIdSyncNote), {...currentLocation, field: 'Document ID'}, row.currentDocumentIdSyncNote ? `! Đồng bộ theo ${row.currentDocumentIdSyncNote} · Mở nguồn` : undefined)}</td>
-              <td className="p-2 border-b tabular-nums">{historicalLinks('Beneficiary Account No.', source => source.account)}</td>
-              <td className="p-2 border-b tabular-nums">{sourceLink(row.currentAccount, {...currentLocation, field: 'Beneficiary Account No.'})}</td>
-              <td className="p-2 border-b">{historicalLinks('Beneficiary Name', source => source.name)}</td>
-              <td className="p-2 border-b">{sourceLink(row.currentName, {...currentLocation, field: 'Beneficiary Name'})}</td>
-              <td className="p-2 border-b tabular-nums whitespace-pre-line">
-                <div className="space-y-1.5">{row.sources.map(source => <div key={`${source.period}-${source.versionId}`}>
-                  <div>{sourceLink(`${formatResolutionPeriods([source.period])} · #${source.versionId}`, {versionId: source.versionId, rowIndexes: source.rowIndexes, field: 'Document ID'}, `Transaction ${source.period} · lưu ${formatHistoryDate(source.createdAt)}`)}</div>
-                  {source.documentIdSyncNote && <div className="mt-0.5 inline-flex rounded-full bg-primary/20 px-2 py-0.5 font-semibold text-foreground">! Đồng bộ theo {source.documentIdSyncNote}</div>}
-                </div>)}</div>
-              </td>
-              <td className="p-2 border-b min-w-40 max-w-64"><span>{summarizeHistoryWarnings(row)}</span>
-                <details className="mt-1 text-[10px] text-muted-foreground"><summary className="cursor-pointer">Chi tiết</summary><p className="mt-1 whitespace-pre-line">{row.issues.join('\n')}</p></details>
-              </td>
-              <td className="p-2 border-b">
-                <div className="flex min-w-max flex-col items-start gap-1.5">
-                  {idGroup && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title="Mở hộp thoại chọn tháng nguồn cho Document ID" onClick={() => setDocumentIdDecision({context, rowIndex: row.currentRowIndex, optionKey: ''})}>Đồng bộ ID</button>}
-                  {nameGroup && <button type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} onClick={() => setNameDecision({context, rowIndex: row.currentRowIndex, optionKey: ''})}>Đồng bộ tên</button>}
-                  {accountOptions.map(source => <button key={`${source.versionId}-${source.account}`} type="button" className={resolutionButtonClass} disabled={busy || !localMatchesCloud} title={`Chọn STK cho tháng ${formatResolutionPeriods([source.period])}`} onClick={() => setAccountDecision({context, comparison: row, source})}>Chọn STK {formatResolutionPeriods([source.period])}</button>)}
-                  {!idGroup && !nameGroup && accountOptions.length === 0 && <span className="text-[10px] text-muted-foreground">{row.bankCheck?.blocksSync ? 'Cần xác minh' : '—'}</span>}
-                </div>
-              </td>
-            </tr>;
-          })}</tbody></table>
+      {exceptions.length > 0 ? <>
+        <div className="max-h-[55vh] overflow-auto mt-2 rounded-xl border border-primary/15">
+          <TransactionHistoryTable rows={exceptions} month={month} page={activePage} renderActions={row => {
+            const actions = resolutionGroups.get(row.currentRowIndex) || [];
+            return <div className="flex flex-col items-start gap-1.5">
+              {actions.map(action => <button key={action.field} type="button" className={resolutionButtonClass}
+                disabled={busy || hasPendingEdits || !localMatchesCloud}
+                title={action.rule}
+                onClick={() => setDecision({context, rowIndex: row.currentRowIndex, field: action.field, optionKey: '', selectedVersionIds: []})}>
+                Chọn {action.label}
+              </button>)}
+              {!actions.length && <span className="text-muted-foreground" title="Cần kiểm tra thông tin nhân viên hoặc bổ sung dữ liệu trước khi đồng bộ.">Cần xác minh</span>}
+            </div>;
+          }} />
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs"><button type="button" className={buttonClass} disabled={activePage === 1} onClick={() => setPage(activePage - 1)}>Trước</button><span>{activePage}/{pageCount}</span><button type="button" className={buttonClass} disabled={activePage === pageCount} onClick={() => setPage(activePage + 1)}>Sau</button></div>
-      </>}
+      </> : <p role="status" className="mt-3 text-xs">Không có chênh lệch ID, tên hoặc STK cần kiểm tra.</p>}
     </div>}
     <Dialog open={settingsOpen} onOpenChange={open => { if (!busy) { setSettingsOpen(open); if (!open) setLoginOpen(false); } }}>
       <DialogContent className="!max-w-md !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
@@ -577,77 +354,37 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         </div>
       </DialogContent>
     </Dialog>
-    <Dialog open={Boolean(visibleDocumentIdGroup)} onOpenChange={open => { if (!open && !busy) setDocumentIdDecision(null); }}>
-      <DialogContent className="!max-w-lg !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
+    <Dialog open={Boolean(visibleGroup)} onOpenChange={open => { if (!open && !busy) setDecision(null); }}>
+      <DialogContent className="!max-w-xl max-h-[90vh] overflow-y-auto !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Đồng bộ Document ID theo tháng nào?</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">Chọn tháng có Document ID đúng. Chỉ cột Document ID của các tháng có giá trị khác mới được cập nhật; các cột khác và Tháng báo cáo được giữ nguyên.</DialogDescription>
+          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Đồng bộ {chosenField?.label} theo tháng nào?</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">{chosenField?.rule} Chọn giá trị đúng và các tháng cần sửa.</DialogDescription>
         </DialogHeader>
-        {visibleDocumentIdGroup && <div className="space-y-3 text-xs">
-          <p className="font-semibold">Đối tượng đang đối soát · chọn đúng nguồn dữ liệu trước khi lưu lên Supabase.</p>
+        {visibleGroup && decision && <div className="space-y-3 text-xs">
           <fieldset disabled={busy} className="max-h-52 space-y-2 overflow-auto">
-            <legend className="mb-2 font-semibold">Tháng lấy Document ID</legend>
-            {visibleDocumentIdGroup.options.map(option => <label key={option.key} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 ${documentIdDecision?.optionKey === option.key ? 'border-primary bg-primary/10' : 'border-primary/20'}`}>
-              <input type="radio" name="document-id-source-month" value={option.key} checked={documentIdDecision?.optionKey === option.key} onChange={() => setDocumentIdDecision(value => value ? {...value, optionKey: option.key} : null)} />
-              <span><span className="block font-bold">Tháng {formatResolutionPeriods([option.period])}{option.location === 'current' ? ' · hiện tại' : ' · lịch sử'}</span><span className="tabular-nums">Document ID: {option.documentId}</span></span>
+            <legend className="mb-2 font-semibold">Lấy giá trị từ tháng</legend>
+            {visibleGroup.options.map(option => <label key={option.key} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 ${decision.optionKey === option.key ? 'border-primary bg-primary/10' : 'border-primary/20'}`}>
+              <input type="radio" name="identity-source-month" value={option.key} checked={decision.optionKey === option.key}
+                onChange={() => setDecision({...decision, optionKey: option.key, selectedVersionIds: identityResolutionTargets(visibleGroup, option.key).map(target => target.versionId)})} />
+              <span><span className="block font-semibold">{formatResolutionPeriods([option.period])}{option.versionId === visibleReport?.currentVersion.id ? ' · hiện tại' : ''}</span><span className="tabular-nums">{option.value}</span></span>
             </label>)}
           </fieldset>
-          {documentIdTargets.length > 0 && <div className="rounded-xl border border-primary/20 p-2.5">
-            <p className="font-semibold">Các tháng sẽ tự động cập nhật trên Supabase</p>
-            <ul className="mt-1 max-h-36 space-y-1 overflow-auto">{documentIdTargets.map(target => <li key={`${target.location}-${target.location === 'history' ? target.versionId : 'current'}`}>Tháng {formatResolutionPeriods([target.period])} · {target.rowIndexes.length} dòng: {target.fromDocumentId || '(trống)'} → {visibleDocumentIdGroup.options.find(option => option.key === documentIdDecision?.optionKey)?.documentId}</li>)}</ul>
-          </div>}
+          {chosenOption && <fieldset disabled={busy} className="rounded-xl border border-primary/20 p-3">
+            <legend className="px-1 font-semibold">Tháng sẽ cập nhật · {selectedTargets.length}</legend>
+            <p className="mb-2 text-muted-foreground">Bỏ chọn những tháng có thay đổi hợp lệ cần giữ lại.</p>
+            <div className="max-h-44 space-y-2 overflow-auto">{targets.map(target => <label key={target.versionId} className="flex cursor-pointer items-start gap-2">
+              <input type="checkbox" checked={decision.selectedVersionIds.includes(target.versionId)} onChange={event => setDecision({...decision,
+                selectedVersionIds: event.target.checked ? [...decision.selectedVersionIds, target.versionId]
+                  : decision.selectedVersionIds.filter(id => id !== target.versionId),
+              })} />
+              <span><span className="font-semibold">{formatResolutionPeriods([target.period])} · {target.rowIndexes.length} dòng</span><span className="block tabular-nums">{target.fromValues.map(value => value || '(trống)').join(' / ')} → {chosenOption.value}</span></span>
+            </label>)}</div>
+          </fieldset>}
+          <p className="text-muted-foreground">Các tháng đã chọn được lưu cùng lúc lên Supabase. Danh mục nhân viên được cập nhật theo Transaction của tháng đang xem.</p>
           <div className="flex justify-end gap-2">
-            <button type="button" className={buttonClass} disabled={busy} onClick={() => setDocumentIdDecision(null)}>Hủy</button>
-            <button type="button" className={buttonClass} disabled={busy || !documentIdTargets.length || !localMatchesCloud} onClick={() => void resolveDocumentId()}>Lưu đồng bộ</button>
+            <button type="button" className={buttonClass} disabled={busy} onClick={() => setDecision(null)}>Giữ nguyên</button>
+            <button type="button" className={buttonClass} disabled={busy || !selectedTargets.length || !localMatchesCloud || hasPendingEdits} onClick={() => void resolveIdentity()}>{busy ? 'Đang lưu…' : 'Lưu đồng bộ'}</button>
           </div>
-        </div>}
-      </DialogContent>
-    </Dialog>
-    <Dialog open={Boolean(visibleNameGroup)} onOpenChange={open => { if (!open && !busy) setNameDecision(null); }}>
-      <DialogContent className="!max-w-lg !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Đồng bộ tên theo tháng nào?</DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">Chọn tháng có tên đúng. Tên này sẽ được lưu vào các dòng cùng ID, ngân hàng và STK trong những tháng liệt kê bên dưới.</DialogDescription>
-        </DialogHeader>
-        {visibleNameGroup && <div className="space-y-3 text-xs">
-          <p className="font-semibold tabular-nums">ID {visibleNameGroup.documentId} · {visibleNameGroup.bank} · STK {visibleNameGroup.account}</p>
-          <fieldset disabled={busy} className="max-h-52 space-y-2 overflow-auto">
-            <legend className="mb-2 font-semibold">Tháng lấy tên</legend>
-            {visibleNameGroup.options.map(option => <label key={option.key} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 ${nameDecision?.optionKey === option.key ? 'border-primary bg-primary/10' : 'border-primary/20'}`}>
-              <input type="radio" name="name-source-month" value={option.key} checked={nameDecision?.optionKey === option.key} onChange={() => setNameDecision(value => value ? {...value, optionKey: option.key} : null)} />
-              <span><span className="block font-bold">Tháng {formatResolutionPeriods([option.period])}{option.versionId === visibleReport?.currentVersion.id ? ' · hiện tại' : ''}</span><span>{option.name}</span></span>
-            </label>)}
-          </fieldset>
-          {nameTargets.length > 0 && <div className="rounded-xl border border-primary/20 p-2.5">
-            <p className="font-semibold">Các tháng sẽ cập nhật</p>
-            <ul className="mt-1 max-h-36 space-y-1 overflow-auto">{nameTargets.map(target => <li key={target.versionId}>Tháng {formatResolutionPeriods([target.period])} · {target.rowIndexes.length} dòng: {target.names.map(name => name || '(trống)').join(' / ')} → {visibleNameGroup.options.find(option => option.key === nameDecision?.optionKey)?.name}</li>)}</ul>
-          </div>}
-          <div className="flex justify-end gap-2">
-            <button type="button" className={buttonClass} disabled={busy} onClick={() => setNameDecision(null)}>Hủy</button>
-            <button type="button" className={buttonClass} disabled={busy || !nameTargets.length || !localMatchesCloud} onClick={() => void resolveName()}>Lưu đồng bộ</button>
-          </div>
-        </div>}
-      </DialogContent>
-    </Dialog>
-    <Dialog open={Boolean(visibleAccountDecision)} onOpenChange={open => { if (!open) setAccountDecision(null); }}>
-      <DialogContent className="!max-w-md !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Chọn STK · {visibleAccountDecision ? formatResolutionPeriods([visibleAccountDecision.source.period]) : ''}</DialogTitle>
-          <DialogDescription className="text-xs font-medium normal-case text-muted-foreground">
-            Tháng này sẽ dùng STK của tháng hiện tại hay STK đã lưu trong quá khứ?
-          </DialogDescription>
-        </DialogHeader>
-        {visibleAccountDecision && <div className="grid gap-2">
-          <button type="button" disabled={busy} className="rounded-xl border border-primary/20 bg-primary/10 p-3 text-left transition-colors hover:bg-primary/20 active:scale-[0.98]" onClick={() => void resolveBankAccount('current')}>
-            <span className="block text-xs font-bold">STK hiện tại</span>
-            <span className="mt-1 block text-sm font-semibold tabular-nums">{visibleAccountDecision.comparison.currentAccount}</span>
-            <span className="mt-1 block text-[10px] text-muted-foreground">Cập nhật STK này vào tháng {formatResolutionPeriods([visibleAccountDecision.source.period])}.</span>
-          </button>
-          <button type="button" disabled={busy || visibleAccountDecision.source.bankCheck?.blocksSync} className="rounded-xl border border-primary/20 bg-background p-3 text-left transition-colors hover:bg-primary/10 active:scale-[0.98] disabled:opacity-50" onClick={() => void resolveBankAccount('history')}>
-            <span className="block text-xs font-bold">STK quá khứ</span>
-            <span className="mt-1 block text-sm font-semibold tabular-nums">{visibleAccountDecision.source.account}</span>
-            <span className="mt-1 block text-[10px] text-muted-foreground">{visibleAccountDecision.source.bankCheck?.blocksSync ? 'STK quá khứ cần xác minh trước khi sử dụng.' : `Đổi tháng hiện tại ${formatResolutionPeriods([month])} sang STK này.`}</span>
-          </button>
         </div>}
       </DialogContent>
     </Dialog>

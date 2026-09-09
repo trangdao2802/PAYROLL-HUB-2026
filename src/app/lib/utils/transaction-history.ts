@@ -165,6 +165,7 @@ export interface HistoricalAccountComparison extends AccountComparison {
     documentIdSyncNote: string;
     account: string;
     name: string;
+    matchKind?: 'id' | 'name-account' | 'candidate';
     rowIndexes: number[];
   }[];
 }
@@ -224,7 +225,11 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
   const currentIdentities = groupByNameAndAccount(current, defaultBank);
   const currentIndexes = new Map(current.map((item, index) => [item, index]));
   const results = compareAccounts(current, []).map((row, currentRowIndex) => ({
-    ...row, issues: row.issues.filter(issue => issue !== 'Không có ID ở tháng trước'),
+    ...row, issues: row.issues.filter(issue => issue !== 'Không có ID ở tháng trước').concat(
+      new Set((currentIdentities.get(nameAndAccountKey(current[currentRowIndex], defaultBank)) || [])
+        .map(item => transactionDocumentId(item).toUpperCase())).size > 1
+        ? ['Nhiều ID cùng tên và STK trong tháng này'] : [],
+    ),
     bankCheck: bankChecks[currentRowIndex],
     currentRowIndex,
     currentRowIndexes: (currentIdentities.get(nameAndAccountKey(current[currentRowIndex], defaultBank)) || [current[currentRowIndex]])
@@ -251,9 +256,21 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
     comparisons.forEach((comparison, index) => {
       const result = results[index];
       const directMatches = ids.get(comparison.documentId) || [];
-      const identityMatches = directMatches.length > 0
-        ? directMatches
-        : identities.get(nameAndAccountKey(current[index], defaultBank)) || [];
+      const nameAccountMatches = identities.get(nameAndAccountKey(current[index], defaultBank)) || [];
+      const overlappingIds = new Set(nameAccountMatches.map(item => transactionDocumentId(item).toUpperCase())).size > 1;
+      if (overlappingIds) result.issues.push(`${period} (#${snapshot.id}): Nhiều ID cùng tên và STK trong tháng nguồn`);
+      const anchoredMatches = directMatches.length > 0
+        ? [...new Set([...directMatches, ...(overlappingIds ? nameAccountMatches : [])])]
+        : nameAccountMatches;
+      // One shared field is only a candidate for manual verification. Show
+      // both changed fields instead of silently classifying the row as new.
+      const identityMatches = anchoredMatches.length ? anchoredMatches : snapshot.rows.filter(item => (
+        Boolean(comparison.currentName) && name(item['Beneficiary Name']) === name(comparison.currentName)
+      ) || (
+        Boolean(comparison.currentAccount)
+          && text(item['Beneficiary Account No.']) === comparison.currentAccount
+          && transactionBank(item, defaultBank).bank === transactionBank(current[index], defaultBank).bank
+      ));
       if (!identityMatches.length) return;
 
       const sourceDocumentId = uniqueJoined(
@@ -275,10 +292,19 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
         documentIdSyncNote: uniqueJoined(identityMatches.map(documentIdResolutionNote)),
         account: sourceAccount,
         name: sourceName,
+        matchKind: !anchoredMatches.length ? 'candidate' : directMatches.length ? 'id' : 'name-account',
         rowIndexes: identityMatches
           .map(row => snapshotIndexes.get(row))
           .filter((index): index is number => index !== undefined),
       });
+
+      if (!anchoredMatches.length) {
+        result.issues.push(`${period} (#${snapshot.id}): Chỉ trùng tên hoặc STK; chưa đủ xác định cùng người`);
+        if (sourceDocumentId !== comparison.documentId) result.issues.push(`${period} (#${snapshot.id}): Document ID khác`);
+        if (sourceAccount !== comparison.currentAccount) result.issues.push(`${period} (#${snapshot.id}): STK khác`);
+        if (name(sourceName) !== name(comparison.currentName)) result.issues.push(`${period} (#${snapshot.id}): Tên khác`);
+        return;
+      }
 
       if (!directMatches.length) {
         const issue = !sourceDocumentId

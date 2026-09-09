@@ -1,44 +1,55 @@
-# Reconcile table layout
+# Check STK & ID: compact results and explicit choices
 
-The historical report shows each common ID, account and beneficiary name once.
-A field splits into source/current child columns only when the complete result
-contains a difference. Matching rows within that split group span both columns.
-The column plan uses all exceptions, so pagination does not move the headers.
-A name-only discrepancy uses six columns instead of the previous ten.
+The history report uses five stable columns: Thông tin chung, Lịch sử,
+Hiện tại (month), Cần kiểm tra, Xử lý. Shared ID/name/account values appear
+once in the first column. Only differences appear in the two comparison
+columns. Repeated historical values are grouped with their source months.
+There are no links from cells back to Transaction. Rules and snapshot details
+are collapsed above the table; full warnings remain in each row's details
+and in the check report export. Transaction bank exports still blank Document ID.
 
-Historical repetitions are grouped by comparison value, retaining every source
-month and link. Missing values, conflicting values and leading zeroes are not
-discarded. The existing name normalization is used for display grouping only.
-Warnings and bank/source details share one column; sync actions stay alongside.
-The full original report remains available for export.
+| ID | Name | Account | Action |
+|---|---|---|---|
+| Same | Same | Same | Hidden unless another data-quality warning exists |
+| Different/missing | Same | Same | Choose ID |
+| Same | Different/missing | Same | Choose name |
+| Same | Same | Different/missing | Choose account |
+| Different | Different | Same | Verify identity; no sync |
+| Different | Same | Different | Verify identity; no sync |
+| Same | Different | Different | Verify identity; no sync |
+| Different | Different | Different | Cannot link from these fields alone |
 
-Financial Reconcile similarly shares matching account and payment values and
-shows AE/ACC subheaders for differences. Row and footer spans follow the actual
-column count. This presentation does not change payroll calculations or sync.
+All choices require the two other fields to be complete and equal, the same
+known bank, and no overlapping identities or contradictory values within a
+month. Exact duplicate payment rows are retained. Matching a name alone or
+an account alone exposes a candidate for review, never a synchronization
+source. No matching fields cannot establish that two records are one person.
 
-The history toolbar contains Save month, Check STK & ID and a dedicated settings
-icon. Bank choice, authentication, cloud load, export, versions and rules are
-inside settings. Contextual row actions, pagination and source return buttons
-remain at the point of use. Short errors and local/cloud mismatch states remain
-visible, including how to resolve them.
+Name comparison ignores case, Vietnamese diacritics and repeated whitespace;
+this does not alter the stored spelling. IDs and accounts preserve leading
+zeroes. Empty, malformed and scientific-notation values cannot be donors.
+Numeric accounts, account aliases and hidden characters need correction or
+verification first. A valid account can repair an invalid target when ID and
+name match. An account associated with another employee is excluded as a donor.
+Missing values on either side may be filled; two missing anchors or no valid
+donor offer no action. Multiple valid donor months remain explicit user choices.
 
-## Evidence and implementation choices
+The dialog starts without a selected source. Selecting a source previews the
+old/new value and exact rows in every affected month. The user may uncheck
+months whose changes are legitimate, or keep everything unchanged. Only the
+chosen field and its existing aliases are changed; report month, amounts and
+unrelated rows remain unchanged. No majority or latest-month choice is automatic.
 
-W3C demonstrates two-tier grouped table headings using column spans and explicit
-column-group associations. The table also names header associations for merged
-data cells. [W3C WAI: irregular headers](https://www.w3.org/WAI/tutorials/tables/irregular/)
-(updated 27 July 2019; accessed 8 September 2026).
+`replace_transaction_versions` holds the ordinary save locks for every
+checked month and rechecks all source/target version IDs before saving. All
+selected months commit together; any error rolls back the complete operation.
+The UI reads back each saved snapshot before updating local rows. The employee
+directory is then synchronized from the resulting current Transaction month.
+Directory errors are reported separately from the successful month save.
 
-Complex tables should also be considered for simplification. This design stays
-within two header tiers and moves ancillary information into settings/details.
-[W3C WAI: multi-level headers](https://www.w3.org/WAI/tutorials/tables/multi-level/)
-(accessed 8 September 2026).
+Financial amount reconciliation and payroll calculations are unchanged.
 
-GOV.UK frames tables as a way to compare and scan information and supports row
-and column spans. [GOV.UK Design System: table](https://design-system.service.gov.uk/components/table/)
-(publication date not stated; accessed 8 September 2026).
-
-Grouping equal values and the specific toolbar arrangement are product decisions
-requested by the user. They have not been evaluated in a timed usability study.
-Verification covers complete values, header/body/footer alignment, source access,
-settings controls, saved-data behavior and unchanged financial calculations.
+Validation: all eight complete-field combinations; missing fields on either
+side; overlapping IDs; malformed or shared accounts; selected past months;
+leading zeroes and unchanged payroll fields; source/target concurrency; batch
+rollback; no-access roles; five-column rendering without source links.

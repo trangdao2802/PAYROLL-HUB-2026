@@ -1,3 +1,4 @@
+import { SupabaseSchemaError } from '../../lib/utils/supabase-sync-errors';
 import { useTableRestore } from '../../hooks/useTableRestore';
 import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
@@ -19,6 +20,7 @@ import { useAppData } from "../../lib/contexts/AppDataContext";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import {
   clearSupabaseRosterData,
+  preflightTimesheetSync,
   syncRosterToSupabase,
   SQL_SETUP_SCRIPT,
 } from "../../lib/supabase-sync-utils";
@@ -153,6 +155,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
   const [totalSyncRows, setTotalSyncRows] = useState(0);
   const [syncedRowsCount, setSyncedRowsCount] = useState(0);
   const [showSqlDialog, setShowSqlDialog] = useState(false);
+  const [syncSchemaError, setSyncSchemaError] = useState('');
 
   const [isFetchingGgSheet, setIsFetchingGgSheet] = useState(false);
   const [bulkUploadProgress, setBulkUploadProgress] = useState<{
@@ -616,6 +619,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
     setSyncProgress(0);
 
     try {
+      await preflightTimesheetSync(['roster_cham_cong']);
       const dataToSync = (computedData.processedRosterData && computedData.processedRosterData.length > 0) 
         ? computedData.processedRosterData 
         : rosterData;
@@ -649,7 +653,8 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       // Detailed alert as requested for debugging RLS and column issues
       alert('Lỗi Supabase: ' + errMsg);
       toast.error(`Đồng bộ thất bại: ${errMsg}`);
-      if (errMsg.includes("Bảng 'roster_cham_cong' chưa tồn tại") || errMsg.includes("Thiếu cột 'charge_to_center_mkt'")) {
+      if (err instanceof SupabaseSchemaError) {
+        setSyncSchemaError(err.message);
         setShowSqlDialog(true);
       }
     } finally {
@@ -1374,7 +1379,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
             <DialogHeader>
               <DialogTitle className="text-2xl font-black uppercase tracking-wider">Thiết lập Bảng Supabase</DialogTitle>
               <DialogDescription className="text-primary-foreground/80 font-medium">
-                Bảng 'roster_cham_cong' chưa tồn tại hoặc thiếu cột dữ liệu. Vui lòng copy script bên dưới và chạy trong SQL Editor của Supabase để cập nhật cấu trúc bảng.
+                {syncSchemaError || 'Cấu trúc dữ liệu Supabase cần cập nhật.'} Chạy script trong đúng dự án Supabase, sau đó thử đồng bộ lại.
               </DialogDescription>
             </DialogHeader>
           </div>
