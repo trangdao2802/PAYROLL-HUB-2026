@@ -54,11 +54,14 @@ test('nhan_vien sync preserves an existing value when Transaction leaves that ce
   ]);
 
   assert.deepEqual(result, {synced: 2, inserted: 1, updated: 1, skipped: 0, skippedDocumentIds: []});
-  const upsert = calls.find(call => call[0] === 'upsert');
-  assert.ok(upsert);
-  assert.deepEqual(upsert[1], [
+  const upserts = calls.filter(call => call[0] === 'upsert');
+  assert.equal(upserts.length, 2);
+  assert.deepEqual(upserts[0][1], [
     {id: 'employee-1', ma_nv: '0007', ho_ten: 'New Name', bank_number_acc: '009999'},
+  ]);
+  assert.deepEqual(upserts[1][1], [
     {ma_nv: '0009', ho_ten: 'New Employee', bank_number_acc: '001111'},
   ]);
-  assert.deepEqual(upsert[2], {onConflict: 'ma_nv'});
+  assert.deepEqual(upserts[0][2], {onConflict: 'ma_nv'});
+  assert.deepEqual(upserts[1][2], {onConflict: 'ma_nv'});
 });

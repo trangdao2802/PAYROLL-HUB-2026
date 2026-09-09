@@ -118,23 +118,27 @@ export async function syncTransactionEmployeesToSupabase(
     }
   }
 
-  const payload = records.map(record => {
+  // Keep inserts and updates in separate requests. PostgREST builds one
+  // column list for each bulk upsert; mixing rows with an existing `id` and
+  // new rows without one can turn the missing id into explicit null.
+  const updatePayload = records.flatMap(record => {
     const prior = existing.get(employeeKey(record.ma_nv));
-    return prior
-      ? {
-          id: prior.id,
-          ma_nv: prior.ma_nv,
-          ho_ten: record.ho_ten || text(prior.ho_ten),
-          bank_number_acc: record.bank_number_acc || text(prior.bank_number_acc),
-        }
-      : record;
+    return prior ? [{
+      id: prior.id,
+      ma_nv: prior.ma_nv,
+      ho_ten: record.ho_ten || text(prior.ho_ten),
+      bank_number_acc: record.bank_number_acc || text(prior.bank_number_acc),
+    }] : [];
   });
+  const insertPayload = records.filter(record => !existing.has(employeeKey(record.ma_nv)));
 
-  for (let offset = 0; offset < payload.length; offset += 100) {
-    const {error} = await client
-      .from('nhan_vien')
-      .upsert(payload.slice(offset, offset + 100), {onConflict: 'ma_nv'});
-    if (error) throw syncError('ghi', error);
+  for (const payload of [updatePayload, insertPayload]) {
+    for (let offset = 0; offset < payload.length; offset += 100) {
+      const {error} = await client
+        .from('nhan_vien')
+        .upsert(payload.slice(offset, offset + 100), {onConflict: 'ma_nv'});
+      if (error) throw syncError('ghi', error);
+    }
   }
 
   const updated = records.filter(record => existing.has(employeeKey(record.ma_nv))).length;
