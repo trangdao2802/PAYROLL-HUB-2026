@@ -173,6 +173,67 @@ test("unique ID repairs wrong common fields in Deductions", () => {
   assert.equal(result.correctedCells, 2);
 });
 
+test("Transaction sync copies ID, name, and bank account to both target tables", () => {
+  const grossRows = [
+    {
+      "Tháng báo cáo": month,
+      "ID Number": "OLD-ID-A",
+      "Full name": "NGUYEN VAN A",
+      "Bank Account Number": "ACC-A",
+      "TOTAL PAYMENT": 100_000,
+    },
+  ];
+  const deductionRows = [
+    {
+      "Tháng báo cáo": month,
+      "ID Number": "ID-B",
+      "Full name": "OLD NAME B",
+      "Bank Account Number": "",
+      "TOTAL PAYMENT": -50_000,
+      "Nghiệp vụ": "HOLD",
+    },
+  ];
+  const transactionRows = [
+    {
+      id: "tx-a",
+      "Tháng báo cáo": month,
+      "Payment Serial Number": 1,
+      "Document ID": "ID-A",
+      "Beneficiary Name": "NGUYEN VAN A",
+      "Beneficiary Account No.": "ACC-A",
+      "Payment Amount": 100_000,
+    },
+    {
+      id: "tx-b",
+      "Tháng báo cáo": month,
+      "Payment Serial Number": 2,
+      "Document ID": "ID-B",
+      "Beneficiary Name": "TRAN THI B",
+      "Beneficiary Account No.": "ACC-B",
+      "Payment Amount": 50_000,
+    },
+  ];
+
+  const result = applyTransactionReferenceSync({
+    grossRows,
+    deductionRows,
+    transactionRows,
+    // The Transaction table is authoritative for this direction of sync.
+    rawTimesheetRows: [],
+    reportMonth: month,
+  });
+
+  assert.equal(result.grossRows[0]["ID Number"], "ID-A");
+  assert.equal(result.deductionRows[0]["Full name"], "TRAN THI B");
+  assert.equal(
+    result.deductionRows[0]["Bank Account Number"],
+    "ACC-B",
+  );
+  assert.equal(result.correctedCells, 3);
+  assert.equal(result.transactionCorrectedCells, 0);
+  assert.deepEqual(result.transactionRows, transactionRows);
+});
+
 test("one click resolves duplicate Transaction identity from RAWDATA_TIMESHEET", () => {
   const transactionRows = [
     {
@@ -302,6 +363,17 @@ test("bulk sync is available in Deductions and persists immediately", () => {
   assert.match(reconcile, /reconciliationAudit\.transactionAuditList\.filter/);
   assert.match(reconcile, /rawTimesheetRows/);
   assert.match(context, /persistImmediately \? 0 : 3000/);
+});
+
+test("Transaction table exposes authoritative identity sync action", () => {
+  const bulkPayment = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(bulkPayment, /handleSyncTransactionFieldsToTables/);
+  assert.match(bulkPayment, /Đồng bộ Tên · STK · ID/);
+  assert.match(bulkPayment, /rawTimesheetRows: \[\]/);
 });
 
 test("corrected cells expose audit marker and two-way Transaction navigation", () => {

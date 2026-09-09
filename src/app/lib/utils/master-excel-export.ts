@@ -19,6 +19,7 @@ import { parseMoneyToNumber, removeVietnameseTones } from "./data-utils";
 import { hasRequiredDeductionsFields } from "./deductions-row-validation";
 import {
   BANK_TRANSACTION_EXPORT_HEADERS,
+  prepareTransactionBankExportRows,
   type WorkbookExportDefinition,
 } from "./excel-export";
 import { buildPivotFromAppData, getPivotSourceLabels } from "./pivot-utils";
@@ -500,6 +501,7 @@ export function createMasterExportDefinition(
   const transactionRows = rawTransactions.map(
     withCanonicalTransactionDocumentId,
   );
+  const transactionExportRows = prepareTransactionBankExportRows(transactionRows);
   const reconciliation = buildReconciliationRows(
     grossRows,
     deductionRows,
@@ -593,7 +595,7 @@ export function createMasterExportDefinition(
                   label: key,
                   type: key === "Payment Amount" ? "currency" : "text",
                 })),
-              rows: transactionRows,
+              rows: transactionExportRows,
               cards: [
                 { label: "Reporting Month", value: reportingMonth },
                 { label: "Transactions", value: transactionRows.length },

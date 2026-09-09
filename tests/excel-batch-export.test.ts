@@ -252,7 +252,8 @@ test("Master batch export covers all four pages and every permanent child table"
   assert.equal(deductions?.table?.rows.length, 1);
 
   const transaction = masterTables.find((node) => node.title === "Transaction");
-  assert.equal(transaction?.table?.rows[0]?.["Document ID"], "001");
+  assert.equal(transaction?.table?.rows[0]?.["Document ID"], "");
+  assert.equal(appData.BankExport.data[0]["Document ID"], "001");
 
   const reconciliation = masterTables.find(
     (node) => node.title === "Reconciliation Details",
@@ -328,6 +329,10 @@ test("Transaction shows Document ID on the web and both bank exports blank it", 
   assert.match(transactionPage, /label: header/);
   assert.doesNotMatch(transactionPage, /label: isDocumentIdCol \? "ID NUMBER" : header/);
   assert.doesNotMatch(transactionPage, /_virtual_docId/);
-  assert.match(bulkPaymentLogic, /prepareTransactionBankExportRows/);
-  assert.match(masterPage, /prepareTransactionBankExportRows/);
+  assert.match(transactionPage, /downloadTransactionBankExport/);
+  assert.doesNotMatch(transactionPage, /downloadTableExcel\(["']bulk_payment["']\)/);
+  assert.doesNotMatch(bulkPaymentLogic, /prepareTransactionBankExportRows/);
+  assert.match(bulkPaymentLogic, /downloadTransactionBankExport/);
+  assert.match(masterPage, /downloadTransactionBankExport/);
+  assert.doesNotMatch(masterPage, /prepareTransactionBankExportRows/);
 });

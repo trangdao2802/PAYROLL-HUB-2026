@@ -77,9 +77,8 @@ import { Table2 } from "lucide-react";
 import { useUiSettings, UI_SETTINGS_KEY } from "../../lib/ui-settings";
 import * as localforage from "localforage";
 import {
-  BANK_TRANSACTION_EXPORT_HEADERS,
   downloadHierarchicalWorkbook,
-  prepareTransactionBankExportRows,
+  downloadTransactionBankExport,
 } from "../../lib/utils/excel-export";
 import { createMasterExportDefinition } from "../../lib/utils/master-excel-export";
 import { TransactionReferenceCell } from "../../components/TransactionReferenceCell";
@@ -864,22 +863,14 @@ export function MasterAE() {
   ]);
 
   const handleExportExcel = useCallback(() => {
-    if (downloadTableExcel(activeTab === "Hold_AE" ? "master_ae_Hold_AE" : `master-ae-${activeTab}`)) return;
-    if (currentData.data.length === 0) return;
-
     if (activeTab === "BulkPayment") {
-      const exportRows = prepareTransactionBankExportRows(appData.BankExport.data);
-      const ws = XLSX.utils.json_to_sheet(exportRows, {
-        header: [...BANK_TRANSACTION_EXPORT_HEADERS],
-      });
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Bank Export");
-      XLSX.writeFile(
-        wb,
-        `Bank_Export_${new Date().toISOString().split("T")[0]}.xlsx`,
-      );
+      if (appData.BankExport.data.length === 0) return;
+      downloadTransactionBankExport(appData.BankExport.data);
       return;
     }
+
+    if (downloadTableExcel(activeTab === "Hold_AE" ? "master_ae_Hold_AE" : `master-ae-${activeTab}`)) return;
+    if (currentData.data.length === 0) return;
 
     const ws = XLSX.utils.json_to_sheet(prepareDataForExport(currentData.data));
     const wb = XLSX.utils.book_new();

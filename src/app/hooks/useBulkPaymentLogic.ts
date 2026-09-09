@@ -9,7 +9,6 @@ import {
   removeVietnameseTones,
   generateUUID,
 } from "../lib/utils/data-utils";
-import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   commitTransactionEdits,
@@ -24,8 +23,7 @@ import {
 } from "../lib/utils/transaction-draft";
 import { calculateReconciliationTotals } from "../lib/utils/reconciliation-sync";
 import {
-  BANK_TRANSACTION_EXPORT_HEADERS,
-  prepareTransactionBankExportRows,
+  downloadTransactionBankExport,
 } from "../lib/utils/excel-export";
 
 // ==========================================
@@ -1247,16 +1245,7 @@ export function useBulkPaymentLogic() {
 
     // ID Number/Document ID remains available in the Transaction UI for
     // reconciliation, but the bank import form requires that column blank.
-    const exportRows = prepareTransactionBankExportRows(appData.BankExport.data);
-    const ws = XLSX.utils.json_to_sheet(exportRows, {
-      header: [...BANK_TRANSACTION_EXPORT_HEADERS],
-    });
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Bank Export");
-    XLSX.writeFile(
-      wb,
-      `Bank_Export_${new Date().toISOString().split("T")[0]}.xlsx`,
-    );
+    downloadTransactionBankExport(appData.BankExport.data);
   }, [appData.BankExport.data]);
 
   // 8. DATA TABLE ROW & CELL EDIT HANDLERS

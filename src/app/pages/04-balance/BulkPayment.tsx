@@ -1,9 +1,8 @@
 import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { TransactionHistoryPanel } from "./components/TransactionHistoryPanel";
-import { FinancialReconcileHeader } from "./components/FinancialReconcileHeader";
-import { financialColumnLayout, financialSharedValues } from "../../lib/utils/reconcile-column-layout";
-import { downloadTableExcel, registerTableExport } from "../../lib/utils/table-excel";
+import { registerTableExport } from "../../lib/utils/table-excel";
+import { downloadTransactionBankExport } from "../../lib/utils/excel-export";
 import {
   canonicalTransactionHeaders,
   withCanonicalTransactionDocumentId,
@@ -120,6 +119,7 @@ import {
   type TransactionReferenceCorrection,
   type TransactionRawTimesheetCorrection,
 } from "../../lib/utils/transaction-reference-sync";
+import { protectSavedTransactionIdentity } from "../../lib/utils/transaction-saved-fields";
 import { motion, AnimatePresence } from "motion/react";
 import {
   DropdownMenu,
@@ -204,6 +204,22 @@ function readTransactionReferenceReturn(): TransactionReferenceReturnContext | n
     return null;
   }
 }
+
+// Reconcile exposes only comparison and action columns. The internal
+// sheet1Amount and holdAmount fields remain available to calculations, export,
+// and sync logic but are intentionally excluded from display/column selection.
+const RECONCILE_DISPLAY_COLUMN_KEYS = [
+  "serialNo",
+  "docId",
+  "name",
+  "accountNo",
+  "benefitsAccountNo",
+  "actualAmount",
+  "expectedAmount",
+  "variance",
+  "processSync",
+  "problems",
+] as const;
 
 const isIdColumnKey = (k: string): boolean => {
   if (!k) return false;
@@ -365,7 +381,6 @@ export function BulkPayment({
   const [reconcileFilterStatus, setReconcileFilterStatus] = useState<
     "ALL" | "MATCHED" | "VARIANCE" | "MISSING_INFO" | "DUPLICATE" | ""
   >("");
-  const financialHeaderId = React.useId();
   const [historyHasExceptions, setHistoryHasExceptions] = useState(false);
   const [viewingHistorySource, setViewingHistorySource] = useState(false);
   const handleHistoryReportStateChange = useCallback((hasExceptions: boolean, viewingSource: boolean) => {
@@ -1817,7 +1832,6 @@ export function BulkPayment({
     reconcileSearchQuery,
   ]);
 
-  const financialLayout = useMemo(() => financialColumnLayout(filteredTransactionAudits), [filteredTransactionAudits]);
   const totalItems = filteredTransactionAudits.length;
   const itemsPerPage = reconcileRowsPerPage === "all" ? totalItems : reconcileRowsPerPage;
   const totalPages = itemsPerPage > 0 ? Math.ceil(totalItems / itemsPerPage) : 1;
@@ -1829,45 +1843,57 @@ export function BulkPayment({
     return filteredTransactionAudits.slice(start, start + itemsPerPage);
   }, [filteredTransactionAudits, safePage, itemsPerPage, reconcileRowsPerPage]);
 
-  const handleAutoFillMissingAccountBulk = useCallback(() => {
-    const itemsToSync = reconciliationAudit.transactionAuditList.filter(
-      (item) =>
-        item.referenceTransactionKey &&
-        ((item.referenceCorrections?.length || 0) > 0 ||
-          (item.referenceTransactionCorrections?.length || 0) > 0),
-    );
-
-    if (itemsToSync.length === 0) {
-      toast.info("Không còn dữ liệu nào cần đồng bộ trong kỳ hiện tại.");
-      return;
-    }
+  const handleSyncTransactionFieldsToTables = useCallback(() => {
+    // Transaction is the authoritative source for this action. Do not pass
+    // RAWDATA_TIMESHEET here: that source is only used by the row-level
+    // Reconcile repair flow and could otherwise overwrite a saved Transaction
+    // edit before copying it to Gross Pay/Deductions.
+    const visibleTransactionRows = bankExportData || [];
 
     updateAppData((prev) => {
-      const transactionRows =
-        prev.BankExport?.data?.length > 0
-          ? prev.BankExport.data
+      const savedTransactionRows = prev.BankExport?.data || [];
+      const useBankExport =
+        visibleTransactionRows.length > 0 || savedTransactionRows.length > 0;
+      const transactionRows = visibleTransactionRows.length > 0
+        ? visibleTransactionRows
+        : useBankExport
+          ? savedTransactionRows
           : prev.Bank_North_AE?.data || [];
+      const transactionDraftNeedsSaving =
+        useBankExport && transactionRows !== savedTransactionRows;
+      const transactionRowsForSync = transactionDraftNeedsSaving
+        ? transactionRows.map(protectSavedTransactionIdentity)
+        : transactionRows;
+
+      if (transactionRowsForSync.length === 0) {
+        toast.info("Chưa có dữ liệu Transaction để đồng bộ.");
+        return prev;
+      }
+
       const result = applyTransactionReferenceSync({
         grossRows: prev.Sheet1_AE?.data || [],
         deductionRows: prev.Hold_AE?.data || [],
-        transactionRows,
-        rawTimesheetRows: [
-          ...(prev.Timesheet_Roster || []),
-          ...(prev.Q_Staff || []),
-        ],
+        transactionRows: transactionRowsForSync,
+        // This button intentionally copies FROM Transaction TO the other
+        // tables. It must not repair Transaction from another source.
+        rawTimesheetRows: [],
         reportMonth: prev.globalMonth,
-        transactionKeys: itemsToSync.map(
-          (item) => item.referenceTransactionKey,
-        ),
       });
 
-      if (result.correctedCells === 0) {
-        toast.info("Các trường tham chiếu hiện tại đã khớp Transaction.");
+      if (result.correctedCells === 0 && !transactionDraftNeedsSaving) {
+        toast.info(
+          "Tên, STK và ID Number ở Gross Pay/Deductions đã khớp Transaction.",
+        );
         return prev;
       }
-      toast.success(
-        `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
-      );
+
+      if (result.correctedCells > 0) {
+        toast.success(
+          `Đã đồng bộ Tên, STK và ID Number: ${result.correctedCells} ô trên ${result.correctedRows} dòng.`,
+        );
+      } else {
+        toast.success("Đã lưu Transaction trước khi đồng bộ.");
+      }
 
       const next = {
         ...prev,
@@ -1875,7 +1901,7 @@ export function BulkPayment({
         Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
         TransactionActivity: markTransactionSaved(prev),
       };
-      return prev.BankExport?.data?.length > 0
+      return useBankExport
         ? {
             ...next,
             BankExport: { ...prev.BankExport, data: result.transactionRows },
@@ -1888,7 +1914,7 @@ export function BulkPayment({
             },
           };
     }, true, true);
-  }, [reconciliationAudit.transactionAuditList, updateAppData]);
+  }, [bankExportData, updateAppData]);
 
   const reconciliationExportRows = useMemo(() => filteredTransactionAudits.map(t => ({
       "No.": t.id.startsWith("unmatched-") ? "DISC" : t.serialNo,
@@ -3349,7 +3375,7 @@ export function BulkPayment({
                   <span>Cài đặt Giao diện</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => chooseExcelExport(() => { if (rightPanelTab === "table") downloadTableExcel("bulk_payment"); else handleExportReconciliationExcel(); })}
+                  onClick={() => chooseExcelExport(() => { if (rightPanelTab === "table") downloadTransactionBankExport(displayBankExportData); else handleExportReconciliationExcel(); })}
                   className="text-slate-700"
                 >
                   <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-700" />
@@ -3394,11 +3420,12 @@ export function BulkPayment({
                       Thao tác dữ liệu
                     </DropdownMenuLabel>
                     <DropdownMenuItem
-                      onClick={handleAutoFillMissingAccountBulk}
+                      onClick={handleSyncTransactionFieldsToTables}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-amber-50 text-slate-700 hover:text-amber-800 font-bold text-xs"
+                      title="Lấy Tên, STK và ID Number từ Transaction để cập nhật Gross Pay và Deductions trong tháng đang chọn"
                     >
                       <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span>Đồng bộ toàn bộ</span>
+                      <span>Đồng bộ Tên · STK · ID</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-2 py-1">
@@ -3406,7 +3433,7 @@ export function BulkPayment({
                     </DropdownMenuLabel>
                     <DropdownMenuItem
                       onClick={() => {
-                        chooseExcelExport(() => downloadTableExcel("bulk_payment"));
+                        chooseExcelExport(() => downloadTransactionBankExport(displayBankExportData));
                       }}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold text-xs"
                     >
@@ -3440,6 +3467,7 @@ export function BulkPayment({
           />
         </div>
         {/* Dynamic Display based on empty status & current selected tab */}
+        {historyHasExceptions && !viewingHistorySource && reconciliationAudit.matchedCount > 0 && <p className="px-3 py-1 text-[10px] text-muted-foreground">Đã ẩn {reconciliationAudit.matchedCount} dòng đối chiếu tiền khớp để tập trung kiểm tra STK và ID.</p>}
         {viewingHistorySource ? null : displayBankExportData.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-primary/10 bg-slate-50/20 p-8 select-none">
             <div className="max-w-xl w-full flex flex-col items-center text-center">
@@ -3632,16 +3660,91 @@ export function BulkPayment({
                     style={{ borderRadius: "0px" }}
                   >
                     <table aria-label="Đối chiếu tiền Reconcile" className="w-full min-w-max text-left border-separate border-spacing-0 text-[11px] font-sans">
-                      <colgroup span={3} />
-                      <colgroup span={financialLayout.splitAccount ? 2 : 1} />
-                      <colgroup span={financialLayout.splitAmount ? 2 : 1} />
-                      <colgroup span={3} />
-                      <FinancialReconcileHeader id={financialHeaderId} splitAccount={financialLayout.splitAccount} splitAmount={financialLayout.splitAmount} />
+                      <thead 
+                        className="sticky top-0 text-slate-800 z-30 shadow-sm"
+                        style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                      >
+                        <tr>
+                          <th
+                            className="group relative px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] w-12 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal cursor-pointer select-none"
+                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            <div className="inline-flex items-center justify-center gap-1">
+                              <span>No.</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black/10 rounded text-slate-700 cursor-pointer shrink-0"
+                                title="Tự động căn chỉnh độ rộng cột"
+                                aria-label="Tự động căn chỉnh độ rộng cột"
+                              >
+                                <Maximize2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </th>
+                          <th
+                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            ID NUMBER
+                          </th>
+                          <th
+                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            FULL NAME
+                          </th>
+                          <th
+                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            Bank Acc No. from AE
+                          </th>
+                          <th
+                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                             Bank Acc No. from ACC
+                          </th>
+                          <th
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            TOTAL BANK AE
+                          </th>
+                          <th
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            TOTAL BANK ACC
+                          </th>
+                          <th
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            Diff
+                          </th>
+                          <th
+                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            Process Sync
+                          </th>
+                          <th
+                            className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-b border-[var(--table-border-color,#E7E5E4)] align-middle whitespace-normal"
+                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                          >
+                            Problems
+                          </th>
+                        </tr>
+                      </thead>
                       <tbody>
                         {paginatedTransactionAudits.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={financialLayout.count}
+                              colSpan={RECONCILE_DISPLAY_COLUMN_KEYS.length}
                               className="p-8 text-center text-slate-400 italic border-b border-slate-200"
                             >
                               Không tìm thấy giao dịch nào phù hợp với điều kiện
@@ -3659,19 +3762,6 @@ export function BulkPayment({
                                   0) > 0);
                             const totalTargetBankAcc =
                               item.sheet1Amount + item.holdAmount;
-                            const shared = financialSharedValues(item);
-                            const openAccSource = () => {
-                              if (!onTabChange) return;
-                              const targetTab = item.targetTabForAccLink;
-                              const targetSearch = item.docId || item.grossPlusBenefitsId || "";
-                              localStorage.setItem("bulk_payment_right_tab", "reconcile");
-                              localStorage.setItem("master_ae_search", targetSearch);
-                              onTabChange(targetTab);
-                              window.dispatchEvent(new CustomEvent("master-ae-filter", {
-                                detail: {search: targetSearch, from: "BulkPayment"},
-                              }));
-                              toast.info(`Đã chuyển tới bảng ${targetTab === "Sheet1_AE" ? "Gross Pay" : "HOLD AE"} và lọc ID NUMBER: ${targetSearch}`);
-                            };
 
                             return (
                               <tr
@@ -3737,9 +3827,6 @@ export function BulkPayment({
                                     : "-"}
                                 </td>
                                 <td
-                                  colSpan={financialLayout.splitAccount && shared.account ? 2 : 1}
-                                  headers={`${financialHeaderId}-account${financialLayout.splitAccount ? ` ${financialHeaderId}-account-ae${shared.account ? ` ${financialHeaderId}-account-acc` : ''}` : ''}`}
-                                  data-comparison={shared.account ? 'shared' : 'different'}
                                   className={`group/link p-2.5 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${!isUnmatched ? "cursor-pointer" : ""}`}
                                   title={
                                     !isUnmatched
@@ -3769,44 +3856,67 @@ export function BulkPayment({
                                       <ExternalLink className="w-3 h-3 opacity-20 transition-opacity duration-200 group-hover/link:opacity-75" />
                                     )}
                                   </div>
-                                  {shared.account && onTabChange && <button type="button" className="mt-1 rounded-full border border-primary/20 px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-primary/10 active:scale-[0.98]" title="Mở STK chung tại bảng ACC" onClick={event => {event.stopPropagation(); openAccSource();}}>ACC ↗</button>}
                                   {item.bankName && item.bankName !== "N/A" && (
                                     <div className="text-[10px] text-slate-400 font-medium truncate max-w-[150px]">
                                       {item.bankName}
                                     </div>
                                   )}
                                 </td>
-                                {!shared.account && (
                                 <td
-                                  headers={`${financialHeaderId}-account ${financialHeaderId}-account-acc`}
-                                  data-comparison="different"
                                   className="group/link p-2.5 tabular-nums border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] cursor-pointer"
                                   title="Click để chuyển tới bảng nguồn Gross Pay/Hold AE"
-                                  onClick={openAccSource}
+                                  onClick={() => {
+                                    if (onTabChange) {
+                                      const targetTab =
+                                        item.targetTabForAccLink;
+                                      localStorage.setItem(
+                                        "bulk_payment_right_tab",
+                                        "reconcile",
+                                      );
+                                      const targetSearch =
+                                        item.docId ||
+                                        item.grossPlusBenefitsId ||
+                                        "";
+                                      localStorage.setItem(
+                                        "master_ae_search",
+                                        targetSearch,
+                                      );
+                                      onTabChange(targetTab);
+                                      window.dispatchEvent(
+                                        new CustomEvent("master-ae-filter", {
+                                          detail: {
+                                            search: targetSearch,
+                                            from: "BulkPayment",
+                                          },
+                                        }),
+                                      );
+                                      toast.info(
+                                        `Đã chuyển tới bảng ${targetTab === "Sheet1_AE" ? "Gross Pay" : "HOLD AE"} và lọc ID NUMBER: ${targetSearch}`,
+                                      );
+                                    }
+                                  }}
                                 >
                                   <div className="tabular-nums font-semibold text-sky-600 flex items-center gap-1">
                                     <span>
                                       {item.benefitsAccountNo ||
+                                        item.accountNo ||
                                         "⚠️ Chưa có STK"}
                                     </span>
                                     <ExternalLink className="w-3 h-3 opacity-20 transition-opacity duration-200 group-hover/link:opacity-75" />
                                   </div>
                                 </td>
-                                )}
-                                <td colSpan={financialLayout.splitAmount && shared.amount ? 2 : 1} headers={`${financialHeaderId}-amount${financialLayout.splitAmount ? ` ${financialHeaderId}-amount-ae${shared.amount ? ` ${financialHeaderId}-amount-acc` : ''}` : ''}`} data-comparison={shared.amount ? 'shared' : 'different'} className="p-2.5 text-right tabular-nums font-bold text-emerald-700 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))]">
+                                <td className="p-2.5 text-right tabular-nums font-bold text-emerald-700 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))]">
                                   {formatMoneyVND(item.actualAmount).replace(
                                     " ₫",
                                     "",
                                   )}
                                 </td>
-                                {!shared.amount && (
-                                <td headers={`${financialHeaderId}-amount ${financialHeaderId}-amount-acc`} data-comparison="different" className="p-2.5 text-right tabular-nums font-black text-slate-900 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-amber-50/40">
+                                <td className="p-2.5 text-right tabular-nums font-black text-slate-900 border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-amber-50/40">
                                   {formatMoneyVND(totalTargetBankAcc).replace(
                                     " ₫",
                                     "",
                                   )}
                                 </td>
-                                )}
                                 <td
                                   className={`p-2.5 text-right tabular-nums font-black border-b border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] ${
                                     Math.abs(item.variance) < 1
@@ -3884,19 +3994,19 @@ export function BulkPayment({
                       <tfoot>
                         <tr className="total-row">
                           {Array.from(
-                            { length: financialLayout.count },
+                            { length: RECONCILE_DISPLAY_COLUMN_KEYS.length },
                             (_, columnIndex) => (
                             <td
                               key={`reconcile-total-${columnIndex}`}
-                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${columnIndex === financialLayout.varianceIndex - 1 ? "text-right font-extrabold uppercase tracking-wider text-[12.5px] text-slate-800" : ""} ${columnIndex === financialLayout.varianceIndex ? "text-right tabular-nums font-black text-rose-600 text-[13px]" : ""}`}
+                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${columnIndex === 6 ? "text-right font-extrabold uppercase tracking-wider text-[12.5px] text-slate-800" : ""} ${columnIndex === 7 ? "text-right tabular-nums font-black text-rose-600 text-[13px]" : ""}`}
                               style={{
                                 backgroundColor:
                                   "var(--table-column-header-bg, #F4ECD8)",
                               }}
                             >
-                              {columnIndex === financialLayout.varianceIndex - 1
+                              {columnIndex === 6
                                 ? "TỔNG LỆCH:"
-                                : columnIndex === financialLayout.varianceIndex
+                                : columnIndex === 7
                                   ? formatMoneyVND(
                                       filteredTransactionAudits.reduce(
                                         (acc, item) => acc + item.variance,

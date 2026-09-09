@@ -471,6 +471,19 @@ export function prepareTransactionBankExportRows(
   });
 }
 
+export function downloadTransactionBankExport(
+  rows: Array<Record<string, unknown>>,
+  fileName = `Bank_Export_${new Date().toISOString().split("T")[0]}.xlsx`,
+): void {
+  const worksheet = XLSX.utils.json_to_sheet(
+    prepareTransactionBankExportRows(rows),
+    { header: [...BANK_TRANSACTION_EXPORT_HEADERS] },
+  );
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Export");
+  XLSX.writeFile(workbook, fileName);
+}
+
 export function buildHierarchicalWorkbook(
   definition: WorkbookExportDefinition,
 ): XLSX.WorkBook {
