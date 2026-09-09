@@ -55,6 +55,21 @@ export interface DocumentIdMajorityPlan {
   outliers: DocumentIdResolutionTarget[];
 }
 
+export interface DocumentIdResolutionOption {
+  key: string;
+  location: 'current' | 'history';
+  period: string;
+  versionId?: string;
+  documentId: string;
+  rowIndexes: number[];
+}
+
+export interface DocumentIdResolutionGroup {
+  currentPeriod: string;
+  options: DocumentIdResolutionOption[];
+  records: DocumentIdResolutionTarget[];
+}
+
 export type BankAccountResolutionOption = ResolutionSource;
 
 export interface ApplyTransactionHistoryResolutionOptions {
@@ -141,6 +156,68 @@ export function buildDocumentIdMajorityPlan(
     supportLabel: formatResolutionPeriods(supportingPeriods),
     outliers,
   };
+}
+
+/**
+ * Build an explicit source-month choice for an ID mismatch. Unlike the
+ * majority helper above, this keeps the decision in the user's hands when
+ * only two months exist or when the user has better source knowledge than a
+ * vote can provide.
+ */
+export function buildDocumentIdResolutionGroup(
+  comparison: ResolutionComparison,
+  currentPeriod: string,
+): DocumentIdResolutionGroup | null {
+  if (comparison.bankCheck?.blocksSync || comparison.sources.some(source => source.bankCheck?.blocksSync)) return null;
+
+  const records: DocumentIdResolutionTarget[] = [{
+    location: 'current',
+    period: normalizeResolutionPeriod(currentPeriod),
+    rowIndexes: comparison.currentRowIndexes?.length
+      ? comparison.currentRowIndexes
+      : [comparison.currentRowIndex],
+    fromDocumentId: comparison.currentDocumentIdVote || comparison.documentId,
+  }, ...comparison.sources.map(source => ({
+    location: 'history' as const,
+    period: normalizeResolutionPeriod(source.period),
+    versionId: source.versionId,
+    rowIndexes: source.rowIndexes,
+    fromDocumentId: source.documentId,
+  }))];
+
+  const options: DocumentIdResolutionOption[] = [];
+  const seen = new Set<string>();
+  const addOption = (record: DocumentIdResolutionTarget) => {
+    const documentId = singleDocumentId(record.fromDocumentId);
+    if (!documentId || !record.rowIndexes.length) return;
+    const key = `${record.location}\u0000${'versionId' in record ? record.versionId : 'current'}\u0000${documentId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    options.push({
+      key,
+      location: record.location,
+      period: record.period,
+      ...('versionId' in record ? {versionId: record.versionId} : {}),
+      documentId,
+      rowIndexes: record.rowIndexes,
+    });
+  };
+
+  records.forEach(addOption);
+  if (new Set(options.map(option => option.documentId)).size < 2) return null;
+  return {currentPeriod: normalizeResolutionPeriod(currentPeriod), options, records};
+}
+
+export function documentIdResolutionTargets(
+  group: DocumentIdResolutionGroup,
+  optionKey: string,
+): DocumentIdResolutionTarget[] {
+  const option = group.options.find(item => item.key === optionKey);
+  if (!option) return [];
+  return group.records.filter(record => (
+    singleDocumentId(record.fromDocumentId) !== option.documentId
+      && record.rowIndexes.length > 0
+  ));
 }
 
 function resolutionEntries(row: TransactionRow): TransactionHistoryResolutionEntry[] {

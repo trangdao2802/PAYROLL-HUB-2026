@@ -4,7 +4,9 @@ import {
   applyTransactionHistoryResolution,
   bankAccountResolutionOptions,
   buildDocumentIdMajorityPlan,
+  buildDocumentIdResolutionGroup,
   documentIdResolutionNote,
+  documentIdResolutionTargets,
   formatResolutionPeriods,
 } from '../src/app/lib/utils/transaction-history-resolution';
 
@@ -61,6 +63,23 @@ test('the current month can be identified as the outlier', () => {
   }]);
 });
 
+test('an ID mismatch exposes an explicit source-month choice and only the other months as targets', () => {
+  const group = buildDocumentIdResolutionGroup(comparison, '08.2026');
+  assert.ok(group);
+  assert.deepEqual(group.options.map(option => [option.period, option.documentId]), [
+    ['2026-08', '001'],
+    ['2026-01', '001'],
+    ['2026-02', '001'],
+    ['2026-03', '999'],
+  ]);
+  const selected = group.options.find(option => option.documentId === '999');
+  assert.ok(selected);
+  assert.deepEqual(
+    documentIdResolutionTargets(group, selected.key).map(target => [target.location, target.period]),
+    [['current', '2026-08'], ['history', '2026-01'], ['history', '2026-02']],
+  );
+});
+
 test('conflicting IDs inside the current month count as one outlier month', () => {
   const plan = buildDocumentIdMajorityPlan({
     ...comparison,
@@ -77,7 +96,7 @@ test('conflicting IDs inside the current month count as one outlier month', () =
 test('resolution changes only selected rows and records a display-only ID note', () => {
   const untouched = {'Document ID': 'KEEP'};
   const rows = [
-    {'Document ID': 'OLD', 'ID Number': 'OLD'},
+    {'Document ID': 'OLD', 'ID Number': 'OLD', 'Tháng báo cáo': '2026-01', 'Beneficiary Name': 'Employee', 'Beneficiary Account No.': '00123', Amount: 42},
     untouched,
   ];
   const resolved = applyTransactionHistoryResolution(rows, {
@@ -90,6 +109,10 @@ test('resolution changes only selected rows and records a display-only ID note',
 
   assert.equal(resolved[0]['Document ID'], 'NEW');
   assert.equal(resolved[0]['ID Number'], 'NEW');
+  assert.equal(resolved[0]['Tháng báo cáo'], '2026-01');
+  assert.equal(resolved[0]['Beneficiary Name'], 'Employee');
+  assert.equal(resolved[0]['Beneficiary Account No.'], '00123');
+  assert.equal(resolved[0].Amount, 42);
   assert.equal(documentIdResolutionNote(resolved[0]), '01, 02/26');
   assert.equal(resolved[1], untouched);
   assert.equal(resolved[0]['Document ID'].includes('!'), false);

@@ -608,10 +608,10 @@ export function TimesheetHub() {
         // Map Staff rows
         const mappedStaff = (dbStaff || []).map((row: any) => ({
           ...(row.raw_data || {}),
-          _rowId: row.unique_id,
-          employeeId: row.employee_id,
-          fullName: row.full_name,
-          bankAccountNumber: row.bank_account_number,
+          _rowId: row.ma_nv || row.employee_id || row.id,
+          employeeId: row.ma_nv || row.employee_id,
+          fullName: row.ho_ten || row.full_name,
+          bankAccountNumber: row.bank_number_acc || row.bank_account_number,
           salaryScale: row.salary_scale,
           business: row.business,
           center: row.center,
@@ -1602,10 +1602,10 @@ export function TimesheetHub() {
       // Map Staff rows
       const mappedStaff = (dbStaff || []).map((row: any) => ({
         ...(row.raw_data || {}),
-        _rowId: row.unique_id,
-        employeeId: row.employee_id,
-        fullName: row.full_name,
-        bankAccountNumber: row.bank_account_number,
+        _rowId: row.ma_nv || row.employee_id || row.id,
+        employeeId: row.ma_nv || row.employee_id,
+        fullName: row.ho_ten || row.full_name,
+        bankAccountNumber: row.bank_number_acc || row.bank_account_number,
         salaryScale: row.salary_scale,
         business: row.business,
         center: row.center,
