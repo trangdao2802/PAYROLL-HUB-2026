@@ -1,3 +1,4 @@
+import { hideInactivePastHold, isHoldDetail, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
 import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -1676,11 +1677,8 @@ export function HoldAddDashboard() {
 
     // CANCEL is a movement of one report period, not a carried balance item.
     // Snapshots from older periods may still be needed for HOLD opening balances,
-    // but their CANCEL rows must never reappear in the next sidebar period.
-    processedResult = finalRows.filter((row) => {
-      const isCancel = String(row.id).toLowerCase().includes("_cancel");
-      return !isCancel || isExactReportPeriod(row, currentPeriod);
-    });
+    // retain CANCEL history for carry calculation; grouped hides it from later views.
+    processedResult = finalRows;
 
     return processedResult.sort((a, b) => {
       const mA = a.reportMonth === currentPeriod ? 99999999 : getMonthNum(a.month);
@@ -1797,48 +1795,9 @@ export function HoldAddDashboard() {
 
       Object.keys(buMap).forEach((bu) => {
         const openingBalByMonth = buBalancesByMonth[currentPeriod]?.[bu]?.openBalByMonth || {};
-        const nextOpenBalByMonth: Record<string, number> = { ...openingBalByMonth };
-
-        const rowsForBu = currentRows.filter(r => r.bu === bu);
-
-        rowsForBu.forEach((r) => {
-          const isAdjustment = String(r.id).includes("_adjustment_");
-          const isHold = String(r.id).includes("_hold");
-          const isAdd = String(r.id).includes("_add");
-          const isCancel = String(r.id).includes("_cancel");
-          const dMonth = r.displayMonth || r.month;
-
-          if (isAdjustment) {
-            const amtToAdd = Math.abs(r.rawHold || 0);
-            const amtToSub = Math.abs(r.rawAdd || 0) + Math.abs(r.rawCancel || 0);
-            
-            if (!r._excludeFromTotals && amtToAdd > 0) {
-              nextOpenBalByMonth[dMonth] = (nextOpenBalByMonth[dMonth] || 0) + amtToAdd;
-            }
-            if (amtToSub > 0) {
-              const remaining = Math.max(0, (nextOpenBalByMonth[dMonth] || 0) - amtToSub);
-              if (remaining < 1) delete nextOpenBalByMonth[dMonth];
-              else nextOpenBalByMonth[dMonth] = remaining;
-            }
-          } else if (isHold) {
-            const amt = !r._excludeFromTotals ? r.chi + r.hold : 0;
-            if (amt > 0) {
-              nextOpenBalByMonth[dMonth] = (nextOpenBalByMonth[dMonth] || 0) + amt;
-            }
-          } else if (isAdd || isCancel) {
-            const releasedAmount = isCancel
-              ? Math.abs(r.rawCancel || r.cancel || r.chi || 0)
-              : Math.abs(r.rawAdd || r.add || r.thu || 0);
-            if (releasedAmount > 0) {
-              const remaining = Math.max(
-                0,
-                (nextOpenBalByMonth[dMonth] || 0) - releasedAmount,
-              );
-              if (remaining < 1) delete nextOpenBalByMonth[dMonth];
-              else nextOpenBalByMonth[dMonth] = remaining;
-            }
-          }
-        });
+        const nextOpenBalByMonth = nextTrialBalanceCarry(
+          openingBalByMonth, currentRows.filter(r => r.bu === bu), currentPeriod,
+        );
 
         const totalHoldToTransfer = Object.values(nextOpenBalByMonth).reduce((s, v) => s + v, 0);
 
@@ -1905,6 +1864,7 @@ export function HoldAddDashboard() {
   const grouped = useMemo(() => {
     const map = new Map<string, BuRow[]>();
     for (const row of data) {
+      if (String(row.id).includes("_cancel") && !isExactReportPeriod(row, currentPeriod)) continue;
       // Use reportMonth if set, otherwise use current period
       const rowReportMonth = row.reportMonth || currentPeriod;
       
@@ -1939,12 +1899,12 @@ export function HoldAddDashboard() {
       Record<string, { openBal: number; openBalByMonth: Record<string, number>; closeBal: number }>
     > = {};
 
-    const allMonths = [...grouped.keys()]
+    const allMonths = [...new Set(data.map(row => row.reportMonth || row.month))]
       .sort((a, b) => getMonthNum(a) - getMonthNum(b));
     
     allMonths.forEach((mk) => {
       balances[mk] = {};
-      const rows = grouped.get(mk) || [];
+      const rows = data.filter(row => (row.reportMonth || row.month) === mk);
       const uniqueBUsInGroup = Array.from(new Set(rows.map((e) => e.bu)));
       const sortedIdx = allMonths.indexOf(mk);
 
@@ -1956,7 +1916,7 @@ export function HoldAddDashboard() {
         let openBal = 0;
         let openBalByMonth: Record<string, number> = {};
 
-        if (savedVal !== 0) {
+        if (savedData) {
           openBal = Math.abs(savedVal);
           if (savedOpenBalByMonth) {
             openBalByMonth = { ...savedOpenBalByMonth };
@@ -1969,20 +1929,10 @@ export function HoldAddDashboard() {
           
           if (prevBalInfo) {
             openBalByMonth = { ...(prevBalInfo.openBalByMonth || {}) };
-            const prevRows = grouped.get(prevMk) || [];
+            const prevRows = data.filter(row => (row.reportMonth || row.month) === prevMk);
             const prevRowsForBu = prevRows.filter((r) => r.bu === bu);
             
-            prevRowsForBu.forEach((r) => {
-              const isHold = String(r.id).includes("_adjustment_") || String(r.id).includes("_hold");
-              const dMonth = r.displayMonth || r.month;
-
-              if (isHold) {
-                const amt = !r._excludeFromTotals ? r.chi + r.hold : 0;
-                if (amt > 0) {
-                  openBalByMonth[dMonth] = (openBalByMonth[dMonth] || 0) + amt;
-                }
-              }
-            });
+            openBalByMonth = nextTrialBalanceCarry(openBalByMonth, prevRowsForBu, prevMk);
 
             openBal = Object.values(openBalByMonth).reduce((s, v) => s + v, 0);
           }
@@ -2022,7 +1972,7 @@ export function HoldAddDashboard() {
     });
 
     return balances;
-  }, [grouped, appData.SavedBal_PayrollTrial, getMonthNum]);
+  }, [data, appData.SavedBal_PayrollTrial, getMonthNum]);
 
   const computedMonthTotals = useMemo(() => {
     const totals: Record<
@@ -2170,7 +2120,7 @@ export function HoldAddDashboard() {
       monthCloseBalances[mk] = monthCloseBalSum;
     });
 
-    const filtered = data.filter((r) => !r._excludeFromTotals);
+    const filtered = data.filter((r) => !r._excludeFromTotals && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)));
 
     let globalAdjustedChi = 0;
     filtered.forEach(r => {
@@ -2196,7 +2146,7 @@ export function HoldAddDashboard() {
       buCloseBalances,
       monthCloseBalances,
     };
-  }, [monthKeys, computedMonthTotals, data, grouped, buBalancesByMonth, getMonthNum]);
+  }, [monthKeys, computedMonthTotals, data, grouped, buBalancesByMonth, getMonthNum, currentPeriod]);
 
   const normalizeMonthLabel = useCallback(
     (value?: string) => {
@@ -2240,7 +2190,7 @@ export function HoldAddDashboard() {
   const cancelPillValue = trialBalanceHeaderTotals.cancel;
 
   const handleExportExcel = useCallback(() => {
-    const exportRows = (data || []).map((row: any, idx: number) => ({
+    const exportRows = (data || []).filter(row => !hideInactivePastHold(row, row.reportMonth || currentPeriod) && (!String(row.id).includes("_cancel") || isExactReportPeriod(row, currentPeriod))).map((row: any, idx: number) => ({
       "STT": idx + 1,
       "Tháng": row.month || "",
       "Business": row.bu || "",
@@ -2296,6 +2246,7 @@ export function HoldAddDashboard() {
     chiPhiLuongTaPillValue,
     countBusinesses,
     currentPeriodRows,
+    currentPeriod,
     currentPeriodVal,
     data,
     grandAddPillValue,
@@ -2660,9 +2611,9 @@ export function HoldAddDashboard() {
                           const uniqueBUs = Array.from(new Set(rows.map(r => r.bu)));
                           let globalRi = 0;
                           return uniqueBUs.flatMap((bu) => {
-                            const buRows = rows.filter(r => r.bu === bu);
+                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)));
                             
-                            let sumOpenBal = 0;
+                            const sumOpenBal = buBalancesByMonth[mk]?.[bu]?.openBal || 0;
                             let sumThu = 0;
                             let sumChi = 0;
                             let sumAdd = 0;
@@ -2671,7 +2622,7 @@ export function HoldAddDashboard() {
                             
                             const renderedBuRows = buRows.map((e, localRi) => {
                               const ri = globalRi++;
-                              const isFirstRowOfBuInMonth = localRi === 0;
+                              const isFirstRowOfBuInMonth = localRi === buRows.findIndex(r => !isHoldDetail(r));
                               const buBalInfo = buBalancesByMonth[mk]?.[e.bu];
                               let rowOpenBal = 0;
                               if (e._isOpeningHold || (e.openHold && e.openHold > 0)) {
@@ -2681,19 +2632,7 @@ export function HoldAddDashboard() {
                                   buBalInfo?.openBalByMonth?.[dMonth] ||
                                   0;
                               } else if (isFirstRowOfBuInMonth) {
-                                const totalOpenBal = buBalInfo?.openBal || 0;
-                                const holdRowsInMonth = rows.filter(
-                                  (r) => r.bu === e.bu && (r._isOpeningHold || (r.openHold && r.openHold > 0))
-                                );
-                                let allocated = 0;
-                                holdRowsInMonth.forEach((hr) => {
-                                  const hrMonth = hr.displayMonth || hr.month;
-                                  allocated += hr.openHold || buBalInfo?.openBalByMonth?.[hrMonth] || 0;
-                                });
-                                const unallocated = totalOpenBal - allocated;
-                                if (unallocated > 0) {
-                                  rowOpenBal = unallocated;
-                                }
+                                rowOpenBal = buBalInfo?.openBal || 0;
                               }
                               const displayedThu = e.thu;
                               const displayedChi = Math.abs(e.chi);
@@ -2711,7 +2650,6 @@ export function HoldAddDashboard() {
                                 !!e._dimmed && isPeriodSaved(e.month);
                               const displayedRCloseStr = rClose !== 0 ? fmt(rClose) : "0";
                               
-                              sumOpenBal += rowOpenBal;
                               sumThu += isRowDimmed ? 0 : displayedThu;
                               sumChi += isRowDimmed ? 0 : displayedChi;
                               sumAdd += isRowDimmed ? 0 : (e.add || 0);
@@ -3035,7 +2973,7 @@ export function HoldAddDashboard() {
             </Select>
           </div>
           <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 font-sans">
-            Tổng số: {monthKeys.length} kỳ ({currentPeriodRows.length} dòng dữ liệu)
+            Tổng số: {monthKeys.length} kỳ ({currentPeriodRows.filter(row => !hideInactivePastHold(row, currentPeriod)).length} dòng dữ liệu)
           </div>
       </div>
       <ConfirmDialog
