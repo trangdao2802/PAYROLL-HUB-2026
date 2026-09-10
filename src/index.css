@@ -184,6 +184,20 @@
   padding-inline-start: 0;
 }
 
+/* Keep table navigation outside the grid's layers and independent of saved
+   fixed-height DIV styles. Radix still positions/flips its body portal; only
+   the viewport may limit the menu, with scrolling on very short screens. */
+html body [data-slot="dropdown-menu-content"].table-switch-menu {
+  z-index: 99999 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: min(var(--radix-dropdown-menu-content-available-height, 100vh), calc(100vh - 16px)) !important;
+  max-height: min(var(--radix-dropdown-menu-content-available-height, 100dvh), calc(100dvh - 16px)) !important;
+  max-width: calc(100vw - 16px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
 /* The sculptural initial and the rest of each title share one text baseline,
    while any subtitle remains on its own line below. */
 :where(.unified-table-frame-header, .trial-balance-header)

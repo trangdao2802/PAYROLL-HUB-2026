@@ -3178,7 +3178,12 @@ export function BulkPayment({
                     </span>
                   </button>
                 </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1 z-50">
+              <DropdownMenuContent
+                align="start"
+                sideOffset={8}
+                collisionPadding={8}
+                className="table-switch-menu w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1"
+              >
                 <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   CHUYỂN BẢNG
                 </DropdownMenuLabel>
