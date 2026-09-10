@@ -27,6 +27,7 @@ import {
   resolveMktAndCenterL07, resolveSummerBonusCenterL07,
 } from "./center-utils";
 import { parseDurationToHours } from "../schemas/excel-schema";
+import { normalizeGrossPaySpecialCenter } from "./master-special-centers";
 
 function cleanIDNumber(val: any): string {
   return formatIdNumber(val);
@@ -618,6 +619,7 @@ export async function processMasterAEData(
                     "BU": business,
                     "Business": business,
                     "L07": l07,
+                    "_rawAE": centerVal,
                     "Sheet Source": sheetName,
                     "Note": `Summer Bonus - ${centerVal}`,
                     "TÊN FILE": item.name || "",
@@ -1308,7 +1310,8 @@ export async function processMasterAEData(
 
     const finalSheet1Data: any[] = [];
     const seenSheet1Keys = new Set();
-    sheet1Data.forEach((row) => {
+    sheet1Data.forEach((sourceRow) => {
+      const row = normalizeGrossPaySpecialCenter(sourceRow);
       // TẠI CỘT L07 SẼ CHUYỂN HẾT SỐ LIỆU TỪ CỘT OTHER VỀ CỘT CHARGE MKT LOCAL
       const l07Upper = String(row["L07"] || "").trim().toUpperCase();
       if (
@@ -1335,7 +1338,7 @@ export async function processMasterAEData(
       const rowMonth = normalizeMonth(row["Tháng báo cáo"] || row["_fileMonth"] || appData.globalMonth || "03.2026");
       row["Tháng báo cáo"] = rowMonth;
       const total = calcPayment;
-      const key = `${idNum}|${fname}|${l07}|${rowMonth}|${total}`;
+      const key = `${idNum}|${fname}|${l07}|${row.Business || row.BU || ""}|${rowMonth}|${total}`;
       if (!seenSheet1Keys.has(key)) {
         row.id = generateUUID();
         finalSheet1Data.push(row);
@@ -1619,7 +1622,7 @@ export async function processMasterAEData(
         const l07 = String(r["L07"] || "").trim().toUpperCase();
         const m = normalizeMonth(r["Tháng báo cáo"] || r["_fileMonth"] || currentMonth);
         const tp = Math.round(parseMoneyToNumber(r["TOTAL PAYMENT"] || 0));
-        return `${id}|${fname}|${l07}|${m}|${tp}`;
+        return `${id}|${fname}|${l07}|${r.Business || r.BU || ""}|${m}|${tp}`;
       };
 
       existingSheet1.forEach((row) => {
