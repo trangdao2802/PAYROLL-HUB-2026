@@ -140,7 +140,7 @@
   font-weight: 700 !important;
   letter-spacing: -0.025em;
   line-height: 1.35 !important;
-  padding-block: 0.12em 0.08em;
+  padding-block: 0;
   text-transform: lowercase !important;
   vertical-align: baseline;
   transform: translateY(2px);
@@ -2208,6 +2208,15 @@ header.table-header,
 .trial-balance-table td {
   border-right: 1px solid var(--table-grid-color, #e7dbdc) !important;
   border-bottom: 1px solid var(--table-grid-color, #e7dbdc) !important;
+}
+
+.trial-balance-table tr[data-trial-detail="true"] > td,
+.trial-balance-table tr[data-trial-detail="true"] > td span {
+  font-size: 10px !important;
+}
+
+.trial-balance-table tr[data-trial-detail="true"] > td .trial-opening-amount {
+  font-size: 11px !important;
 }
 
 .hold-dashboard-card {

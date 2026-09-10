@@ -1,4 +1,6 @@
-import { hideInactivePastHold, isHoldDetail, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
+import { autoApproveTrialBalanceRow } from "../../../lib/utils/trial-balance-approval";
+import { trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
+import { hideInactivePastHold, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
 import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -348,11 +350,6 @@ export function HoldAddDashboard() {
       "Tháng 2/2026",
     ]),
   );
-
-  // Confirmed tracking state (simulating 'Lệnh' user action)
-  const confirmedIds = useMemo(() => {
-    return new Set<string>(appData.ConfirmedIds_HoldAdd || []);
-  }, [appData.ConfirmedIds_HoldAdd]);
 
   const getSavedDataForPeriod = useCallback((map: Record<string, any> | undefined, month: string) => {
     if (!map || !month) return undefined;
@@ -1523,103 +1520,13 @@ export function HoldAddDashboard() {
       });
     });
 
-    const uniqueBUs = Array.from(new Set(baseRows.map((e) => e.bu)));
-    const uniqueMonths = Array.from(new Set(baseRows.map((e) => e.month))).sort(
-      (a, b) => getMonthNum(a) - getMonthNum(b),
-    );
-
-    // We process each month chronologically to compute carry-forward and confirmation logic
-    uniqueMonths.forEach((m) => {
-      uniqueBUs.forEach((bu) => {
-        // Find standard rows and hold/add/cancel rows in this month for this BU
-        const rowsInMonth = baseRows.filter(
-          (e) => e.month === m && e.bu === bu,
-        );
-
-        // Find specific adjustment rows
-        const adjustmentRows = rowsInMonth.filter((e) =>
-          String(e.id).includes("_adjustment_") ||
-          (e.rawAdd && e.rawAdd > 0) ||
-          (e.rawHold && e.rawHold > 0) ||
-          (e.rawCancel && e.rawCancel > 0)
-        );
-
-        adjustmentRows.forEach((row) => {
-          const totalArising = Math.abs(row.rawHold || 0) + Math.abs(row.rawAdd || 0) + Math.abs(row.rawCancel || 0);
-          if (totalArising > 0) {
-            row.openHold = Math.max(row.openHold || 0, totalArising);
-            row.rawOpenHold = row.openHold;
-          }
-
-          const isDefaultApproved = row.lenh === "OK" || row.isPaidStatus;
-          const isConf =
-            isPeriodSaved(row.month) ||
-            isPeriodSaved(currentPeriod) ||
-            (isDefaultApproved ? !confirmedIds.has(row.id) : confirmedIds.has(row.id));
-
-          if (isConf) {
-            // Khi ĐÃ DUYỆT (OK):
-            // Số ở cột Tạm tính nhảy sang cột Phát sinh trong kỳ
-            row.thu = Math.abs(row.rawAdd || 0);
-            row.chi = Math.abs(row.rawCancel || 0);
-            row.add = 0;
-            row.hold = 0;
-            row.cancel = 0;
-          } else {
-            // Khi CHƯA DUYỆT (Duyệt):
-            // Số ở cột Tạm tính giữ nguyên ở Tạm tính, chưa sang Phát sinh trong kỳ
-            row.thu = 0;
-            row.chi = 0;
-            row.add = Math.abs(row.rawAdd || 0);
-            row.hold = Math.abs(row.rawHoldPending || row.rawHold || 0);
-            row.cancel = Math.abs(row.rawCancel || 0);
-          }
-
-          if (row.month !== currentPeriod || getMonthNum(row.displayMonth || "") < getMonthNum(currentPeriod)) {
-            row._isPastHoldApprove = true;
-          }
-
-          if (row.lenh === "-" && !row.isPaidStatus && (row.rawAdd || 0) === 0 && (row.rawHold || 0) === 0 && (row.rawCancel || 0) === 0) {
-            row._excludeFromTotals = true;
-          }
-        });
-
-        const bonusRows = rowsInMonth.filter((e) =>
-          String(e.id).includes("_bonus"),
-        );
-        bonusRows.forEach((bonusRow) => {
-          const isOK = 
-            bonusRow.lenh === "OK" || 
-            bonusRow.isPaidStatus || 
-            isPeriodSaved(bonusRow.month) || 
-            isPeriodSaved(currentPeriod);
-          
-          const rawBonusVal = isNaN(bonusRow.rawBonus) ? 0 : bonusRow.rawBonus;
-
-          if (isOK) {
-            // After being moved to OK status, the amount jumps to the salary adjustment column (Thu/Ps trong kỳ)
-            bonusRow.add = 0;
-            bonusRow.hold = 0;
-            bonusRow.cancel = 0;
-            bonusRow.bonus = 0;
-            bonusRow.thu = Math.abs(rawBonusVal);
-            bonusRow.chi = 0;
-            if (bonusRow.month !== currentPeriod || getMonthNum(bonusRow.displayMonth || "") < getMonthNum(currentPeriod)) {
-              bonusRow._isPastHoldApprove = true;
-            }
-          } else {
-            // When in "Duyệt" status (or any non-OK status), the amount remains in the Tạm tính Bonus column
-            bonusRow.thu = 0;
-            bonusRow.chi = 0;
-            bonusRow.bonus = rawBonusVal;
-          }
-          
-          if (bonusRow.lenh === "-" && !bonusRow.isPaidStatus) {
-             bonusRow._excludeFromTotals = true;
-             bonusRow.bonus = 0;
-          }
-        });
-      });
+    // Preserve the opening detail allocation while approving all movements.
+    baseRows.forEach((row) => {
+      const totalArising = Math.abs(row.rawHold || 0) + Math.abs(row.rawAdd || 0) + Math.abs(row.rawCancel || 0);
+      if (totalArising > 0 && getMonthNum(row.displayMonth || row.month) < getMonthNum(row.reportMonth || row.month)) {
+        row.openHold = Math.max(row.openHold || 0, totalArising);
+        row.rawOpenHold = row.openHold;
+      }
     });
 
     let processedResult = [...baseRows, ...openingHoldRows, ...adjustmentRows].filter(r => {
@@ -1631,7 +1538,7 @@ export function HoldAddDashboard() {
       return true;
     });
 
-    // Snapshot substitution & Frozen approval logic
+    // Restore current monthly snapshots before applying automatic approval.
     const savedPeriods = appData.SavedPeriods_HoldAdd || {};
     const savedRowsMap = appData.SavedRows_HoldAdd || {};
     const savedRowsMeta = appData.SavedRows_HoldAdd_Meta || {};
@@ -1678,7 +1585,7 @@ export function HoldAddDashboard() {
     // CANCEL is a movement of one report period, not a carried balance item.
     // Snapshots from older periods may still be needed for HOLD opening balances,
     // retain CANCEL history for carry calculation; grouped hides it from later views.
-    processedResult = finalRows;
+    processedResult = finalRows.map(autoApproveTrialBalanceRow);
 
     return processedResult.sort((a, b) => {
       const mA = a.reportMonth === currentPeriod ? 99999999 : getMonthNum(a.month);
@@ -1709,35 +1616,20 @@ export function HoldAddDashboard() {
   }, [
     appData.Sheet1_AE?.data,
     appData.Hold_AE?.data,
-    appData.SavedBal_PayrollTrial,
+    appData.Bank_North_AE?.data,
     appData.SavedPeriods_HoldAdd,
     appData.SavedRows_HoldAdd,
     appData.SavedRows_HoldAdd_Meta,
     appData.TrialBalanceTransactionVersions,
     currentPeriod,
-    confirmedIds,
+    currentPeriodVal,
     currentPeriodNum,
     getMonthNum,
     extractMonth,
     getSavedDataForPeriod,
-    isPeriodSaved,
     currentPeriodMonthNum,
     currentPeriodYearNum,
   ]);
-
-  const toggleConfirm = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentSet = new Set<string>(appData.ConfirmedIds_HoldAdd || []);
-    if (currentSet.has(id)) {
-      currentSet.delete(id);
-    } else {
-      currentSet.add(id);
-    }
-    updateAppData((prevAppData: any) => ({
-      ...prevAppData,
-      ConfirmedIds_HoldAdd: Array.from(currentSet),
-    }));
-  };
 
   const handleSaveBalances = () => {
     updateAppData((prev: any) => {
@@ -1941,7 +1833,7 @@ export function HoldAddDashboard() {
         const rowsForBu = rows.filter((r) => r.bu === bu);
         rowsForBu.forEach((r) => {
           const isAddRow = ((r.rawAdd || 0) > 0 || (r.add || 0) > 0) && (r.rawHold || 0) === 0 && (r.rawCancel || 0) === 0 && !r._isOpeningHold;
-          if (!isAddRow && r.openHold && r.openHold > 0) {
+          if (!isAddRow && r.openHold && r.openHold > 0 && getMonthNum(r.displayMonth || r.month) < getMonthNum(mk)) {
             const dMonth = r.displayMonth || r.month;
             openBalByMonth[dMonth] = Math.max(openBalByMonth[dMonth] || 0, r.openHold);
           }
@@ -1973,6 +1865,24 @@ export function HoldAddDashboard() {
 
     return balances;
   }, [data, appData.SavedBal_PayrollTrial, getMonthNum]);
+
+  // The displayed remainder uses exactly the carry calculation used by Save.
+  const remainingHoldByMonth = useMemo(() => {
+    const result: Record<string, { total: number; byBu: Record<string, number> }> = {};
+    for (const mk of monthKeys) {
+      const byBu: Record<string, number> = {};
+      for (const [bu, balance] of Object.entries(buBalancesByMonth[mk] || {})) {
+        const carry = nextTrialBalanceCarry(
+          balance.openBalByMonth,
+          data.filter(row => row.bu === bu && (row.reportMonth || row.month) === mk),
+          mk,
+        );
+        byBu[bu] = Object.values(carry).reduce((sum, amount) => sum + amount, 0);
+      }
+      result[mk] = { byBu, total: Object.values(byBu).reduce((sum, amount) => sum + amount, 0) };
+    }
+    return result;
+  }, [monthKeys, buBalancesByMonth, data]);
 
   const computedMonthTotals = useMemo(() => {
     const totals: Record<
@@ -2009,7 +1919,7 @@ export function HoldAddDashboard() {
 
       const psChi = rowsThisMonth
         .filter((e) => !e._excludeFromTotals)
-        .reduce((s, e) => s + (e.chi || 0), 0);
+        .reduce((s, e) => s + Math.abs(e.chi || 0), 0);
 
       const addAmt = rowsThisMonth
         .filter((e) => !e._excludeFromTotals)
@@ -2057,9 +1967,6 @@ export function HoldAddDashboard() {
     grandOpenBal,
     grandThu,
     grandChi,
-    grandAdd,
-    grandHold,
-    grandCancel,
     grandBal,
     filteredData,
     rowRCloseBalances,
@@ -2146,7 +2053,7 @@ export function HoldAddDashboard() {
       buCloseBalances,
       monthCloseBalances,
     };
-  }, [monthKeys, computedMonthTotals, data, grouped, buBalancesByMonth, getMonthNum, currentPeriod]);
+  }, [monthKeys, computedMonthTotals, data, grouped, currentPeriod, isPeriodSaved]);
 
   const normalizeMonthLabel = useCallback(
     (value?: string) => {
@@ -2181,8 +2088,8 @@ export function HoldAddDashboard() {
   }, []);
 
   const trialBalanceHeaderTotals = useMemo(
-    () => calculateTrialBalanceHeaderTotals(currentPeriodRows),
-    [currentPeriodRows],
+    () => calculateTrialBalanceHeaderTotals(currentPeriodRows, currentPeriod),
+    [currentPeriodRows, currentPeriod],
   );
   const chiPhiLuongTaPillValue = trialBalanceHeaderTotals.payrollCost;
   const holdPillValue = trialBalanceHeaderTotals.hold;
@@ -2190,20 +2097,28 @@ export function HoldAddDashboard() {
   const cancelPillValue = trialBalanceHeaderTotals.cancel;
 
   const handleExportExcel = useCallback(() => {
-    const exportRows = (data || []).filter(row => !hideInactivePastHold(row, row.reportMonth || currentPeriod) && (!String(row.id).includes("_cancel") || isExactReportPeriod(row, currentPeriod))).map((row: any, idx: number) => ({
-      "STT": idx + 1,
-      "Tháng": row.month || "",
-      "Business": row.bu || "",
-      "Số dư đầu kỳ": row.open_bal || 0,
-      "Lương TA trong tháng": row.thu || 0,
-      "Lương Hold trong tháng": Math.abs(row.chi || 0),
-      "Số dư cuối kỳ": rowRCloseBalances[row.id] ?? 0,
-      "Số tiền Add": row.add || 0,
-      "Số tiền Hold": row.hold || 0,
-      "Số tiền Cancel": row.cancel || 0,
-      "Lệnh": row.command || "",
-      "Ghi chú": row.note || "",
-    }));
+    const exportRows = monthKeys.flatMap(mk => {
+      const rows = grouped.get(mk) || [];
+      return [...new Set(rows.map(row => row.bu))].flatMap((bu, buIndex) => {
+        let detailIndex = 0;
+        return rows.filter(row => row.bu === bu && !hideInactivePastHold(row, mk))
+          .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b))
+          .map(row => {
+            const isDetail = !!row.customMonthDisplay;
+            return {
+              "#": isDetail ? `${buIndex + 1}.${++detailIndex}` : String(buIndex + 1),
+              "Ngày / Tháng": trialBalanceRowLabel(row),
+              "Business": bu,
+              "Số dư Hold ĐK": isDetail ? row.openHold || 0 : buBalancesByMonth[mk]?.[bu]?.openBal || 0,
+              "Lương TA của tháng": row.thu || 0,
+              "Lương Hold của tháng": Math.abs(row.chi || 0),
+              "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
+              "Số dư Hold còn lại": isDetail ? 0 : remainingHoldByMonth[mk]?.byBu[bu] || 0,
+              "Note": row.ghiChu || "",
+            };
+          });
+      });
+    });
 
     void downloadHierarchicalWorkbook({
       title: `BALANCE · ${currentPeriodVal}`,
@@ -2242,13 +2157,15 @@ export function HoldAddDashboard() {
         toast.error("Không thể xuất workbook Trial Balance.");
       });
   }, [
+    monthKeys,
+    grouped,
+    buBalancesByMonth,
+    remainingHoldByMonth,
     cancelPillValue,
     chiPhiLuongTaPillValue,
     countBusinesses,
     currentPeriodRows,
-    currentPeriod,
     currentPeriodVal,
-    data,
     grandAddPillValue,
     holdPillValue,
     rowRCloseBalances,
@@ -2264,7 +2181,7 @@ export function HoldAddDashboard() {
         <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-2 h-full" style={{ borderRadius: "0px" }}>
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
           <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ borderRadius: "0px", minHeight: "38px" }}>
-            <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-1 inline-flex items-center gap-0.5">
+            <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-0 inline-flex items-center gap-0.5">
               <TableInitialMark label="TRIAL BALANCE" className="shrink-0 text-primary" />
               <TableTitleRemainder label="TRIAL BALANCE" />
             </span>
@@ -2460,7 +2377,7 @@ export function HoldAddDashboard() {
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                   rowSpan={2}
                 >
-                  Số dư ĐK
+                  Số dư Hold ĐK
                 </th>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
@@ -2470,21 +2387,9 @@ export function HoldAddDashboard() {
                 </th>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
-                  rowSpan={2}
+                  colSpan={2}
                 >
                   Số dư CK
-                </th>
-                <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
-                  colSpan={3}
-                >
-                  Tạm tính
-                </th>
-                <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
-                  rowSpan={2}
-                >
-                  Lệnh
                 </th>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[200px]"
@@ -2507,17 +2412,12 @@ export function HoldAddDashboard() {
                 <th 
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                 >
-                  Add
+                  Tổng PS tại kỳ
                 </th>
                 <th 
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                 >
-                  Hold
-                </th>
-                <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
-                >
-                  Cancel
+                  Số dư Hold còn lại
                 </th>
               </tr>
             </thead>
@@ -2526,7 +2426,7 @@ export function HoldAddDashboard() {
               {monthKeys.length === 0 && (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={9}
                     className="p-10 text-center text-muted-foreground italic font-medium bg-white dark:bg-card border-r border-b border-[#e7dbdc] dark:border-slate-800"
                   >
                     Không có dữ liệu phù hợp thỏa mãn điều kiện tìm kiếm.
@@ -2542,9 +2442,6 @@ export function HoldAddDashboard() {
                       openBal,
                       psThu,
                       psChi,
-                      addAmt,
-                      holdAmt,
-                      cancelAmt,
                     } = computedMonthTotals[mk] || {
                       openBal: 0,
                       psThu: 0,
@@ -2592,16 +2489,9 @@ export function HoldAddDashboard() {
                         {fmt(monthCloseBalances[mk] ?? 0)}
                       </td>
                       <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {addAmt !== 0 ? fmt(addAmt) : "0"}
-                      </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {holdAmt !== 0 ? fmt(holdAmt) : "0"}
-                      </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {cancelAmt !== 0 ? fmt(cancelAmt) : "0"}
+                        {fmt(remainingHoldByMonth[mk]?.total || 0)}
                       </td>
 
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 whitespace-nowrap !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                       <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 min-w-[200px] !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                     </tr>,
 
@@ -2609,85 +2499,47 @@ export function HoldAddDashboard() {
                     ...(isOpen
                       ? (() => {
                           const uniqueBUs = Array.from(new Set(rows.map(r => r.bu)));
-                          let globalRi = 0;
+                          let businessIndex = 0;
                           return uniqueBUs.flatMap((bu) => {
-                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)));
+                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)))
+                              .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
+                            const mainNumber = ++businessIndex;
+                            let detailIndex = 0;
                             
                             const sumOpenBal = buBalancesByMonth[mk]?.[bu]?.openBal || 0;
                             let sumThu = 0;
                             let sumChi = 0;
-                            let sumAdd = 0;
-                            let sumHold = 0;
-                            let sumCancel = 0;
                             
-                            const renderedBuRows = buRows.map((e, localRi) => {
-                              const ri = globalRi++;
-                              const isFirstRowOfBuInMonth = localRi === buRows.findIndex(r => !isHoldDetail(r));
+                            const renderedBuRows = buRows.map((e) => {
+                              const isDetail = !!e.customMonthDisplay;
+                              const rowNumber = isDetail ? `${mainNumber}.${++detailIndex}` : String(mainNumber);
                               const buBalInfo = buBalancesByMonth[mk]?.[e.bu];
-                              let rowOpenBal = 0;
-                              if (e._isOpeningHold || (e.openHold && e.openHold > 0)) {
-                                const dMonth = e.displayMonth || e.month;
-                                rowOpenBal =
-                                  e.openHold ||
-                                  buBalInfo?.openBalByMonth?.[dMonth] ||
-                                  0;
-                              } else if (isFirstRowOfBuInMonth) {
-                                rowOpenBal = buBalInfo?.openBal || 0;
-                              }
+                              const rowOpenBal = isDetail ? e.openHold || 0 : buBalInfo?.openBal || 0;
+                              const rowRemainingHold = isDetail ? 0 : remainingHoldByMonth[mk]?.byBu[bu] || 0;
                               const displayedThu = e.thu;
                               const displayedChi = Math.abs(e.chi);
-                              const displayedCancel = isExactReportPeriod(e, mk)
-                                ? e.cancel || 0
-                                : 0;
                               const rClose = rowRCloseBalances[e.id] ?? 0;
-                              const isDefaultApproved = e.lenh === "OK" || e.isPaidStatus;
-                              const hasTamTinh = (e.add || 0) !== 0 || (e.hold || 0) !== 0 || displayedCancel !== 0 || (e.bonus || 0) !== 0 || (e.rawAdd || 0) !== 0 || (e.rawHold || 0) !== 0 || (isExactReportPeriod(e, mk) && (e.rawCancel || 0) !== 0) || (e.rawBonus || 0) !== 0;
-                              const isConf =
-                                isPeriodSaved(e.month) ||
-                                isPeriodSaved(currentPeriod) ||
-                                (isDefaultApproved ? !confirmedIds.has(e.id) : confirmedIds.has(e.id));
                               const isRowDimmed =
                                 !!e._dimmed && isPeriodSaved(e.month);
                               const displayedRCloseStr = rClose !== 0 ? fmt(rClose) : "0";
                               
                               sumThu += isRowDimmed ? 0 : displayedThu;
                               sumChi += isRowDimmed ? 0 : displayedChi;
-                              sumAdd += isRowDimmed ? 0 : (e.add || 0);
-                              sumHold += isRowDimmed ? 0 : (e.hold || 0);
-                              sumCancel += isRowDimmed ? 0 : displayedCancel;
 
                               return (
                                 <tr
                                   key={e.id}
+                                  data-trial-detail={isDetail ? "true" : undefined}
                                   className={`group ${isRowDimmed ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through" : "bg-white dark:bg-card"} transition-colors`}
                                 >
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[13px]">
-                                    {ri + 1}
+                                    {rowNumber}
                                   </td>
                                   <td
                                     className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[13px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
-                                    title={e.customMonthDisplay || e.month}
+                                    title={trialBalanceRowLabel(e)}
                                   >
-                                    {(() => {
-                                      const monthStr = e.customMonthDisplay || e.month;
-                                      if (!monthStr) return monthStr;
-                                      if (e.customMonthDisplay) return e.customMonthDisplay;
-                                      
-                                      // Pattern 1: "Tháng M/YYYY" or "Tháng M-YYYY" or similar
-                                      let monthMatch = monthStr.match(/(?:Th[aá]ng\s+)?(\d{1,2})[/-]\s*(\d{4})/i);
-                                      
-                                      // Pattern 2: If above fails, try "M/YYYY YYYY" format (e.g., "11/2025" or "12/2025")
-                                      if (!monthMatch) {
-                                        monthMatch = monthStr.match(/^(\d{1,2})[/-]\s*(\d{4})$/);
-                                      }
-                                      
-                                      if (monthMatch) {
-                                        const month = monthMatch[1].padStart(2, "0");
-                                        const year = monthMatch[2];
-                                        return `Tháng ${month}.${year}`;
-                                      }
-                                      return monthStr;
-                                    })()}
+                                    {trialBalanceRowLabel(e)}
                                   </td>
                                   <td
                                     className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-center text-slate-800 dark:text-slate-100 font-normal whitespace-nowrap text-[13px]"
@@ -2697,7 +2549,7 @@ export function HoldAddDashboard() {
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right text-slate-700 dark:text-slate-300 tabular-nums text-xs whitespace-nowrap min-w-[75px]">
                                     {rowOpenBal !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span className="trial-opening-amount text-slate-800 dark:text-slate-100 font-normal">
                                         {fmt(rowOpenBal)}
                                       </span>
                                     ) : (
@@ -2728,98 +2580,9 @@ export function HoldAddDashboard() {
                                     </span>
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {e.add !== 0 ? (
-                                      <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                        {fmt(e.add)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
-                                  </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {e.hold !== 0 ? (
-                                      <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                        {fmt(e.hold)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
-                                  </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {displayedCancel !== 0 ? (
-                                      <span className="text-slate-500 dark:text-slate-400 font-medium">
-                                        {fmt(displayedCancel)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
+                                    {fmt(rowRemainingHold)}
                                   </td>
 
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-1.5 text-center whitespace-nowrap text-[13px]">
-                                    {(() => {
-                                      const isInteractive =
-                                        hasTamTinh ||
-                                        (e.rawAdd || 0) !== 0 ||
-                                        (e.rawHold || 0) !== 0 ||
-                                        (e.rawCancel || 0) !== 0 ||
-                                        (e.rawBonus || 0) !== 0 ||
-                                        (e.add || 0) !== 0 ||
-                                        (e.hold || 0) !== 0 ||
-                                        (e.cancel || 0) !== 0 ||
-                                        (e.bonus || 0) !== 0;
-                                      if (!isInteractive) {
-                                        return (
-                                          <span className="text-slate-400 dark:text-slate-500 font-medium">
-                                            0
-                                          </span>
-                                        );
-                                      }
-                                      // If pre-processed/canceled in the file and has NO Tam Tinh balance
-                                      if (e.lenh === "-" && !hasTamTinh) {
-                                        return (
-                                          <span className="text-slate-400 dark:text-slate-500 font-medium">
-                                            0
-                                          </span>
-                                        );
-                                      }
-                                      // If saved/locked rent/month and no Tam Tinh balance
-                                      if ((isPeriodSaved(e.month) || isPeriodSaved(currentPeriod)) && !hasTamTinh) {
-                                        return (
-                                          <span className="font-bold text-slate-800 dark:text-slate-100">
-                                            {isConf ? "OK" : "?"}
-                                          </span>
-                                        );
-                                      }
-                                      // Otherwise, it is interactive and user can toggle
-                                      if (isConf) {
-                                        return (
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.stopPropagation();
-                                              toggleConfirm(e.id, ev);
-                                            }}
-                                            className="px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded border border-emerald-200 dark:border-emerald-900/60 cursor-pointer shadow-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all duration-150 active:scale-95 active:translate-y-[1px]"
-                                            title="Hủy duyệt"
-                                          >
-                                            OK
-                                          </button>
-                                        );
-                                      } else {
-                                        return (
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.stopPropagation();
-                                              toggleConfirm(e.id, ev);
-                                            }}
-                                            className="px-2.5 py-0.5 text-[11px] font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-900/40 cursor-pointer shadow-sm transition-all duration-150 active:scale-95 active:translate-y-[1px]"
-                                            title="Duyệt"
-                                          >
-                                            Duyệt
-                                          </button>
-                                        );
-                                      }
-                                    })()}
-                                  </td>
                                   <td
                                     className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-left text-muted-foreground min-w-[200px] text-[13px]"
                                     title={e.ghiChu}
@@ -2830,18 +2593,11 @@ export function HoldAddDashboard() {
                               );
                             });
                             
-                            const finalCloseBal = (() => {
-                              let adjustedSumChi = 0;
-                              buRows.forEach(r => {
-                                if (r._isPastHoldApprove) {
-                                  // Do not subtract from closeBal
-                                } else {
-                                  adjustedSumChi += (r.chi || 0);
-                                }
-                              });
-                              return sumThu - adjustedSumChi;
-                            })();
-                            
+                            // Sum the displayed closing values, which already normalize HOLD signs.
+                            const finalCloseBal = buRows.reduce(
+                              (sum, row) => sum + (rowRCloseBalances[row.id] ?? 0), 0,
+                            );
+
                             const subtotalRow = (
                               <tr key={`subtotal-${mk}-${bu}`} className="!bg-[#F2EADB] dark:!bg-slate-800/90 font-bold border-y-2 border-[#d6c7b2] dark:border-slate-700">
                                 <td colSpan={3} className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-center text-slate-800 dark:text-slate-200 font-sans uppercase tracking-wider text-[11px] !bg-[#F2EADB] dark:!bg-slate-800/90">
@@ -2860,16 +2616,9 @@ export function HoldAddDashboard() {
                                   {finalCloseBal !== 0 ? fmt(finalCloseBal) : "0"}
                                 </td>
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumAdd !== 0 ? fmt(sumAdd) : "0"}
-                                </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumHold !== 0 ? fmt(sumHold) : "0"}
-                                </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumCancel !== 0 ? fmt(sumCancel) : "0"}
+                                  {fmt(remainingHoldByMonth[mk]?.byBu[bu] || 0)}
                                 </td>
 
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-1.5 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                               </tr>
                             );
@@ -2915,24 +2664,9 @@ export function HoldAddDashboard() {
                   {fmt(grandBal)}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-blue-700 dark:text-blue-350 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
                 >
-                  {grandAdd !== 0 ? fmt(grandAdd) : "0"}
-                </td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-amber-800 dark:text-amber-300 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
-                >
-                  {grandHold !== 0 ? fmt(grandHold) : "0"}
-                </td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-700 dark:text-slate-350 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
-                >
-                  {grandCancel !== 0 ? fmt(grandCancel) : "0"}
-                </td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-center font-sans font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
-                >
-                  {confirmedIds.size} đã duyệt
+                  {fmt(monthKeys.reduce((sum, mk) => sum + (remainingHoldByMonth[mk]?.total || 0), 0))}
                 </td>
                 <td 
                   className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
