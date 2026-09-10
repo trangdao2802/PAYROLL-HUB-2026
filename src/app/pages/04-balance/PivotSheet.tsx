@@ -57,14 +57,14 @@ import {
 } from "../../components/TableInitialMark";
 
 // ==========================================
-// HELPER UTILITIES EXPORTS FOR COMPATIBILITY
+// LOCAL HELPER UTILITIES
 // ==========================================
 
-export function parseMoneyToNumber(val: any): number {
+function parseMoneyToNumber(val: any): number {
   return parseExcelMoney(val);
 }
 
-export function formatNumber(val: any): string {
+function formatNumber(val: any): string {
   const n = parseMoneyToNumber(val);
   const rounded = Math.round(n);
   return rounded.toLocaleString('vi-VN', {
@@ -73,7 +73,7 @@ export function formatNumber(val: any): string {
   });
 }
 
-export function formatMoneyVND(val: any): string {
+function formatMoneyVND(val: any): string {
   const n = parseMoneyToNumber(val);
   const rounded = Math.round(n);
   return rounded.toLocaleString('vi-VN', {
@@ -82,36 +82,36 @@ export function formatMoneyVND(val: any): string {
   });
 }
 
-export function removeVietnameseTones(str: string): string {
+function removeVietnameseTones(str: string): string {
   if (!str) return '';
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 }
 
-export function formatIdNumber(id: any): string {
+function formatIdNumber(id: any): string {
   return String(id || '').trim();
 }
 
-export function prepareDataForExport(data: any[]): any[] {
+function prepareDataForExport(data: any[]): any[] {
   return data;
 }
 
-export function parseAnyDate(dateStr: string): Date | null {
+function parseAnyDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function getVal(row: any, key: string): any {
+function getVal(row: any, key: string): any {
   return row ? row[key] : null;
 }
 
-export function parseTimeStrToHours(timeStr: string): number {
+function parseTimeStrToHours(timeStr: string): number {
   if (!timeStr) return 0;
   const [h, m] = String(timeStr).split(':').map(Number);
   return (h || 0) + (m || 0) / 60;
 }
 
-export async function getExcelFileBuffer(
+async function getExcelFileBuffer(
   file: File,
 ): Promise<{ buffer: ArrayBuffer; name: string }> {
   if (!file) {
@@ -123,18 +123,18 @@ export async function getExcelFileBuffer(
   };
 }
 
-export function formatTime12Hour(timeStr: string): string {
+function formatTime12Hour(timeStr: string): string {
   return String(timeStr);
 }
 
-export const COMMON_FIELD_ALIASES: Record<string, string[]> = {};
-export function scoreMatch(a: string, b: string): number { return a === b ? 1 : 0; }
-export function normalizeId(id: any): string { return String(id || ''); }
-export function toVietnamDateString(date: Date): string { return String(date); }
-export function generateUUID(): string { return Math.random().toString(36).substring(2, 9); }
-export async function fetchGoogleSheetAsFile(url: string, name: string): Promise<File> { return new File([], name); }
-export function isMoneyColumn(col: string): boolean { return Boolean(col && col.toLowerCase().includes('money')); }
-export async function fetchWithBackoff(fn: any): Promise<any> { return await fn(); }
+const COMMON_FIELD_ALIASES: Record<string, string[]> = {};
+function scoreMatch(a: string, b: string): number { return a === b ? 1 : 0; }
+function normalizeId(id: any): string { return String(id || ''); }
+function toVietnamDateString(date: Date): string { return String(date); }
+function generateUUID(): string { return Math.random().toString(36).substring(2, 9); }
+async function fetchGoogleSheetAsFile(url: string, name: string): Promise<File> { return new File([], name); }
+function isMoneyColumn(col: string): boolean { return Boolean(col && col.toLowerCase().includes('money')); }
+async function fetchWithBackoff(fn: any): Promise<any> { return await fn(); }
 
 function mergePivotTypeColumns(
   currentColumns: string[],
@@ -1162,13 +1162,14 @@ export function PivotSheet() {
 
       let resGrouped: Record<string, Record<string, Record<string, Record<string, number>>>> = {};
       let resTypes: string[] = [];
+      let restoredLogs: typeof diagnosticLogs = [];
       let infoStr = "";
 
       if (fileBuffers.length > 0) {
         const res = await processFileBuffers(fileBuffers);
         resGrouped = res?.groupedData || {};
         resTypes = res?.typeColumns || [];
-        setDiagnosticLogs(res?.logs || []);
+        restoredLogs = res?.logs || [];
         infoStr = `Đồng bộ từ ${fileBuffers.length} file Master`;
 
         if ((res?.processedMktFiles || 0) > 0) {
@@ -1185,6 +1186,8 @@ export function PivotSheet() {
           writePivotMktTypeCache(nextMktTypeCache);
         }
       }
+
+      setDiagnosticLogs(restoredLogs);
 
       if (Object.keys(resGrouped).length === 0 && appData.Sheet1_AE?.data && appData.Sheet1_AE.data.length > 0) {
         const filteredSheet1 = appData.Sheet1_AE.data || [];
@@ -1242,7 +1245,7 @@ export function PivotSheet() {
             cacheVersion: PIVOT_CACHE_VERSION,
             groupedData: restoredGroupedData,
             typeColumns: restoredTypeColumns,
-            diagnosticLogs: res?.logs || [],
+            diagnosticLogs: restoredLogs,
             sourceInfo: infoStr,
             filter: selectedMonthFilter,
             reportingMonth: appData.globalMonth || "03.2026",
@@ -1277,6 +1280,7 @@ export function PivotSheet() {
     appData.Sheet1_AE?.data,
     appData.Master_Roster,
     processFileBuffers,
+    selectedMonthFilter,
   ]);
 
   useEffect(() => {
@@ -1511,11 +1515,6 @@ export function PivotSheet() {
     toast.success("Đã xuất báo cáo Excel thành công!");
   };
 
-  let totalCenters = 0;
-  let totalSalarySum = 0;
-  const grandTotals = new Array(safeTypeColumns.length).fill(0);
-  let superGrandTotal = 0;
-
   const availableMonths = useMemo(() => {
     const monthsSet = new Set<string>();
     Object.values(safeGroupedData).forEach((l07Map) => {
@@ -1528,73 +1527,81 @@ export function PivotSheet() {
     return Array.from(monthsSet).sort();
   }, [safeGroupedData]);
 
-  const allFlatRows: Array<{
-    globalRowId: number;
-    month: string;
-    bu: string;
-    l07: string;
-    values: number[];
-    rowTotal: number;
-    sourceLabels: string[];
-  }> = [];
+  const { allFlatRows, totalCenters, totalSalarySum, grandTotals, superGrandTotal } = useMemo(() => {
+    let totalCenters = 0;
+    let totalSalarySum = 0;
+    const grandTotals = new Array(safeTypeColumns.length).fill(0);
+    let superGrandTotal = 0;
 
-  let rIdx = 1;
-  const currentSortedBUs = Object.keys(safeGroupedData).sort();
-  currentSortedBUs.forEach(bu => {
-    const l07s = Object.keys(safeGroupedData[bu] || {}).sort();
-    l07s.forEach(l07 => {
-      const uL07 = l07.toUpperCase().trim();
-      if (
-        uL07.includes("MKT LOCAL NORTH") ||
-        uL07.startsWith("MKT LOCAL") ||
-        uL07.includes("MKT_LOCAL") ||
-        uL07 === "MKT"
-      ) {
-        return;
-      }
-      const months = Object.keys(safeGroupedData[bu][l07] || {}).sort();
-      months.forEach(month => {
-        if (selectedMonthFilter !== "ALL") {
-          const normM = month.match(/(?:THÁNG|THANG|T)?\s*(\d{1,2})[./\- ]\s*(\d{4})/i);
-          const mNorm = normM ? `${normM[1].padStart(2, "0")}.${normM[2]}` : month;
-          if (mNorm !== selectedMonthFilter && month !== selectedMonthFilter) return;
-        }
-        
-        let rowTotal = 0;
-        const values = safeTypeColumns.map((type, idx) => {
-          const val = safeGroupedData[bu][l07][month][type] || 0;
-          grandTotals[idx] += val;
-          rowTotal += val;
-          return val;
-        });
+    const allFlatRows: Array<{
+      globalRowId: number;
+      month: string;
+      bu: string;
+      l07: string;
+      values: number[];
+      rowTotal: number;
+      sourceLabels: string[];
+    }> = [];
 
-        if (rowTotal === 0 && bu === "OTHER" && (l07 === "UNKNOWN" || !l07)) {
+    let rIdx = 1;
+    const currentSortedBUs = Object.keys(safeGroupedData).sort();
+    currentSortedBUs.forEach(bu => {
+      const l07s = Object.keys(safeGroupedData[bu] || {}).sort();
+      l07s.forEach(l07 => {
+        const uL07 = l07.toUpperCase().trim();
+        if (
+          uL07.includes("MKT LOCAL NORTH") ||
+          uL07.startsWith("MKT LOCAL") ||
+          uL07.includes("MKT_LOCAL") ||
+          uL07 === "MKT"
+        ) {
           return;
         }
+        const months = Object.keys(safeGroupedData[bu][l07] || {}).sort();
+        months.forEach(month => {
+          if (selectedMonthFilter !== "ALL") {
+            const normM = month.match(/(?:THÁNG|THANG|T)?\s*(\d{1,2})[./\- ]\s*(\d{4})/i);
+            const mNorm = normM ? `${normM[1].padStart(2, "0")}.${normM[2]}` : month;
+            if (mNorm !== selectedMonthFilter && month !== selectedMonthFilter) return;
+          }
 
-        totalCenters++;
-        superGrandTotal += rowTotal;
-        totalSalarySum += rowTotal;
+          let rowTotal = 0;
+          const values = safeTypeColumns.map((type, idx) => {
+            const val = safeGroupedData[bu][l07][month][type] || 0;
+            grandTotals[idx] += val;
+            rowTotal += val;
+            return val;
+          });
 
-        allFlatRows.push({
-          globalRowId: rIdx++,
-          month,
-          bu,
-          l07,
-          values,
-          rowTotal,
-          sourceLabels: getPivotSourceLabels(safeGroupedData[bu][l07][month]),
+          if (rowTotal === 0 && bu === "OTHER" && (l07 === "UNKNOWN" || !l07)) {
+            return;
+          }
+
+          totalCenters++;
+          superGrandTotal += rowTotal;
+          totalSalarySum += rowTotal;
+
+          allFlatRows.push({
+            globalRowId: rIdx++,
+            month,
+            bu,
+            l07,
+            values,
+            rowTotal,
+            sourceLabels: getPivotSourceLabels(safeGroupedData[bu][l07][month]),
+          });
         });
       });
     });
-  });
+    return { allFlatRows, totalCenters, totalSalarySum, grandTotals, superGrandTotal };
+  }, [safeGroupedData, safeTypeColumns, selectedMonthFilter]);
 
-  const isTypeColHidden = (type: string, idx: number) => {
+  const isTypeColHidden = useCallback((type: string, idx: number) => {
     if (hiddenColumns[`type_${type}`] !== undefined) {
       return hiddenColumns[`type_${type}`];
     }
     return (grandTotals[idx] || 0) === 0;
-  };
+  }, [grandTotals, hiddenColumns]);
 
   const sortedFlatRows = useMemo(() => {
     if (!sortField) return allFlatRows;
@@ -1707,7 +1714,7 @@ export function PivotSheet() {
       // Ignore local storage quota/privacy errors.
     }
     toast.success("Đã tự động căn chỉnh độ rộng cột Pivot Master theo dữ liệu!");
-  }, [safeTypeColumns, sortedFlatRows]);
+  }, [safeTypeColumns, sortedFlatRows, isTypeColHidden]);
 
   const visibleTableWidth = useMemo(() => {
     let total = 0;
@@ -1722,7 +1729,7 @@ export function PivotSheet() {
     });
     if (!hiddenColumns.grandTotal) total += columnWidths.grandTotal || 140;
     return Math.max(total, 640);
-  }, [columnWidths, hiddenColumns, safeTypeColumns, grandTotals]);
+  }, [columnWidths, hiddenColumns, safeTypeColumns, isTypeColHidden]);
 
   const totalRowsCount = sortedFlatRows.length;
   const totalPages =

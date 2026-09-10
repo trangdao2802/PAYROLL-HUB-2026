@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as XLSX from "xlsx";
+import { formatPivotTypeHeader } from "../lib/utils/pivot-utils";
 import {
   isSheetOneMasterSheetName,
   normalizeMasterSheetName,
@@ -142,7 +143,7 @@ function processNorthLogic(rawCenter: string) {
   return { bu, l07 };
 }
 
-function processExcelData(fileList: { name: string; bank?: string; buffer: ArrayBuffer }[]) {
+export function processExcelData(fileList: { name: string; bank?: string; buffer: ArrayBuffer }[]) {
   const newGroupedData: Record<string, Record<string, Record<string, number>>> = {};
   const uniqueTypes = new Set<string>();
   const newLogs: any[] = [];
@@ -328,7 +329,7 @@ function processExcelData(fileList: { name: string; bank?: string; buffer: Array
               uH.includes("THÁNG")
             ) return;
             if (uH.includes("CHARGE") || uH === "LXO" || uH === "EC" || uH === "PT-DEMO") {
-              const label = formatTypeHeader(strH);
+              const label = formatPivotTypeHeader(strH);
               if (label && label !== "EXCLUDE" && !seenLabels.has(label)) {
                 seenLabels.add(label);
                 chargeCols.push({ index: idx, label });
@@ -394,7 +395,7 @@ function processExcelData(fileList: { name: string; bank?: string; buffer: Array
               });
             } else if (totalPayColIdx !== -1) {
               const rawTotalPay = row[totalPayColIdx];
-              let typeVal = (typeColIdx !== -1 && row[typeColIdx]) ? formatTypeHeader(String(row[typeColIdx])) : "UNSPECIFIED";
+              let typeVal = (typeColIdx !== -1 && row[typeColIdx]) ? formatPivotTypeHeader(String(row[typeColIdx])) : "UNSPECIFIED";
               if (typeVal === "N/A" || !typeVal || typeVal.trim() === "") typeVal = "UNSPECIFIED";
               
               let val = 0;

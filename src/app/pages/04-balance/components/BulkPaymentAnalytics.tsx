@@ -126,7 +126,7 @@ export interface ModalDetailRecord {
  * - Thuộc Tháng phát sinh được chọn
  * - Là khoản HOLD / ADD / CANCEL hợp lệ
  */
-export function getModalDetailData(
+function getModalDetailData(
   holdList: any[],
   targetBu: string,
   targetMonthStr: string,

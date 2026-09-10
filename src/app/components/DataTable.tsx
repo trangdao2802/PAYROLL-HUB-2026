@@ -1,3 +1,4 @@
+import { OPERATION_KEY_SHORTCUTS } from "../constants/operation-shortcuts";
 import { registerTableExport, downloadTableExcel } from "../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
@@ -115,11 +116,6 @@ export interface Column {
   showGrandTotal?: boolean;
 }
 
-export const OPERATION_KEY_SHORTCUTS: Record<string, string> = {
-  A: "Add",
-  H: "Hold",
-  C: "Cancel",
-};
 
 const isOperationColumn = (column?: Column): boolean => {
   if (!column) return false;

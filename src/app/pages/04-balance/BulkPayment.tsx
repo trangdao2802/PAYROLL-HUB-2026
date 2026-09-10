@@ -2,6 +2,7 @@ import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { TransactionHistoryPanel } from "./components/TransactionHistoryPanel";
 import { registerTableExport } from "../../lib/utils/table-excel";
+import { aggregateAdjustmentTotals } from "../../lib/utils/adjustment-summary";
 import { downloadTransactionBankExport } from "../../lib/utils/excel-export";
 import {
   canonicalTransactionHeaders,
@@ -1735,13 +1736,13 @@ export function BulkPayment({
     isMonthInStrComp,
   ]);
 
+  const transactionPeriodKey = `Tháng ${currentMonthNumComp}/${currentYearNumComp}`;
+  const syncedTransactionVersion = appData.TrialBalanceTransactionVersions?.[transactionPeriodKey] || 0;
+
   useEffect(() => {
     const saveVersion = appData.TransactionActivity?.saveVersion || 0;
-    const transactionPeriodKey = `Tháng ${currentMonthNumComp}/${currentYearNumComp}`;
-    const syncedVersion =
-      appData.TrialBalanceTransactionVersions?.[transactionPeriodKey] || 0;
     if (
-      saveVersion <= syncedVersion ||
+      saveVersion <= syncedTransactionVersion ||
       Math.abs(reconciliationAudit.netVariance) >= 1
     ) {
       return;
@@ -1769,9 +1770,8 @@ export function BulkPayment({
     });
   }, [
     appData.TransactionActivity?.saveVersion,
-    appData.TrialBalanceTransactionVersions?.[`Tháng ${currentMonthNumComp}/${currentYearNumComp}`],
-    currentMonthNumComp,
-    currentYearNumComp,
+    syncedTransactionVersion,
+    transactionPeriodKey,
     reconciliationAudit.netVariance,
     updateAppData,
   ]);
@@ -2477,31 +2477,9 @@ export function BulkPayment({
                         <div className="space-y-2.5">
                           {adjustmentFilter === "ALL" ? (
                             (() => {
-                              const buMap: Record<
-                                string,
-                                {
-                                  HOLD: number;
-                                  ADD: number;
-                                  CANCEL: number;
-                                  totalCount: number;
-                                }
-                              > = {};
-                              const items =
-                                dynamicReportStats.holdAddItems || [];
-                              items.forEach((item) => {
-                                const bu = item.biz || "Other";
-                                if (!buMap[bu]) {
-                                  buMap[bu] = {
-                                    HOLD: 0,
-                                    ADD: 0,
-                                    CANCEL: 0,
-                                    totalCount: 0,
-                                  };
-                                }
-                                const t = item.type; // 'HOLD' | 'ADD' | 'CANCEL'
-                                buMap[bu][t] += Math.abs(item.amount);
-                                buMap[bu].totalCount += 1;
-                              });
+                              const buMap = aggregateAdjustmentTotals(
+                                dynamicReportStats.holdAddItems || [],
+                              );
 
                               const activeBUs = Object.entries(buMap).filter(
                                 ([_, data]) => data.totalCount > 0,
@@ -2528,7 +2506,7 @@ export function BulkPayment({
                                       {buData.totalCount} khoản phát sinh
                                     </span>
                                   </div>
-                                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                  <div className={`grid ${buData.BONUS > 0 ? "grid-cols-2" : "grid-cols-3"} gap-2 text-[11px]`}>
                                     {/* HOLD */}
                                     <div className="flex flex-col items-start justify-center gap-0.5 p-2 bg-rose-50/30 rounded-lg border border-rose-100/30">
                                       <span className="text-rose-500 font-bold uppercase tracking-wider text-[9px]">
@@ -2562,6 +2540,14 @@ export function BulkPayment({
                                           : "0"}
                                       </span>
                                     </div>
+                                    {buData.BONUS > 0 && (
+                                      <div className="flex flex-col items-start justify-center gap-0.5 p-2 bg-emerald-50/30 rounded-lg border border-emerald-100/30">
+                                        <span className="text-emerald-500 font-bold uppercase tracking-wider text-[9px]">BONUS:</span>
+                                        <span className="text-emerald-600 font-extrabold tabular-nums text-[10px]">
+                                          +{formatMoneyVND(buData.BONUS).replace(" ₫", "")}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               ));
@@ -2670,7 +2656,7 @@ export function BulkPayment({
                       0,
                     );
 
-                    const formatMonthTag = (mStr) => {
+                    const formatMonthTag = (mStr: string) => {
                       if (!mStr) return "";
                       const match = String(mStr).match(
                         new RegExp("(\\d{1,2})[/._\\s-]+(\\d{2,4})"),
@@ -2690,7 +2676,7 @@ export function BulkPayment({
                       return clean ? `${clean}` : "";
                     };
 
-                    const describeAdjustment = (rawKey) => {
+                    const describeAdjustment = (rawKey: string) => {
                       const cleanKey = String(rawKey || "")
                         .replace(/[[\]]/g, "")
                         .trim()
@@ -2706,7 +2692,7 @@ export function BulkPayment({
                           ? `20${rawYear}`
                           : rawYear
                         : "";
-                      const labels = {
+                      const labels: Record<string, string> = {
                         HOLD: "Khoản giữ lại",
                         ADD: "Cộng thêm",
                         CANCEL: "Điều chỉnh giảm",
@@ -2720,7 +2706,7 @@ export function BulkPayment({
                       };
                     };
 
-                    const buGroups = {};
+                    const buGroups: Record<string, { total: number; itemsMap: Record<string, number> }> = {};
                     holdAddItems.forEach((item) => {
                       if (!buGroups[item.biz])
                         buGroups[item.biz] = { total: 0, itemsMap: {} };
@@ -3220,11 +3206,7 @@ export function BulkPayment({
                     setRightPanelTab("visuals");
                     localStorage.setItem("bulk_payment_right_tab", "visuals");
                   }}
-                  className={`flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${
-                    rightPanelTab === "visuals"
-                      ? "bg-primary/10 text-primary font-extrabold"
-                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <BarChart2 className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   <span>Analysis</span>
@@ -3319,36 +3301,6 @@ export function BulkPayment({
               </div>
             )}
 
-            {displayBankExportData.length > 0 &&
-              rightPanelTab === "visuals" &&
-              analysSearchVisible && (
-                <div className="ml-1 flex h-7 min-w-0 flex-1 items-center border-l border-slate-300 pl-2.5">
-                  <div className="relative min-w-[150px] max-w-[240px] flex-1">
-                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                    <input
-                      autoFocus
-                      value={analysSearchTerm}
-                      onChange={(event) =>
-                        setAnalysSearchTerm(event.target.value)
-                      }
-                      className="h-7 w-full rounded-full border border-primary/20 bg-[var(--card,#fff)] pl-8 pr-8 text-[9px] font-semibold text-slate-700 outline-none placeholder:text-slate-400 hover:border-primary/40 focus:border-primary"
-                      placeholder="Tìm BU hoặc tháng…"
-                      aria-label="Tìm kiếm trong bảng ANALYS"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAnalysSearchTerm("");
-                        setAnalysSearchVisible(false);
-                      }}
-                      className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-primary/[0.08] hover:text-primary"
-                      title="Đóng tìm kiếm"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              )}
           </div>
 
           <div className="flex items-center gap-2 ml-auto shrink-0">
@@ -3356,11 +3308,7 @@ export function BulkPayment({
               <DropdownMenuTrigger asChild>
                 <button
                   className="master-square-action border text-foreground transition-all cursor-pointer flex items-center justify-center active:scale-[0.98] shadow-2xs shrink-0 hover:text-primary"
-                  title={
-                    rightPanelTab === "visuals"
-                      ? "Cài đặt bảng ANALYS"
-                      : "Cài đặt & Thao tác"
-                  }
+                  title="Cài đặt & Thao tác"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -3386,40 +3334,6 @@ export function BulkPayment({
                   <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-700" />
                   <span>Xuất Excel</span>
                 </DropdownMenuItem>
-                {rightPanelTab === "visuals" ? (
-                  <>
-                    <DropdownMenuSeparator className="my-1 border-slate-100" />
-                    <DropdownMenuLabel className="px-2 py-1 text-[10px] font-black uppercase text-slate-400">
-                      Bảng ANALYS
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setAnalysSearchVisible((current) => {
-                          if (current) setAnalysSearchTerm("");
-                          return !current;
-                        });
-                      }}
-                    >
-                      <Search className="h-4 w-4 shrink-0 text-primary" />
-                      <span>
-                        {analysSearchVisible ? "Ẩn tìm kiếm" : "Tìm kiếm"}
-                      </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setAnalysSelectedBusiness(
-                          ALL_ANALYS_BUSINESS_UNITS,
-                        );
-                        setAnalysSearchTerm("");
-                      }}
-                      className="text-slate-700"
-                    >
-                      <RefreshCw className="h-4 w-4 shrink-0 text-[#781D1D]" />
-                      <span>Đặt lại bộ lọc</span>
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
                     <DropdownMenuItem
                       onClick={() => window.dispatchEvent(new Event("open-transaction-settings"))}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-primary/10 text-slate-700 hover:text-primary font-bold text-xs"
@@ -3459,8 +3373,6 @@ export function BulkPayment({
                       <Scale className="w-4 h-4 text-sky-600 shrink-0" />
                       <span>Xuất Báo cáo Reconciliation</span>
                     </DropdownMenuItem>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

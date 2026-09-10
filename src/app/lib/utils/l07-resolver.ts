@@ -291,8 +291,7 @@ export function resolveL07Logic(
     l07 = grossPayMktL07 || mktResolved.l07 || l07;
     originalL07 = grossPayMktL07 || mktResolved.l07 || originalL07;
     isMktLocal = true;
-    chargeToCenterMkt = mktResolved.chargeToCenterMkt || chargeToCenterMkt || rCen;
-    aeCode = mktResolved.aeCode || aeCode;
+    chargeToCenterMkt = chargeToCenterMkt || rCen;
     centerBusiness = mktResolved.business || centerBusiness;
   } else {
     centerBusiness = getBusinessFromL07(l07);

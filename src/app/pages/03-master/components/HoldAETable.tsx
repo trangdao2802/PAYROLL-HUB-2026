@@ -4,10 +4,8 @@ import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useCallback, forwardRef } from "react";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
-import {
-  DataTable,
-  OPERATION_KEY_SHORTCUTS,
-} from "../../../components/DataTable";
+import { DataTable } from "../../../components/DataTable";
+import { OPERATION_KEY_SHORTCUTS } from "../../../constants/operation-shortcuts";
 import { Trash2, Settings, Download, RefreshCw, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock, Zap } from "lucide-react";
 import {
   TableInitialMark,

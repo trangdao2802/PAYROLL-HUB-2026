@@ -501,13 +501,8 @@ export function MasterAE() {
     switch (activeTab) {
       case "Sheet1_AE":
         return `Gross Pay Details (${currentPeriodVal}) · ${currentData.data.length} rows`;
-      case "Deductions":
-      case "Hold_AE" as any:
+      case "Hold_AE":
         return `Deductions & Adjustments (${currentPeriodVal}) · ${currentData.data.length} rows`;
-      case "NetPay":
-        return `Net Payment After Reconciliation (${currentPeriodVal}) · ${currentData.data.length} rows`;
-      case "Mkt_Local_North":
-        return `AE Local North Salary Allocation (${currentPeriodVal}) · ${currentData.data.length} rows`;
       default:
         return `Master AE Data (${currentPeriodVal}) · ${currentData.data.length} rows`;
     }
@@ -831,16 +826,9 @@ export function MasterAE() {
           );
         }
 
-        let label = header;
-        if (activeTab === "Mkt_Local_North") {
-          const u = header.trim().toUpperCase();
-          if (u === "TYPE") label = "CODE";
-          if (u === "CHARGE TO CENTER" || u === "CHARGE TO CENTER MKT") label = "CENTER";
-        }
-
         return {
           key: header,
-          label: label,
+          label: header,
           type,
           hidden,
           sortable: header === "Nghiệp vụ" ? false : true,
@@ -1031,7 +1019,7 @@ export function MasterAE() {
                             </div>
 
                             <div className="flex shrink-0 items-center gap-3">
-                              {cameFromBulkPayment && activeTab !== "BulkPayment" && (
+                              {cameFromBulkPayment && (
                                 <button
                                   onClick={() => {
                                     setSearchTerm("");

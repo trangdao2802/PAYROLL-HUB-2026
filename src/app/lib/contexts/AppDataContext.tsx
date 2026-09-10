@@ -398,6 +398,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           if (saved.Hold_AE && Array.isArray(saved.Hold_AE.data) && saved.Hold_AE.data.length > 0) {
             const remainingHold: any[] = [];
             const sheet1Rows = saved.Sheet1_AE?.data ? [...saved.Sheet1_AE.data] : [];
+            const reportingMonth = saved.globalMonth || "03.2026";
 
             saved.Hold_AE.data.forEach((row: any) => {
               if (!row) return;
@@ -412,7 +413,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                 if (bonusAmt > 0) {
                   const idVal = String(row["ID Number"] || "").trim();
                   const nameVal = String(row["Full name"] || "").trim();
-                  const mVal = String(row["Tháng báo cáo"] || row["_fileMonth"] || saved.globalMonth || "03.2026").trim();
+                  const mVal = String(row["Tháng báo cáo"] || row["_fileMonth"] || reportingMonth).trim();
                   const l07Val = String(row["L07"] || row["Mã ae"] || row["Center"] || "").trim();
                   const buVal = String(row["BU"] || row["Business"] || "").trim();
 

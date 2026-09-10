@@ -1396,14 +1396,14 @@ export function useBulkPaymentLogic() {
 
     const holdAddText = dynamicReportStats?.holdAddItems && dynamicReportStats.holdAddItems.length > 0
       ? (() => {
-          const aggregated = dynamicReportStats.holdAddItems.reduce((acc: any, item: any) => {
+          const aggregated = dynamicReportStats.holdAddItems.reduce<Record<string, { biz: string; type: string; amount: number }>>((acc, item) => {
             const key = `${item.biz}-${item.type}`;
             if (!acc[key]) {
               acc[key] = { biz: item.biz, type: item.type, amount: 0 };
             }
             acc[key].amount += item.amount;
             return acc;
-          }, {} as Record<string, { biz: string; type: string; amount: number }>);
+          }, {});
           
           return Object.values(aggregated)
             .map((item) => `${item.biz} [${item.type}]:\t${item.amount >= 0 ? "+" : ""}${formatMoneyVND(item.amount).replace(" ₫", "")}`)
