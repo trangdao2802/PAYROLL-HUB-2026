@@ -110,6 +110,57 @@ test('reconcile display hides IDs absent from every saved month', () => {
     ['001'],
   );
 });
+
+test('a shared name alone never links different IDs and accounts across months', () => {
+  for (const matchingName of ['NGUYEN VAN AN', 'Nguyễn  Văn An']) {
+    const comparisons = compareAccountsAcrossHistory(
+      [row('002', '0023456789', matchingName)],
+      [snapshot('2026-01', [row('001', '0012345678', 'NGUYEN VAN AN')])],
+      'VCB',
+    );
+    assert.deepEqual(comparisons[0].sources, []);
+    assert.deepEqual(comparisons[0].issues, ['Không có ID trong các tháng đã lưu']);
+    assert.deepEqual(visibleHistoricalComparisons(comparisons), []);
+  }
+});
+
+test('an unrelated namesake in another month cannot add warnings to a matched ID', () => {
+  const current = row('002', '0023456789', 'NGUYEN VAN AN');
+  const [comparison] = compareAccountsAcrossHistory([current], [
+    snapshot('2026-01', [row('001', '0012345678', 'NGUYEN VAN AN')]),
+    snapshot('2026-02', [current]),
+  ], 'VCB');
+  assert.deepEqual(comparison.sources.map(source => source.period), ['2026-02']);
+  assert.deepEqual(comparison.issues, []);
+});
+
+test('namesakes within one month remain separate employees without warnings', () => {
+  const rows = [row('001', '0012345678', 'NGUYEN VAN AN'), row('002', '0023456789', 'NGUYEN VAN AN')];
+  const comparisons = compareAccountsAcrossHistory(rows, [snapshot('2026-01', rows)], 'VCB');
+  assert.deepEqual(comparisons.map(item => item.issues), [[], []]);
+  assert.deepEqual(comparisons.map(item => item.currentRowIndexes), [[0], [1]]);
+});
+
+test('same account at the same bank still requires review when both ID and name differ', () => {
+  const [comparison] = compareAccountsAcrossHistory(
+    [row('002', '0012345678', 'TRAN VAN BINH')],
+    [snapshot('2026-01', [row('001', '0012345678', 'NGUYEN VAN AN')])], 'VCB',
+  );
+  assert.equal(comparison.sources[0].matchKind, 'candidate');
+  assert.ok(comparison.issues.some(issue => issue.includes('Chỉ trùng STK;')));
+  assert.ok(comparison.issues.some(issue => issue.includes('Document ID khác')));
+});
+
+test('ignoring a namesake does not hide an independent missing-account warning', () => {
+  const comparisons = compareAccountsAcrossHistory(
+    [row('002', '', 'NGUYEN VAN AN')],
+    [snapshot('2026-01', [row('001', '0012345678', 'NGUYEN VAN AN')])], 'VCB',
+  );
+  assert.deepEqual(comparisons[0].sources, []);
+  assert.equal(visibleHistoricalComparisons(comparisons).length, 1);
+  assert.ok(comparisons[0].bankCheck?.findings.some(finding => finding.code === 'ACCOUNT_MISSING'));
+});
+
 test('saved-source dates use the compact DD/MM/YY format', () => {
   assert.equal(formatHistoryDate('2026-09-07T06:59:37.849758+00:00'), '07/09/26');
   assert.equal(formatHistoryDate('not-a-date'), 'not-a-date');

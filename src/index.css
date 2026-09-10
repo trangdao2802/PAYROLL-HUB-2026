@@ -184,18 +184,30 @@
   padding-inline-start: 0;
 }
 
-/* Keep table navigation outside the grid's layers and independent of saved
-   fixed-height DIV styles. Radix still positions/flips its body portal; only
-   the viewport may limit the menu, with scrolling on very short screens. */
-html body [data-slot="dropdown-menu-content"].table-switch-menu {
-  z-index: 99999 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: min(var(--radix-dropdown-menu-content-available-height, 100vh), calc(100vh - 16px)) !important;
-  max-height: min(var(--radix-dropdown-menu-content-available-height, 100dvh), calc(100dvh - 16px)) !important;
-  max-width: calc(100vw - 16px) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+/* Layered !important declarations outrank the unlayered custom DIV rules,
+   including selectors containing generated Radix IDs. Protect the positioning
+   wrapper as well as the menu; a fixed height on either can collapse it. */
+@layer base {
+  [data-radix-popper-content-wrapper]:has(> .table-switch-menu) {
+    width: max-content !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  [data-slot="dropdown-menu-content"].table-switch-menu {
+    z-index: 99999 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(var(--radix-dropdown-menu-content-available-height, 100vh), calc(100vh - 16px)) !important;
+    max-height: min(var(--radix-dropdown-menu-content-available-height, 100dvh), calc(100dvh - 16px)) !important;
+    max-width: calc(100vw - 16px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
 }
 
 /* The sculptural initial and the rest of each title share one text baseline,

@@ -294,7 +294,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         <summary className="cursor-pointer font-semibold">Quy tắc & nguồn · {visibleReport.versions.length} tháng</summary>
         <div className="mt-2 space-y-1.5 text-muted-foreground">
           <p>Chọn ID khi cùng tên + STK; chọn tên khi cùng ID + STK; chọn STK khi cùng ID + tên. Các dòng phải cùng ngân hàng và không mâu thuẫn trong cùng tháng.</p>
-          <p>Ô trống có thể được bổ sung từ tháng có giá trị đúng. Trùng một thông tin hoặc khác từ hai thông tin cần xác minh, không tự gộp nhân viên.</p>
+          <p>Ô trống có thể được bổ sung từ tháng có giá trị đúng. Trùng tên đơn thuần không dùng để đối chiếu. Chỉ trùng STK cần xác minh chủ tài khoản, không tự gộp nhân viên.</p>
           <p>Tên được so sánh sau khi bỏ khác biệt hoa/thường, dấu và khoảng trắng. ID và STK giữ nguyên số 0 đầu. Dữ liệu lỗi, số mũ hoặc nickname không được dùng làm nguồn STK.</p>
           <p>Hộp thoại cho chọn giá trị nguồn và các tháng cập nhật. Nếu thông tin thay đổi hợp lệ theo tháng, bỏ chọn tháng đó hoặc chọn Giữ nguyên. Chỉ trường đã chọn được đồng bộ.</p>
           <p>Mỗi lần Check tải dữ liệu Supabase mới nhất. Đây là đối chiếu dữ liệu, chưa xác minh tài khoản với ngân hàng.</p>

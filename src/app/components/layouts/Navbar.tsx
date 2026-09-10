@@ -215,7 +215,12 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
                     <ChevronDown className="w-3 h-3 opacity-60" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-52 p-1.5 bg-card border border-border shadow-xl rounded-xl z-[9999]">
+                <DropdownMenuContent
+                  align="start"
+                  sideOffset={8}
+                  collisionPadding={8}
+                  className="table-switch-menu w-52 p-1.5 bg-card border border-border shadow-xl rounded-xl"
+                >
                   {pageTabs[lookupPath].map((t) => (
                     <DropdownMenuItem
                       key={t.id}

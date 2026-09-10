@@ -24,7 +24,10 @@ for (let mask = 0; mask < 8; mask++) {
     const differences = fields.filter((_, index) => mask & (1 << index));
     assert.deepEqual(available, differences.length === 1 ? differences : []);
     const result = compareAccountsAcrossHistory(current.rows, [past], 'VCB')[0];
-    if (differences.length === 2) {
+    if (mask === 5) {
+      assert.equal(visibleHistoricalComparisons([result]).length, 0, 'Name alone does not establish an identity');
+      assert.equal(result.sources.length, 0);
+    } else if (differences.length === 2) {
       assert.equal(visibleHistoricalComparisons([result]).length, 1);
       assert.equal(result.sources.length, 1);
     }

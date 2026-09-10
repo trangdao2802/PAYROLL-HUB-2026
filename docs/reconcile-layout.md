@@ -15,15 +15,18 @@ and in the check report export. Transaction bank exports still blank Document ID
 | Same | Different/missing | Same | Choose name |
 | Same | Same | Different/missing | Choose account |
 | Different | Different | Same | Verify identity; no sync |
-| Different | Same | Different | Verify identity; no sync |
+| Different | Same | Different | Not linked by name; no warning from the namesake alone |
 | Same | Different | Different | Verify identity; no sync |
 | Different | Different | Different | Cannot link from these fields alone |
 
 All choices require the two other fields to be complete and equal, the same
 known bank, and no overlapping identities or contradictory values within a
-month. Exact duplicate payment rows are retained. Matching a name alone or
-an account alone exposes a candidate for review, never a synchronization
-source. No matching fields cannot establish that two records are one person.
+month. Exact duplicate payment rows are retained. Matching an account alone
+at the same bank exposes a candidate for review, never a synchronization
+source. A name alone does not link records or create a review warning.
+Employees with the same name and different IDs/accounts remain separate;
+independent missing/invalid-field warnings still apply. No matching fields
+cannot establish that two records are one person.
 
 Name comparison ignores case, Vietnamese diacritics and repeated whitespace;
 this does not alter the stored spelling. IDs and accounts preserve leading

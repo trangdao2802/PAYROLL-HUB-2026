@@ -262,11 +262,9 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
       const anchoredMatches = directMatches.length > 0
         ? [...new Set([...directMatches, ...(overlappingIds ? nameAccountMatches : [])])]
         : nameAccountMatches;
-      // One shared field is only a candidate for manual verification. Show
-      // both changed fields instead of silently classifying the row as new.
+      // A shared account at the same bank needs owner verification. A name
+      // alone must never link employees with different IDs and accounts.
       const identityMatches = anchoredMatches.length ? anchoredMatches : snapshot.rows.filter(item => (
-        Boolean(comparison.currentName) && name(item['Beneficiary Name']) === name(comparison.currentName)
-      ) || (
         Boolean(comparison.currentAccount)
           && text(item['Beneficiary Account No.']) === comparison.currentAccount
           && transactionBank(item, defaultBank).bank === transactionBank(current[index], defaultBank).bank
@@ -299,7 +297,7 @@ export function compareAccountsAcrossHistory(current: TransactionRow[], history:
       });
 
       if (!anchoredMatches.length) {
-        result.issues.push(`${period} (#${snapshot.id}): Chỉ trùng tên hoặc STK; chưa đủ xác định cùng người`);
+        result.issues.push(`${period} (#${snapshot.id}): Chỉ trùng STK; chưa đủ xác định cùng người`);
         if (sourceDocumentId !== comparison.documentId) result.issues.push(`${period} (#${snapshot.id}): Document ID khác`);
         if (sourceAccount !== comparison.currentAccount) result.issues.push(`${period} (#${snapshot.id}): STK khác`);
         if (name(sourceName) !== name(comparison.currentName)) result.issues.push(`${period} (#${snapshot.id}): Tên khác`);

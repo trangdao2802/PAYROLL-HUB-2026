@@ -19,7 +19,7 @@ export function summarizeHistoryWarnings(comparison: HistoricalAccountComparison
     const simple = issue.replace(/^\d{4}-\d{2}\s*\(#[^)]+\):\s*/, '').replace(/\s*\([^)]*\)/g, '').trim();
     labels.add(simple.replace(/^Thiếu STK.*$/, 'Thiếu STK').replace(/^Thiếu tên.*$/, 'Thiếu tên')
       .replace(/^Thiếu Document ID.*$/, 'Thiếu ID')
-      .replace(/^Chỉ trùng tên hoặc STK.*$/, 'Chưa xác định cùng người'));
+      .replace(/^Chỉ trùng STK.*$/, 'Chưa xác định cùng người'));
   }
   for (const finding of findings) labels.add(BANK_LABELS[finding.code] || 'Cần xác minh');
   if (labels.has('Tên khác')) labels.delete('STK có tên khác');
