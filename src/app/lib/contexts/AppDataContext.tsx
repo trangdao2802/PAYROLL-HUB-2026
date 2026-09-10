@@ -19,6 +19,7 @@ import { resolveL07BuFromAeCode } from "../utils/center-utils";
 import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
 import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
+import { normalizeGrossPaySpecialCenters } from "../utils/master-special-centers";
 import { reconcileHoldTransactionRows } from "../utils/hold-carryover";
 import {
   hasRequiredDeductionsFields,
@@ -513,7 +514,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           setState((prev) => ({
             ...prev,
             present: {
-              ...(saved as AppData),
+              ...normalizeGrossPaySpecialCenters(saved as AppData),
             },
           }));
         } else {
@@ -643,7 +644,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       sourceFields: readonly OriginalField[] = [],
     ) => {
       setState((prev) => {
-        const nextPresent = trackTableOriginals(prev.present, updater(prev.present), saveToHistory, sourceFields);
+        const updated = updater(prev.present);
+        const normalized = updated.Sheet1_AE?.data !== prev.present.Sheet1_AE?.data
+          ? normalizeGrossPaySpecialCenters(updated) : updated;
+        const nextPresent = trackTableOriginals(prev.present, normalized, saveToHistory, sourceFields);
         if (nextPresent === prev.present) return prev;
         if (persistImmediately) immediatePersistRequestedRef.current = true;
         return {

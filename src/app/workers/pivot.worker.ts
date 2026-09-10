@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as XLSX from "xlsx";
 import { formatPivotTypeHeader } from "../lib/utils/pivot-utils";
+import { resolveMasterSpecialCenter } from "../lib/utils/master-special-centers";
 import {
   isSheetOneMasterSheetName,
   normalizeMasterSheetName,
@@ -86,6 +87,8 @@ function processTimesheetMktLogic(row: any) {
 }
 
 function processNorthLogic(rawCenter: string) {
+  const specialCenter = resolveMasterSpecialCenter(rawCenter);
+  if (specialCenter) return { l07: specialCenter.l07, bu: specialCenter.business };
   const cleaned = rawCenter ? String(rawCenter).trim() : "";
   let l07 = cleaned;
 

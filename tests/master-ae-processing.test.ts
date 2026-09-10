@@ -83,3 +83,29 @@ test("Master import clears processing state and marks failed files without compl
   assert.equal(harness.context.preparedMasterFiles.size, 0);
   assert.equal(harness.data().Sheet1_AE.data.length, 0);
 });
+
+test("Gross Pay import keeps equal Cambridge and Contest payments distinct and maps Cambridge HP", async (t) => {
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+    ["ID Number", "Full name", "Center", "CHARGE TO LXO", "TOTAL PAYMENT"],
+    ["001090627040", "Nguyen Van A", "Cambridge", 120000, 120000],
+    ["001090627040", "Nguyen Van A", "Contest", 120000, 120000],
+    ["001090627040", "Nguyen Van A", "Job Fair", 120000, 120000],
+    ["001090627040", "Nguyen Van A", "Cambridge HP", 120000, 120000],
+  ]), "Sheet 1");
+  const file = new File([XLSX.write(workbook, { bookType: "xlsx", type: "array" })], "NORTH 08.2026.xlsx");
+  const harness = importHarness(t, file);
+  await processMasterAEData(harness.context);
+  assert.equal(harness.completions(), 1);
+  assert.deepEqual(harness.data().Sheet1_AE.data.map(row => [row.L07, row.Business, row["TOTAL PAYMENT"]]), [
+    ["CAMBRIDGE", "AHN", 120000],
+    ["CONTEST", "AHN", 120000],
+    ["JOB FAIR", "AHN", 120000],
+    ["CAMBRIDGE", "AHP", 120000],
+  ]);
+  const cache = JSON.parse(harness.storage.get("pivot_master_processed_data") || "null");
+  assert.equal(cache.groupedData.AHN.CAMBRIDGE["08.2026"].LXO, 120000);
+  assert.equal(cache.groupedData.AHN.CONTEST["08.2026"].LXO, 120000);
+  assert.equal(cache.groupedData.AHN["JOB FAIR"]["08.2026"].LXO, 120000);
+  assert.equal(cache.groupedData.AHP.CAMBRIDGE["08.2026"].LXO, 120000);
+});

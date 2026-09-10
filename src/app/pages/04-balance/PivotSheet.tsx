@@ -1,4 +1,5 @@
 import { TableRestoreButton } from '../../components/TableRestoreButton';
+import { resolveMasterSpecialCenter } from "../../lib/utils/master-special-centers";
 import { registerTableExport } from "../../lib/utils/table-excel";
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-unused-vars */
@@ -261,13 +262,14 @@ const aeCodeToL07Map: Record<string, string> = {
   "Apollo Advance -South": "AA",
   "ASP - HN": "HN0200.ASP",
   "MKT LOCAL NORTH": "MKT LOCAL NORTH",
-  "Cambridge": "ZHN0000.GY",
+  "Cambridge": "CAMBRIDGE",
   "MKT HP": "MKT LOCAL NORTH_HP",
   "MKT TN01.LNQ": "MKT LOCAL NORTH_TN",
   "MKT PT01.HVG": "MKT LOCAL NORTH_PT",
   "MKT TH01.TPU": "MKT LOCAL NORTH_TH",
   "NTW": "NTW",
-  "Contest": "ZHN0000.GY"
+  "Contest": "CONTEST",
+  "Job Fair": "JOB FAIR"
 };
 
 function extractBankName(fileName: string, bankLabel?: string) {
@@ -289,6 +291,8 @@ function extractBankName(fileName: string, bankLabel?: string) {
 }
 
 function processNorthLogic(rawCenter: string) {
+  const specialCenter = resolveMasterSpecialCenter(rawCenter);
+  if (specialCenter) return { chargeToCenterMkt: "", l07: specialCenter.l07, bu: specialCenter.business };
   const cleaned = rawCenter ? String(rawCenter).trim() : "";
   let l07 = cleaned;
 
@@ -362,7 +366,7 @@ function parseMonthFromFileName(fileName: string, globalMonth?: string): string 
 // ==========================================
 
 export function PivotSheet() {
-  const { appData } = useAppData();
+  const { appData, isLoading: isAppDataLoading } = useAppData();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>(() => {
     try {
@@ -1284,9 +1288,8 @@ export function PivotSheet() {
   ]);
 
   useEffect(() => {
-    loadMasterData(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!isAppDataLoading) void loadMasterData(false);
+  }, [isAppDataLoading, loadMasterData]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
