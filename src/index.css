@@ -2212,11 +2212,11 @@ header.table-header,
 
 .trial-balance-table tr[data-trial-detail="true"] > td,
 .trial-balance-table tr[data-trial-detail="true"] > td span {
-  font-size: 10px !important;
+  font-size: 12px !important;
 }
 
 .trial-balance-table tr[data-trial-detail="true"] > td .trial-opening-amount {
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .hold-dashboard-card {

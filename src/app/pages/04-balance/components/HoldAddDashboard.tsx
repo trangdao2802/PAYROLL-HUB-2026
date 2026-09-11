@@ -2532,24 +2532,24 @@ export function HoldAddDashboard() {
                                   data-trial-detail={isDetail ? "true" : undefined}
                                   className={`group ${isRowDimmed ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through" : "bg-white dark:bg-card"} transition-colors`}
                                 >
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[13px]">
+                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[12px]">
                                     {rowNumber}
                                   </td>
                                   <td
-                                    className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[13px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
+                                    className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
                                     title={trialBalanceRowLabel(e)}
                                   >
                                     {trialBalanceRowLabel(e)}
                                   </td>
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-center text-slate-800 dark:text-slate-100 font-normal whitespace-nowrap text-[13px]"
+                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-center text-slate-800 dark:text-slate-100 font-normal whitespace-nowrap text-[12px]"
                                     title={e.bu}
                                   >
                                     {e.bu}
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right text-slate-700 dark:text-slate-300 tabular-nums text-xs whitespace-nowrap min-w-[75px]">
                                     {rowOpenBal !== 0 ? (
-                                      <span className="trial-opening-amount text-slate-800 dark:text-slate-100 font-normal">
+                                      <span className="trial-opening-amount text-slate-800 dark:text-slate-100 font-normal text-[12px]">
                                         {fmt(rowOpenBal)}
                                       </span>
                                     ) : (
@@ -2558,7 +2558,7 @@ export function HoldAddDashboard() {
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
                                     {!isRowDimmed && displayedThu !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span className="text-slate-800 dark:text-slate-100 font-normal text-[12px]">
                                         {fmt(displayedThu)}
                                       </span>
                                     ) : (
@@ -2567,7 +2567,7 @@ export function HoldAddDashboard() {
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
                                     {!isRowDimmed && displayedChi !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span className="text-slate-800 dark:text-slate-100 font-normal text-[12px]">
                                         {fmt(displayedChi)}
                                       </span>
                                     ) : (
@@ -2575,7 +2575,7 @@ export function HoldAddDashboard() {
                                     )}
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                                    <span className="text-rose-600 dark:text-rose-400 font-semibold text-[12px]">
                                       {displayedRCloseStr}
                                     </span>
                                   </td>
@@ -2584,7 +2584,7 @@ export function HoldAddDashboard() {
                                   </td>
 
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-left text-muted-foreground min-w-[200px] text-[13px]"
+                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-left text-muted-foreground min-w-[200px] text-[12px]"
                                     title={e.ghiChu}
                                   >
                                     {e.ghiChu || ""}

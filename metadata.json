@@ -1,6 +1,6 @@
 {
   "name": "Remix Payroll Intern 2026",
-  "description": "Imported from GitHub: daotrang0208hd-web/-Payroll-Hub-v1.53",
+  "description": "Professional payroll, timesheet, and financial reconciliation management hub.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
