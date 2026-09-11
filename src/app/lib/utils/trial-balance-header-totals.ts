@@ -46,7 +46,11 @@ export function calculateTrialBalanceHeaderTotals(
       } else {
         const origin = trialBalancePeriod(row.displayMonth || row.month || "");
         if (origin === report) {
-          totals.hold += Math.abs(parseMoneyToNumber(row.rawHold || (!row.customMonthDisplay ? row.chi : row.hold) || 0));
+          const isBasePayroll = !row.customMonthDisplay && !/_(adjustment|cancel|add|hold)/.test(row.id || "");
+          const isExplicitHold = /\bhold\b/i.test(row.customMonthDisplay || "") || /_hold/.test(row.id || "");
+          if (isBasePayroll || isExplicitHold) {
+            totals.hold += Math.abs(parseMoneyToNumber(row.rawHold || (!row.customMonthDisplay ? row.chi : (row.hold || row.chi)) || 0));
+          }
           totals.cancel += Math.abs(parseMoneyToNumber(row.rawCancel ?? row.cancel ?? 0));
         }
         if (origin > 0 && origin < report) totals.add += Math.abs(parseMoneyToNumber(row.rawAdd ?? row.add ?? 0));

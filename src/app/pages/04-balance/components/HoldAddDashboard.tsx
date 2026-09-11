@@ -1,5 +1,5 @@
 import { autoApproveTrialBalanceRow } from "../../../lib/utils/trial-balance-approval";
-import { trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
+import { trialBalancePeriod, trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
 import { hideInactivePastHold, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
 import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
@@ -1170,39 +1170,7 @@ export function HoldAddDashboard() {
           0,
       );
 
-      // KHOẢN HOLD CÓ THÁNG PHÁT SINH = THÁNG BÁO CÁO THÌ GỘP VÀO DÒNG LƯƠNG TA (Lương Hold của tháng xếp cạnh Lương TA của tháng)
-      if (type === "hold" && isSameMonthForSumIf(displayMonth, month)) {
-        const baseKey = getBuKey(month, biz);
-        if (!buStats[baseKey]) {
-          buStats[baseKey] = {
-            id: baseKey,
-            month,
-            reportMonth: month,
-            displayMonth: month,
-            bu: biz,
-            rawThu: 0,
-            rawChi: 0,
-            thu: 0,
-            chi: 0,
-            add: 0,
-            hold: 0,
-            cancel: 0,
-            rawAdd: 0,
-            rawHold: 0,
-            rawCancel: 0,
-            bonus: 0,
-            rawBonus: 0,
-            rawHoldPending: 0,
-            ghiChu: "",
-            confirmed: false,
-            lenh: "",
-          };
-        }
-        buStats[baseKey].rawChi += tpRaw;
-        buStats[baseKey].chi = buStats[baseKey].rawChi;
-        return;
-      }
-
+      const isCurrentPeriodHold = type === "hold" && isSameMonthForSumIf(displayMonth, month);
       const isPastMonth = getMonthNum(displayMonth) < getMonthNum(month);
       // We don't dim past holds if they are processed in the current file month! They are legitimate transactions of the current month.
       const isDimmedHold = false;
@@ -1214,7 +1182,9 @@ export function HoldAddDashboard() {
       if (type === "add" || type === "hold" || type === "cancel") {
         mergeType = "adjustment";
       }
-      const key = `${groupMonth}_${biz}_${displayMonth}_${mergeType}_${month}`;
+      const key = isCurrentPeriodHold
+        ? `${month}_${biz}_${displayMonth}_hold_${month}`
+        : `${groupMonth}_${biz}_${displayMonth}_${mergeType}_${month}`;
       
       // Do not merge hold/add/cancel into base row.
       // If the user wants Bonus merged into the base row, we'll handle it below.
@@ -1364,12 +1334,14 @@ export function HoldAddDashboard() {
       const totalArising = Math.abs(s.rawHold || 0) + Math.abs(s.rawCancel || 0);
       const isAdjustmentType =
         String(s.id).includes("_adjustment_") ||
+        String(s.id).includes("_hold") ||
         (s.rawAdd !== undefined && s.rawAdd > 0) ||
         (s.rawHold !== undefined && s.rawHold > 0) ||
         (s.rawCancel !== undefined && s.rawCancel > 0);
 
       if (isAdjustmentType && (totalArising > 0 || isAddOnly)) {
-        if (!isAddOnly) {
+        const isCurrentMonthHold = s.displayMonth && s.reportMonth && isSameMonthForSumIf(s.displayMonth, s.reportMonth) && (s.rawHold || 0) > 0 && !s.rawAdd && !s.rawCancel;
+        if (!isAddOnly && !isCurrentMonthHold) {
           s.openHold = Math.max(s.rawOpenHold || 0, totalArising);
           s.rawOpenHold = s.openHold;
         } else {
@@ -1377,7 +1349,7 @@ export function HoldAddDashboard() {
           s.rawOpenHold = 0;
         }
         s.thu = 0;
-        s.chi = 0;
+        s.chi = isCurrentMonthHold ? Math.abs(s.rawHold || 0) : 0;
         s.add = Math.abs(s.rawAdd || 0);
         s.hold = Math.abs(s.rawHold || 0);
         s.cancel = Math.abs(s.rawCancel || 0);
@@ -2101,22 +2073,47 @@ export function HoldAddDashboard() {
       const rows = grouped.get(mk) || [];
       return [...new Set(rows.map(row => row.bu))].flatMap((bu, buIndex) => {
         let detailIndex = 0;
-        return rows.filter(row => row.bu === bu && !hideInactivePastHold(row, mk))
-          .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b))
-          .map(row => {
-            const isDetail = !!row.customMonthDisplay;
-            return {
-              "#": isDetail ? `${buIndex + 1}.${++detailIndex}` : String(buIndex + 1),
-              "Ngày / Tháng": trialBalanceRowLabel(row),
-              "Business": bu,
-              "Số dư Hold ĐK": isDetail ? row.openHold || 0 : buBalancesByMonth[mk]?.[bu]?.openBal || 0,
-              "Lương TA của tháng": row.thu || 0,
-              "Lương Hold của tháng": Math.abs(row.chi || 0),
-              "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
-              "Số dư Hold còn lại": isDetail ? 0 : remainingHoldByMonth[mk]?.byBu[bu] || 0,
-              "Note": row.ghiChu || "",
-            };
-          });
+        const buRowsForExport = rows.filter(row => row.bu === bu && !hideInactivePastHold(row, mk))
+          .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
+        const hasDetailOpenHold = buRowsForExport.some(r => !!r.customMonthDisplay && (r.openHold || 0) > 0);
+        const hasDetailHoldOrOpen = buRowsForExport.some(r => !!r.customMonthDisplay);
+
+        return buRowsForExport.map(row => {
+          const isDetail = !!row.customMonthDisplay;
+          const buBalInfo = buBalancesByMonth[mk]?.[bu];
+          const rowOpenBal = isDetail ? (row.openHold || 0) : (hasDetailOpenHold ? 0 : (buBalInfo?.openBal || 0));
+
+          const origin = trialBalancePeriod(row.displayMonth || row.month);
+          const report = trialBalancePeriod(row.reportMonth || row.month || mk);
+          const isCancel =
+            /cancel/i.test(row.customMonthDisplay || "") ||
+            String(row.id).includes("_cancel") ||
+            /cancel/i.test(row.ghiChu || "") ||
+            !!(row.rawCancel || row.cancel);
+          const isCurrentHold =
+            !isCancel &&
+            origin === report &&
+            (!!(row.rawHold || row.hold) || /_hold\b/i.test(row.id) || /\bhold\b/i.test(row.customMonthDisplay || ""));
+          const rowRemainingHold = isCancel
+            ? 0
+            : isDetail
+              ? (isCurrentHold
+                  ? (Math.abs(row.chi || 0) || row.rawHold || row.hold || 0)
+                  : Math.max(0, (row.openHold || 0) - (row.thu || 0) - (row.rawCancel || row.cancel || 0)))
+              : (hasDetailHoldOrOpen ? 0 : (remainingHoldByMonth[mk]?.byBu[bu] || 0));
+
+          return {
+            "#": isDetail ? `${buIndex + 1}.${++detailIndex}` : String(buIndex + 1),
+            "Ngày / Tháng": trialBalanceRowLabel(row),
+            "Business": bu,
+            "Số dư Hold ĐK": rowOpenBal,
+            "Lương TA của tháng": row.thu || 0,
+            "Lương Hold của tháng": Math.abs(row.chi || 0),
+            "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
+            "Số dư Hold còn lại": rowRemainingHold,
+            "Note": row.ghiChu || "",
+          };
+        });
       });
     });
 
@@ -2510,14 +2507,35 @@ export function HoldAddDashboard() {
                             let sumThu = 0;
                             let sumChi = 0;
                             
+                            const hasDetailOpenHold = buRows.some(r => !!r.customMonthDisplay && (r.openHold || 0) > 0);
+                            const hasDetailHoldOrOpen = buRows.some(r => !!r.customMonthDisplay);
+
                             const renderedBuRows = buRows.map((e) => {
                               const isDetail = !!e.customMonthDisplay;
                               const rowNumber = isDetail ? `${mainNumber}.${++detailIndex}` : String(mainNumber);
                               const buBalInfo = buBalancesByMonth[mk]?.[e.bu];
-                              const rowOpenBal = isDetail ? e.openHold || 0 : buBalInfo?.openBal || 0;
-                              const rowRemainingHold = isDetail ? 0 : remainingHoldByMonth[mk]?.byBu[bu] || 0;
+                              const rowOpenBal = isDetail ? (e.openHold || 0) : (hasDetailOpenHold ? 0 : (buBalInfo?.openBal || 0));
+                              
+                              const origin = trialBalancePeriod(e.displayMonth || e.month);
+                              const report = trialBalancePeriod(e.reportMonth || e.month || mk);
+                              const isCancel =
+                                /cancel/i.test(e.customMonthDisplay || "") ||
+                                String(e.id).includes("_cancel") ||
+                                /cancel/i.test(e.ghiChu || "") ||
+                                !!(e.rawCancel || e.cancel);
+                              const isCurrentHold =
+                                !isCancel &&
+                                origin === report &&
+                                (!!(e.rawHold || e.hold) || /_hold\b/i.test(e.id) || /\bhold\b/i.test(e.customMonthDisplay || ""));
                               const displayedThu = e.thu;
                               const displayedChi = Math.abs(e.chi);
+                              const rowRemainingHold = isCancel
+                                ? 0
+                                : isDetail
+                                  ? (isCurrentHold
+                                      ? (displayedChi || e.rawHold || e.hold || 0)
+                                      : Math.max(0, (e.openHold || 0) - displayedThu - (e.rawCancel || e.cancel || 0)))
+                                  : (hasDetailHoldOrOpen ? 0 : (remainingHoldByMonth[mk]?.byBu[bu] || 0));
                               const rClose = rowRCloseBalances[e.id] ?? 0;
                               const isRowDimmed =
                                 !!e._dimmed && isPeriodSaved(e.month);
@@ -2530,61 +2548,132 @@ export function HoldAddDashboard() {
                                 <tr
                                   key={e.id}
                                   data-trial-detail={isDetail ? "true" : undefined}
-                                  className={`group ${isRowDimmed ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through" : "bg-white dark:bg-card"} transition-colors`}
+                                  className={`group ${
+                                    isRowDimmed
+                                      ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through"
+                                      : !isDetail
+                                        ? "bg-[#F8F9FA] dark:bg-slate-800/50 hover:bg-[#F1F3F5] dark:hover:bg-slate-800/70 font-medium"
+                                        : "bg-white dark:bg-card hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+                                  } transition-colors`}
                                 >
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[12px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 font-bold text-slate-800 dark:text-slate-100 text-[12px]" : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-400 dark:text-slate-500 text-[11px]"
+                                    } p-2 text-center whitespace-nowrap`}
+                                  >
                                     {rowNumber}
                                   </td>
                                   <td
-                                    className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
+                                    className={`border-r border-b ${
+                                      !isDetail
+                                        ? "border-[#ded2d3] dark:border-slate-700/80 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12.5px] font-bold text-slate-900 dark:text-slate-50 tracking-tight"
+                                        : "border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12px] text-slate-600 dark:text-slate-300 font-normal pl-5"
+                                    }`}
                                     title={trialBalanceRowLabel(e)}
                                   >
-                                    {trialBalanceRowLabel(e)}
+                                    {isDetail ? (
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <span className="text-slate-400 dark:text-slate-500 text-[10px] font-mono select-none">↳</span>
+                                        <span>{trialBalanceRowLabel(e)}</span>
+                                      </span>
+                                    ) : (
+                                      trialBalanceRowLabel(e)
+                                    )}
                                   </td>
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-center text-slate-800 dark:text-slate-100 font-normal whitespace-nowrap text-[12px]"
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } px-3 py-2 text-center whitespace-nowrap text-[12px]`}
                                     title={e.bu}
                                   >
-                                    {e.bu}
+                                    {!isDetail ? (
+                                      <span className="font-bold text-slate-800 dark:text-slate-200 bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded text-[11px] tracking-wide">
+                                        {e.bu}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 dark:text-slate-500 text-[11px] font-normal">
+                                        {e.bu}
+                                      </span>
+                                    )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right text-slate-700 dark:text-slate-300 tabular-nums text-xs whitespace-nowrap min-w-[75px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 font-semibold text-slate-900 dark:text-slate-100" : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-600 dark:text-slate-400"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[75px]`}
+                                  >
                                     {rowOpenBal !== 0 ? (
-                                      <span className="trial-opening-amount text-slate-800 dark:text-slate-100 font-normal text-[12px]">
+                                      <span
+                                        className={`trial-opening-amount ${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(rowOpenBal)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
                                     {!isRowDimmed && displayedThu !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal text-[12px]">
+                                      <span
+                                        className={`${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(displayedThu)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
                                     {!isRowDimmed && displayedChi !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal text-[12px]">
+                                      <span
+                                        className={`${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(displayedChi)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    <span className="text-rose-600 dark:text-rose-400 font-semibold text-[12px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
+                                    <span
+                                      className={`${
+                                        !isDetail ? "text-rose-600 dark:text-rose-400 font-bold text-[12px]" : "text-rose-600/80 dark:text-rose-400/80 font-medium text-[12px]"
+                                      }`}
+                                    >
                                       {displayedRCloseStr}
                                     </span>
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail
+                                        ? "border-[#ded2d3] dark:border-slate-700/80 font-semibold text-slate-900 dark:text-slate-100"
+                                        : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-600 dark:text-slate-400"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
                                     {fmt(rowRemainingHold)}
                                   </td>
 
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-left text-muted-foreground min-w-[200px] text-[12px]"
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[12px]" : "border-[#e7dbdc] dark:border-slate-800 text-muted-foreground/80 text-[11px] italic"
+                                    } p-2 text-left min-w-[200px]`}
                                     title={e.ghiChu}
                                   >
                                     {e.ghiChu || ""}

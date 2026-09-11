@@ -25,11 +25,14 @@ export function trialBalanceRowLabel(row: PresentationRow): string {
   const resolved = operations
     ? label.replace(/^(?:Hold|Add(?:\s*\/\s*Cancel)?|Cancel)\b/i, operations)
     : label;
-  return /^(Add|Cancel)\b/i.test(resolved) ? `+ ${resolved}` : resolved;
+  return /^(Add|Cancel|Hold)\b/i.test(resolved) ? `+ ${resolved}` : resolved;
 }
 
 export function trialBalanceRowOrder(row: PresentationRow): number {
   if (!row.customMonthDisplay) return 0;
   const label = trialBalanceRowLabel(row);
-  return /^\+ Add\b/.test(label) ? 1 : /^\+ Cancel\b/.test(label) ? 2 : 3;
+  if (/^\+? Hold\b/i.test(label)) return 1;
+  if (/^\+ Add\b/i.test(label)) return 2;
+  if (/^\+ Cancel\b/i.test(label)) return 3;
+  return 4;
 }
