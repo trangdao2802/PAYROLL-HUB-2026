@@ -335,6 +335,7 @@ export function HoldAddDashboard() {
   const [yearFilter, setYearFilter] = useState("all");
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">("all");
   const [showClearBalancePageDialog, setShowClearBalancePageDialog] = useState(false);
+  const [showDeletePeriodDialog, setShowDeletePeriodDialog] = useState(false);
   const currentPeriodVal = appData.globalMonth || "03.2026";
   const currentPeriodParts = currentPeriodVal.split(".");
   const currentPeriodMonthNum = parseInt(currentPeriodParts[0], 10) || 3;
@@ -2276,7 +2277,7 @@ export function HoldAddDashboard() {
                 </Button>
                 <Button
                   size="sm"
-                  onClick={handleDeleteSavedPeriod}
+                  onClick={() => setShowDeletePeriodDialog(true)}
                   disabled={!isPeriodSaved(currentPeriod)}
                   className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
                 >
@@ -2806,6 +2807,18 @@ export function HoldAddDashboard() {
         title="Xóa dữ liệu trang Balance?"
         description="Toàn bộ kỳ đã lưu, số dư chuyển kỳ và trạng thái xác nhận của Balance sẽ bị xóa. Dữ liệu Timesheet, Audit và Master được giữ nguyên."
         confirmText="XÓA TRANG BALANCE"
+        variant="destructive"
+      />
+      <ConfirmDialog
+        isOpen={showDeletePeriodDialog}
+        onClose={() => setShowDeletePeriodDialog(false)}
+        onConfirm={() => {
+          handleDeleteSavedPeriod();
+          setShowDeletePeriodDialog(false);
+        }}
+        title={`Xóa dữ liệu đã lưu ${currentPeriod}?`}
+        description={`Bạn có chắc chắn muốn xóa dữ liệu đã lưu của ${currentPeriod}? Số dư chuyển tiếp kỳ sau liên quan cũng sẽ được tính toán lại. Dữ liệu các kỳ khác được giữ nguyên.`}
+        confirmText="XÓA DỮ LIỆU KỲ NÀY"
         variant="destructive"
       />
     </div>

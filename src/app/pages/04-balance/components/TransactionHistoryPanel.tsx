@@ -270,14 +270,14 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     } catch { setMessage('Không thể xuất báo cáo Check STK & ID.'); }
   }
 
-  return <section aria-label="Kho Transaction theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
+  return <section aria-label="Kho Batch Payment theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold">Kho Transaction · {month}</span>
-      <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Lưu Transaction đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn" onClick={() => void run('save')}>Lưu tháng</button>
+      <span className="text-xs font-semibold">Kho Batch Payment · {month}</span>
+      <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Lưu Batch Payment đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn" onClick={() => void run('save')}>Lưu tháng</button>
       <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Tải phiên bản mới nhất của tháng này và các tháng trước từ Supabase" onClick={() => void run('check')}>Check STK & ID</button>
       {busy && <span role="status" className="text-xs">Đang xử lý…</span>}
     </div>
-    {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Transaction trước khi Lưu tháng hoặc Check STK & ID.</p>}
+    {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Batch Payment trước khi Lưu tháng hoặc Check STK & ID.</p>}
     {message && <p role="status" className="text-xs mt-2">{message}</p>}
     {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
     {showReport && visibleReport && <div className="mt-2">
@@ -287,7 +287,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
         <button type="button" className={buttonClass} disabled={!exceptions.length || busy} onClick={() => void exportReport()}>Xuất kết quả</button>
       </div>
       {!localMatchesCloud && <div role="status" className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 p-2 text-xs">
-        <span>Transaction trên máy khác bản đang kiểm tra. Lưu tháng để dùng dữ liệu trên máy, hoặc tải bản đã lưu trước khi đồng bộ.</span>
+        <span>Batch Payment trên máy khác bản đang kiểm tra. Lưu tháng để dùng dữ liệu trên máy, hoặc tải bản đã lưu trước khi đồng bộ.</span>
         <button type="button" className={buttonClass} disabled={busy || hasPendingEdits} onClick={() => void run('load')}>Tải bản đã lưu</button>
       </div>}
       <details className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs">

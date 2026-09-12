@@ -1506,8 +1506,8 @@ export function Audit() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -320, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="audit-source-panel w-full md:w-[275px] border p-2.5 flex flex-col gap-2.5 relative md:flex-none shrink-0 z-[60] min-h-0 soft-card"
-            style={{ marginRight: "12px" }}
+            className="audit-source-panel w-full md:w-[275px] border p-2.5 flex flex-col gap-2.5 relative md:flex-none shrink-0 z-[60] min-h-0 rounded-none"
+            style={{ marginRight: "12px", borderRadius: "0px" }}
           >
             <div className="absolute inset-0 bg-pattern-green opacity-[0.025] pointer-events-none" />
 
@@ -1678,15 +1678,13 @@ export function Audit() {
                   )}
 
                   {/* Active table name */}
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide px-1">
+                  <div className="flex items-baseline gap-1">
                   {activeTab === "main" ? (
                     <>
-                      <span className="text-primary font-extrabold">
-                        <TableTitleRemainder
-                          label="AUDIT TEACHER HOURS & CLASS COMPLIANCE OVERVIEW"
-                          className="app-table-title-remainder--expanded"
-                        />
-                      </span>
+                      <TableTitleRemainder
+                        label="AUDIT TEACHER HOURS & CLASS COMPLIANCE OVERVIEW"
+                        className="app-table-title-remainder--expanded"
+                      />
                       {reviewRequiredOverviewData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                           {reviewRequiredOverviewData.length}
@@ -1695,12 +1693,10 @@ export function Audit() {
                     </>
                   ) : activeTab === "detail" ? (
                     <>
-                      <span className="text-emerald-800 font-extrabold">
-                        <TableTitleRemainder
-                          label="AUDIT CLASS CAPACITY DISCREPANCY DETAILS"
-                          className="app-table-title-remainder--expanded"
-                        />
-                      </span>
+                      <TableTitleRemainder
+                        label="AUDIT CLASS CAPACITY DISCREPANCY DETAILS"
+                        className="app-table-title-remainder--expanded text-emerald-800"
+                      />
                       {filteredDetailData.length > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
                           {filteredDetailData.length}
@@ -1709,12 +1705,10 @@ export function Audit() {
                     </>
                   ) : (
                     <>
-                      <span className="text-primary font-extrabold">
-                        <TableTitleRemainder
-                          label="ALLOWED INTERN CAPACITY RULES BY CLASS"
-                          className="app-table-title-remainder--expanded"
-                        />
-                      </span>
+                      <TableTitleRemainder
+                        label="ALLOWED INTERN CAPACITY RULES BY CLASS"
+                        className="app-table-title-remainder--expanded"
+                      />
                       <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
                         {allowedTaRules.length}
                       </span>

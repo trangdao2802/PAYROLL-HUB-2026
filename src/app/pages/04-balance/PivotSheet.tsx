@@ -2,6 +2,7 @@ import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { resolveMasterSpecialCenter } from "../../lib/utils/master-special-centers";
 import { registerTableExport } from "../../lib/utils/table-excel";
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import * as XLSX from "xlsx";
@@ -660,20 +661,27 @@ export function PivotSheet() {
     toast.success(`Đã thêm cột mới: ${trimmed}`);
   };
 
+  const [deleteRowTarget, setDeleteRowTarget] = useState<{ bu: string; l07: string; month: string } | null>(null);
+
   const handleDeleteRow = (bu: string, l07: string, month: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa dòng ${bu} - ${l07} (Tháng ${month})?`)) {
-      setGroupedData(prev => {
-        const nextData = JSON.parse(JSON.stringify(prev));
-        if (nextData[bu] && nextData[bu][l07] && nextData[bu][l07][month]) {
-          delete nextData[bu][l07][month];
-          if (Object.keys(nextData[bu][l07]).length === 0) delete nextData[bu][l07];
-          if (Object.keys(nextData[bu]).length === 0) delete nextData[bu];
-        }
-        saveToCache(nextData);
-        return nextData;
-      });
-      toast.success(`Đã xóa dòng ${bu} - ${l07}`);
-    }
+    setDeleteRowTarget({ bu, l07, month });
+  };
+
+  const confirmDeleteRow = () => {
+    if (!deleteRowTarget) return;
+    const { bu, l07, month } = deleteRowTarget;
+    setGroupedData(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (nextData[bu] && nextData[bu][l07] && nextData[bu][l07][month]) {
+        delete nextData[bu][l07][month];
+        if (Object.keys(nextData[bu][l07]).length === 0) delete nextData[bu][l07];
+        if (Object.keys(nextData[bu]).length === 0) delete nextData[bu];
+      }
+      saveToCache(nextData);
+      return nextData;
+    });
+    toast.success(`Đã xóa dòng ${bu} - ${l07}`);
+    setDeleteRowTarget(null);
   };
   
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -2026,7 +2034,8 @@ export function PivotSheet() {
     <div className="pivot-master-frame unified-table-frame relative flex h-full w-full flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground">
       {/* HEADER SECTION */}
       <div 
-        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
+        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 pb-2 pt-6"
+        style={{ paddingTop: "24px" }}
       >
         <div className="flex w-full min-w-0 items-center">
           <div className="app-table-title-lockup min-w-0">
@@ -2049,11 +2058,11 @@ export function PivotSheet() {
           <div className="ml-auto grid shrink-0 grid-cols-[minmax(108px,auto)_108px_28px] items-end gap-1.5">
             {/* TỔNG TIỀN */}
             <div className="flex min-w-[108px] flex-col items-stretch border-l border-border/60 pl-2">
-              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+              <span className="whitespace-nowrap text-right pr-[5px] text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 TỔNG TIỀN
               </span>
               <div className="mt-0.5 flex h-7 min-w-[100px] items-center justify-center rounded-md border border-border/70 bg-card px-3 shadow-2xs">
-                <span className="whitespace-nowrap text-[11px] font-black tracking-tight text-primary tabular-nums">
+                <span className="whitespace-nowrap text-[13px] px-1 font-black tracking-tight text-primary tabular-nums">
                   {formatNumber(superGrandTotal)}
                 </span>
               </div>
@@ -2061,7 +2070,7 @@ export function PivotSheet() {
 
             {/* Month Filter Selector */}
             <div className="flex w-[108px] min-w-0 flex-col items-stretch">
-              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+              <span className="whitespace-nowrap text-right pl-0.5 pr-1.5 text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 THÁNG
               </span>
               <div className="relative mt-0.5 flex h-7 min-w-0 items-center rounded-full border border-border bg-card px-2 shadow-2xs">
@@ -2076,7 +2085,7 @@ export function PivotSheet() {
                       // ignore
                     }
                   }}
-                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0.5 pl-1 pr-4 text-center text-[10px] font-bold text-foreground focus:outline-none"
+                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0 pl-0 pr-[6px] leading-[18.5px] text-center text-[10px] font-bold text-foreground focus:outline-none"
                   aria-label="Chọn tháng Pivot Master"
                 >
                   <option value="ALL">Tất cả</option>
@@ -2568,6 +2577,15 @@ export function PivotSheet() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={!!deleteRowTarget}
+        onClose={() => setDeleteRowTarget(null)}
+        onConfirm={confirmDeleteRow}
+        title="Xác nhận xóa dòng Pivot"
+        description={`Bạn có chắc chắn muốn xóa dòng ${deleteRowTarget?.bu} - ${deleteRowTarget?.l07} (Tháng ${deleteRowTarget?.month}) khỏi bảng Pivot? Thao tác này không thể hoàn tác.`}
+        confirmText="XÓA DÒNG"
+        variant="destructive"
+      />
     </div>
   );
 }

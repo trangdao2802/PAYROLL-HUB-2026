@@ -1165,15 +1165,13 @@ export function BulkPaymentAnalytics({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
+                  className="flex items-baseline bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
                   title="Chuyển bảng"
                 >
-                  <span className="text-[12px] font-bold uppercase tracking-[0.16em] leading-tight flex items-center gap-1">
-                    <TableTitleRemainder
-                      label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
-                      className="app-table-title-remainder--expanded"
-                    />
-                  </span>
+                  <TableTitleRemainder
+                    label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                    className="app-table-title-remainder--expanded"
+                  />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent

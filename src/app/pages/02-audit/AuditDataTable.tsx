@@ -60,6 +60,7 @@ import {
 } from "../../lib/utils/data-utils";
 import { formatVNRobust } from "../../lib/utils/format-utils";
 import { ColumnFormatDialog } from "../../components/ColumnFormatDialog";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import {
   Select,
@@ -760,6 +761,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       Record<string, Set<any> | undefined>
     >({});
     const [internalSearchTerm, setInternalSearchTerm] = useState("");
+    const [deleteConfirmState, setDeleteConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      description: string;
+      confirmText?: string;
+      onConfirm: () => void;
+    } | null>(null);
     const [supabaseData, setSupabaseData] = useState<any[]>([]);
     const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
 
@@ -3388,29 +3396,61 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 <button
                   onClick={() => {
                     if (onDeleteSelection && selectionRange && (Math.abs(selectionRange.endR - selectionRange.startR) > 0 || Math.abs(selectionRange.endC - selectionRange.startC) > 0)) {
-                       onDeleteSelection({
-                         startR: Math.min(selectionRange.startR, selectionRange.endR),
-                         endR: Math.max(selectionRange.startR, selectionRange.endR),
-                         startC: Math.min(selectionRange.startC, selectionRange.endC),
-                         endC: Math.max(selectionRange.startC, selectionRange.endC),
+                       const startR = Math.min(selectionRange.startR, selectionRange.endR);
+                       const endR = Math.max(selectionRange.startR, selectionRange.endR);
+                       const startC = Math.min(selectionRange.startC, selectionRange.endC);
+                       const endC = Math.max(selectionRange.startC, selectionRange.endC);
+                       const rowCount = endR - startR + 1;
+                       setDeleteConfirmState({
+                         isOpen: true,
+                         title: `Xác nhận xóa vùng chọn (${rowCount} dòng)?`,
+                         description: `Bạn có chắc chắn muốn xóa dữ liệu các dòng trong vùng chọn (${rowCount} dòng)? Thao tác này sẽ cập nhật lại số liệu bảng Audit.`,
+                         confirmText: `XÓA ${rowCount} DÒNG`,
+                         onConfirm: () => {
+                           onDeleteSelection({
+                             startR,
+                             endR,
+                             startC,
+                             endC,
+                           });
+                           setSelectionRange(null);
+                           setDeleteConfirmState(null);
+                         },
                        });
-                       setSelectionRange(null);
                     } else if (onDeleteRows && selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                         const minR = Math.min(selectionRange.startR, selectionRange.endR);
                         const maxR = Math.max(selectionRange.startR, selectionRange.endR);
-                        const rowsToDelete = [];
+                        const rowsToDelete: any[] = [];
                         for (let r = minR; r <= maxR; r++) {
                             rowsToDelete.push(filteredAndSortedData[r]);
                         }
-                        onDeleteRows(rowsToDelete);
-                        setSelectionRange(null);
-                        toast.success(`Đã xóa ${rowsToDelete.length} dòng`);
+                        setDeleteConfirmState({
+                          isOpen: true,
+                          title: `Xác nhận xóa ${rowsToDelete.length} dòng đã chọn?`,
+                          description: `Bạn có chắc chắn muốn xóa ${rowsToDelete.length} dòng dữ liệu này khỏi bảng Audit?`,
+                          confirmText: `XÓA ${rowsToDelete.length} DÒNG`,
+                          onConfirm: () => {
+                            onDeleteRows(rowsToDelete);
+                            setSelectionRange(null);
+                            toast.success(`Đã xóa ${rowsToDelete.length} dòng`);
+                            setDeleteConfirmState(null);
+                          },
+                        });
                     } else if (onDeleteRow) {
                       if (selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                          toast.error("Tính năng xóa nhiều dòng không khả dụng (thiếu onDeleteRows/onDeleteSelection)");
                       } else {
                          const row = filteredAndSortedData[contextMenu.r];
-                         onDeleteRow(row, contextMenu.r);
+                         setDeleteConfirmState({
+                           isOpen: true,
+                           title: "Xác nhận xóa dòng này?",
+                           description: "Bạn có chắc chắn muốn xóa dòng dữ liệu này khỏi bảng Audit?",
+                           confirmText: "XÓA DÒNG NÀY",
+                           onConfirm: () => {
+                             onDeleteRow(row, contextMenu.r);
+                             setDeleteConfirmState(null);
+                           },
+                         });
                       }
                     } else {
                       toast.error("Tính năng xóa dòng không khả dụng cho bảng này");
@@ -3564,6 +3604,19 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             }}
           />
         )}
+        <ConfirmDialog
+          isOpen={!!deleteConfirmState?.isOpen}
+          onClose={() => setDeleteConfirmState(null)}
+          onConfirm={() => {
+            if (deleteConfirmState?.onConfirm) {
+              deleteConfirmState.onConfirm();
+            }
+          }}
+          title={deleteConfirmState?.title || "Xác nhận xóa dữ liệu?"}
+          description={deleteConfirmState?.description || "Bạn có chắc chắn muốn thực hiện thao tác xóa này?"}
+          confirmText={deleteConfirmState?.confirmText || "XÓA"}
+          variant="destructive"
+        />
       </>
     );
   },

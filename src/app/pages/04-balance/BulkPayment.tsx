@@ -2080,7 +2080,7 @@ export function BulkPayment({
                 Statement
               </span>
               <h2 className="text-[12px] font-bold text-foreground uppercase tracking-tight font-sans truncate">
-                Bulk Payment Hub
+                Batch Payment Hub
               </h2>
             </div>
 
@@ -3135,7 +3135,7 @@ export function BulkPayment({
                   <TableInitialMark
                     label={
                       rightPanelTab === "table"
-                        ? "TRANSACTION"
+                        ? "BATCH PAYMENT"
                         : rightPanelTab === "reconcile"
                           ? "RECONCILIATION"
                           : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
@@ -3147,21 +3147,19 @@ export function BulkPayment({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 bg-transparent py-0.5 px-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-lg"
+                    className="flex items-baseline bg-transparent pb-0.5 pr-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-r-lg"
                     title="Chuyển bảng"
                   >
-                    <span className="text-[12px] font-black uppercase tracking-[0.18em]">
-                      <TableTitleRemainder
-                        className="app-table-title-remainder--expanded"
-                        label={
-                          rightPanelTab === "table"
-                            ? "TRANSACTION"
-                            : rightPanelTab === "reconcile"
-                              ? "RECONCILIATION"
-                              : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
-                        }
-                      />
-                    </span>
+                    <TableTitleRemainder
+                      className="app-table-title-remainder--expanded"
+                      label={
+                        rightPanelTab === "table"
+                          ? "BATCH PAYMENT"
+                          : rightPanelTab === "reconcile"
+                            ? "RECONCILIATION"
+                            : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                      }
+                    />
                   </button>
                 </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -3185,7 +3183,7 @@ export function BulkPayment({
                   }`}
                 >
                   <Table2 className="h-4 w-4 shrink-0 text-slate-600 dark:text-slate-300" />
-                  <span>Transaction</span>
+                  <span>Batch Payment</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -3339,7 +3337,7 @@ export function BulkPayment({
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-primary/10 text-slate-700 hover:text-primary font-bold text-xs"
                     >
                       <Settings className="w-4 h-4 text-primary shrink-0" />
-                      <span>Cài đặt Transaction</span>
+                      <span>Cài đặt Batch Payment</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 border-slate-100" />
                     <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 px-2 py-1">
@@ -3348,7 +3346,7 @@ export function BulkPayment({
                     <DropdownMenuItem
                       onClick={handleSyncTransactionFieldsToTables}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-amber-50 text-slate-700 hover:text-amber-800 font-bold text-xs"
-                      title="Lấy Tên, STK và ID Number từ Transaction để cập nhật Gross Pay và Deductions trong tháng đang chọn"
+                      title="Lấy Tên, STK và ID Number từ Batch Payment để cập nhật Gross Pay và Deductions trong tháng đang chọn"
                     >
                       <Zap className="w-4 h-4 text-amber-500 shrink-0" />
                       <span>Đồng bộ Tên · STK · ID</span>
@@ -3396,7 +3394,7 @@ export function BulkPayment({
           <div className="flex-1 flex flex-col items-center justify-center text-primary/10 bg-slate-50/20 p-8 select-none">
             <div className="max-w-xl w-full flex flex-col items-center text-center">
               <h3 className="font-serif text-2xl text-slate-800 font-bold mb-2">
-                Chưa có dữ liệu bảng kê Reconciliation
+                Chưa có dữ liệu bảng kê {rightPanelTab === "table" ? "Batch Payment" : "Reconciliation"}
               </h3>
               <p className="text-[10px] text-slate-400 font-sans max-w-sm mb-8 leading-relaxed font-bold uppercase tracking-wider">
                 Hệ thống tự động đồng bộ chi phí AE Final và các khoản điều
@@ -3413,7 +3411,11 @@ export function BulkPayment({
                 ) : (
                   <Sparkles className="w-4 h-4 shrink-0" />
                 )}
-                <span>TẠO BẢNG KÊ RECONCILIATION NGAY</span>
+                <span>
+                  {rightPanelTab === "table"
+                    ? "TẠO BẢNG KÊ BATCH PAYMENT NGAY"
+                    : "TẠO BẢNG KÊ RECONCILIATION NGAY"}
+                </span>
               </button>
             </div>
           </div>
@@ -3468,10 +3470,10 @@ export function BulkPayment({
                         type="button"
                         onClick={handleSaveTransactionEdits}
                         disabled={!hasPendingTransactionEdits}
-                        aria-label="Lưu dữ liệu Transaction sau chỉnh sửa"
+                        aria-label="Lưu dữ liệu Batch Payment sau chỉnh sửa"
                         title={
                           hasPendingTransactionEdits
-                            ? "Lưu toàn bộ thay đổi vừa sửa trong bảng Transaction"
+                            ? "Lưu toàn bộ thay đổi vừa sửa trong bảng Batch Payment"
                             : "Chưa có thay đổi cần lưu"
                         }
                         className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-extrabold whitespace-nowrap transition-all active:scale-[0.98] ${

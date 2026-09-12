@@ -53,6 +53,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { ColumnMappingDialog } from "./components/ColumnMappingDialog";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 import {
 
   DropdownMenu,
@@ -166,6 +167,7 @@ export function AEDataConfig({
   };
 
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -277,10 +279,17 @@ export function AEDataConfig({
 
   const deleteRow = (id: string | undefined) => {
     if (!id) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDeleteRow = () => {
+    if (!deleteTargetId) return;
     updateAppData((prev) => ({
       ...prev,
-      Ae_Global_Inputs: prev.Ae_Global_Inputs.filter((row) => row.id !== id),
+      Ae_Global_Inputs: prev.Ae_Global_Inputs.filter((row) => row.id !== deleteTargetId),
     }));
+    toast.success("Đã xóa dòng cấu hình");
+    setDeleteTargetId(null);
   };
 
   const updateRow = (id: string, field: keyof AERow, value: any) => {
@@ -1404,6 +1413,16 @@ export function AEDataConfig({
             toast.success("Đã lưu cấu hình mapping cột");
           }
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDeleteRow}
+        title="Xác nhận xóa dòng cấu hình"
+        description={`Bạn có chắc chắn muốn xóa dòng cấu hình "${appData.Ae_Global_Inputs.find((r) => r.id === deleteTargetId)?.name || appData.Ae_Global_Inputs.find((r) => r.id === deleteTargetId)?.bank || "này"}" khỏi trang Master?`}
+        confirmText="XÓA DÒNG CẤU HÌNH"
+        variant="destructive"
       />
     </motion.div>
   );

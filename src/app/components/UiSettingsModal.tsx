@@ -1324,13 +1324,10 @@ export function UiSettingsModal({
                     >
                       <option value="var(--font-main)">Plus Jakarta Sans (Mặc định / Chuẩn)</option>
                       <option value="var(--font-be-vietnam)">Be Vietnam Pro (Tối ưu Tiếng Việt hoàn hảo)</option>
-                      <option value="var(--font-inter)">Inter (Hiện đại / Tinh gọn)</option>
                       <option value="var(--font-newsreader)">Newsreader (Serif Cổ điển / Báo chí)</option>
                       <option value="var(--font-port-lligat-slab)">Gentium Book Plus (Serif Thanh lịch)</option>
                       <option value="var(--font-nunito)">Nunito (Mềm mại)</option>
-                      <option value="var(--font-quicksand)">Quicksand (Tròn trịa)</option>
                       <option value="var(--font-space-grotesk)">Space Grotesk (Công nghệ / Rõ nét)</option>
-                      <option value="var(--font-jetbrains-mono)">JetBrains Mono (Monospace Kỹ thuật)</option>
                     </select>
                   </div>
 
@@ -1356,27 +1353,6 @@ export function UiSettingsModal({
                     <p className="text-[10px] font-medium text-gray-500">
                       Áp dụng đồng nhất cho tiêu đề, nội dung, dòng tổng và chân phân trang.
                     </p>
-                  </div>
-
-                  {/* Table Border Radius Slider */}
-                  <div className="flex flex-col gap-1 mt-2">
-                    <div className="flex justify-between items-center">
-                      <label htmlFor="table-radius" className="font-bold text-[0.8125rem]">
-                        Bo góc của bảng (Table Radius)
-                      </label>
-                      <span className="text-xs font-bold">{settings.tableRadius || "12px"}</span>
-                    </div>
-                    <input
-                      id="table-radius"
-                      type="range"
-                      min="0"
-                      max="30"
-                      value={parseInt(settings.tableRadius || "12") || 0}
-                      onChange={(e) =>
-                        setSettings({ ...settings, tableRadius: `${e.target.value}px` })
-                      }
-                      className="w-full accent-primary"
-                    />
                   </div>
 
                   {/* Custom Element Selector Styles */}
@@ -1995,13 +1971,10 @@ export function UiSettingsModal({
                       >
                         <option value="var(--font-main)">Plus Jakarta Sans (Mặc định / Chuẩn)</option>
                         <option value="var(--font-be-vietnam)">Be Vietnam Pro (Tối ưu Tiếng Việt hoàn hảo)</option>
-                        <option value="var(--font-inter)">Inter (Hiện đại / Tinh gọn)</option>
                         <option value="var(--font-newsreader)">Newsreader (Serif Cổ điển / Báo chí)</option>
                         <option value="var(--font-port-lligat-slab)">Gentium Book Plus (Serif Thanh lịch)</option>
                         <option value="var(--font-nunito)">Nunito (Mềm mại)</option>
-                        <option value="var(--font-quicksand)">Quicksand (Tròn trịa)</option>
                         <option value="var(--font-space-grotesk)">Space Grotesk (Công nghệ / Rõ nét)</option>
-                        <option value="var(--font-jetbrains-mono)">JetBrains Mono (Monospace Kỹ thuật)</option>
                       </select>
                     </div>
 
@@ -2021,26 +1994,6 @@ export function UiSettingsModal({
                         value={parseFloat(settings.fontSize || "13") || 13}
                         onChange={(e) =>
                           setSettings({ ...settings, fontSize: `${e.target.value}px` })
-                        }
-                        className="w-full accent-primary"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1 mt-1">
-                      <div className="flex justify-between items-center">
-                        <label htmlFor="general-table-radius" className="font-bold text-[0.8125rem]">
-                          Bo góc bảng (Radius)
-                        </label>
-                        <span className="text-xs font-bold">{settings.tableRadius || "12px"}</span>
-                      </div>
-                      <input
-                        id="general-table-radius"
-                        type="range"
-                        min="0"
-                        max="30"
-                        value={parseInt(settings.tableRadius || "12") || 0}
-                        onChange={(e) =>
-                          setSettings({ ...settings, tableRadius: `${e.target.value}px` })
                         }
                         className="w-full accent-primary"
                       />

@@ -1,6 +1,7 @@
 import { useTableRestore } from '../../../hooks/useTableRestore';
 import { deductionsNote, prioritizeMatchingDeductions } from "../../../lib/utils/deductions-display";
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
+import { ConfirmDialog } from "../../../components/shared/ConfirmDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useCallback, forwardRef } from "react";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
@@ -107,6 +108,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
     const [showSearch, setShowSearch] = React.useState(false);
     const [showClearConfirm, setShowClearConfirm] = React.useState(false);
     const [showDeleteSnapshotConfirm, setShowDeleteSnapshotConfirm] = React.useState(false);
+    const [rowsPendingDelete, setRowsPendingDelete] = React.useState<any[] | null>(null);
     const hasActiveSearch = searchTerm.trim().length > 0;
     const isSearchVisible = showSearch || hasActiveSearch;
     const currentReportMonth =
@@ -1119,26 +1121,8 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 icon: <Trash2 className="w-3 h-3" />,
                 variant: "destructive",
                 onClick: (selectedRows) => {
-                  updateAppData((prev: any) => {
-                    const targetTab = prev.Hold_AE;
-                    if (!targetTab || !targetTab.data) return prev;
-
-                    const deletion = removeSelectedHoldSourceRows(
-                      targetTab.data,
-                      selectedRows,
-                    );
-                    if (deletion.removedCount === 0) return prev;
-
-                    return {
-                      ...prev,
-                      Hold_AE: { ...targetTab, data: deletion.rows },
-                    };
-                  });
-                  const currentRef = ref as any;
-                  if (currentRef?.current?.clearSelection) {
-                    currentRef.current.clearSelection();
-                  }
-                  toast.success(`Đã xóa ${selectedRows.length} dòng`);
+                  if (!selectedRows || selectedRows.length === 0) return;
+                  setRowsPendingDelete(selectedRows);
                 },
               },
             ]}
@@ -1295,6 +1279,40 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <ConfirmDialog
+          isOpen={!!rowsPendingDelete}
+          onClose={() => setRowsPendingDelete(null)}
+          onConfirm={() => {
+            if (!rowsPendingDelete) return;
+            const selectedRows = rowsPendingDelete;
+            updateAppData((prev: any) => {
+              const targetTab = prev.Hold_AE;
+              if (!targetTab || !targetTab.data) return prev;
+
+              const deletion = removeSelectedHoldSourceRows(
+                targetTab.data,
+                selectedRows,
+              );
+              if (deletion.removedCount === 0) return prev;
+
+              return {
+                ...prev,
+                Hold_AE: { ...targetTab, data: deletion.rows },
+              };
+            });
+            const currentRef = ref as any;
+            if (currentRef?.current?.clearSelection) {
+              currentRef.current.clearSelection();
+            }
+            toast.success(`Đã xóa ${selectedRows.length} dòng`);
+            setRowsPendingDelete(null);
+          }}
+          title={`Xác nhận xóa ${rowsPendingDelete?.length || 0} dòng đã chọn?`}
+          description={`Bạn có chắc chắn muốn xóa ${rowsPendingDelete?.length || 0} dòng dữ liệu Deductions (Hold/Add/Cancel)? Thao tác này sẽ tính toán lại số dư và khấu trừ.`}
+          confirmText={`XÓA ${rowsPendingDelete?.length || 0} DÒNG`}
+          variant="destructive"
+        />
       </div>
     );
   },

@@ -143,7 +143,9 @@
   padding-block: 0;
   text-transform: lowercase !important;
   vertical-align: baseline;
-  transform: translateY(2px);
+  margin-left: 0px;
+  padding-left: 2px;
+  text-align: left;
 }
 
 .app-table-title-remainder--expanded {
@@ -175,7 +177,7 @@
   height: auto !important;
   min-height: 1.45rem;
   line-height: 1.4 !important;
-  padding-bottom: 2px !important;
+  padding-bottom: 0px !important;
 }
 
 .app-table-title-meta {
@@ -2523,7 +2525,7 @@ div.audit-data-table-wrapper {
   height: auto;
   max-height: 100%;
   border-color: color-mix(in srgb, var(--primary, #781d1d) 12%, var(--border, #cbd5e1)) !important;
-  border-radius: 14px !important;
+  border-radius: 0px !important;
   background: color-mix(in srgb, var(--primary, #781d1d) 1.5%, var(--card, #ffffff)) !important;
   box-shadow: 0 14px 36px -28px color-mix(in srgb, var(--primary, #781d1d) 42%, transparent) !important;
 }
