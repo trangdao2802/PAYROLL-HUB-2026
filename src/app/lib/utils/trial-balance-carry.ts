@@ -3,6 +3,7 @@ type CarryRow = {
   customMonthDisplay?: string; _isOpeningHold?: boolean; _excludeFromTotals?: boolean;
   thu?: number; chi?: number; hold?: number; add?: number; cancel?: number;
   rawHold?: number; rawAdd?: number; rawCancel?: number;
+  openHold?: number;
 };
 
 function period(value: string): number {
@@ -19,7 +20,7 @@ export function isHoldDetail(row: CarryRow): boolean {
 export function hideInactivePastHold(row: CarryRow, reportMonth: string): boolean {
   const origin = period(row.displayMonth || row.month);
   return isHoldDetail(row) && origin > 0 && origin < period(reportMonth)
-    && !row.thu && !row.chi && !row.add && !row.cancel && !row.rawAdd && !row.rawCancel;
+    && !row.thu && !row.chi && !row.add && !row.cancel && !row.rawAdd && !row.rawCancel && !row.openHold;
 }
 
 /** Carry is scoped to a BU by the caller, and releases only its matching origin month. */

@@ -2110,7 +2110,7 @@ export function HoldAddDashboard() {
             "Số dư Hold ĐK": rowOpenBal,
             "Lương TA của tháng": row.thu || 0,
             "Lương Hold của tháng": Math.abs(row.chi || 0),
-            "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
+            "Tổng PS tại kỳ": isDetail ? (row.thu || 0) : (rowRCloseBalances[row.id] ?? 0),
             "Số dư Hold còn lại": rowRemainingHold,
             "Note": row.ghiChu || "",
           };
@@ -2658,7 +2658,7 @@ export function HoldAddDashboard() {
                                         !isDetail ? "text-rose-600 dark:text-rose-400 font-bold text-[12px]" : "text-rose-600/80 dark:text-rose-400/80 font-medium text-[12px]"
                                       }`}
                                     >
-                                      {displayedRCloseStr}
+                                      {isDetail ? fmt(displayedThu) : displayedRCloseStr}
                                     </span>
                                   </td>
                                   <td
