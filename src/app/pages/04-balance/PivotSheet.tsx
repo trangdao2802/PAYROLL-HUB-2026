@@ -2300,6 +2300,103 @@ export function PivotSheet() {
         </div>
       </div>
 
+      {/* BU Filter Bar */}
+      <div
+        className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b border-[var(--border)] flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
+        style={{
+          backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+          height: "36px",
+          minHeight: "36px",
+          maxHeight: "36px",
+          flex: "0 0 36px"
+        }}
+      >
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+            <Filter className="w-3 h-3 text-primary" />
+            <span>Lọc BU:</span>
+          </span>
+          {/* Nút Tất cả */}
+          <button
+            type="button"
+            onClick={() => setBuFilterMode("ALL")}
+            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+              buFilterMode === "ALL"
+                ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                : "bg-background hover:bg-muted text-foreground border border-border/80"
+            }`}
+          >
+            Tất cả
+          </button>
+          {/* Nút Trừ AHP */}
+          <button
+            type="button"
+            onClick={() =>
+              setBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+            }
+            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+              buFilterMode === "EXCLUDE_AHP"
+                ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+            }`}
+            title="Lọc toàn bộ bảng trừ BU AHP (Hải Phòng)"
+          >
+            <span>Trừ AHP</span>
+            {buFilterMode === "EXCLUDE_AHP" && (
+              <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+            )}
+          </button>
+          
+          {/* Các nút BU cụ thể (loại trừ AHP) */}
+          {(() => {
+             const buValues = Object.keys(safeGroupedData).filter(bu => !isAhpBuValue(bu)).sort();
+             const displayBUs = buValues.length > 0 ? buValues : ["AHN", "ATH", "ATN", "APT"];
+             return displayBUs.map((bu) => {
+               const isSelected = buFilterMode === bu;
+               return (
+                 <button
+                   key={bu}
+                   type="button"
+                   onClick={() => setBuFilterMode(isSelected ? "ALL" : bu)}
+                   className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                     isSelected
+                       ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                       : "bg-background hover:bg-muted text-foreground border border-border/80"
+                   }`}
+                 >
+                   {bu}
+                   {isSelected && (
+                     <span className="ml-1 text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+                   )}
+                 </button>
+               );
+             });
+          })()}
+        </div>
+        
+        {/* Counter & quick reset */}
+        <div className="flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground ml-auto shrink-0 whitespace-nowrap">
+          <span className="tabular-nums">
+            {buFilterMode !== "ALL" ? (
+              <span>
+                Đang lọc BU: <strong className="text-primary font-bold">{sortedFlatRows.length}</strong> dòng
+              </span>
+            ) : (
+              <span>{sortedFlatRows.length} dòng</span>
+            )}
+          </span>
+          {buFilterMode !== "ALL" && (
+            <button
+              type="button"
+              onClick={() => setBuFilterMode("ALL")}
+              className="text-primary hover:text-primary/80 font-bold underline ml-2 transition-colors cursor-pointer"
+            >
+              Bỏ lọc
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* MAIN DATA TABLE */}
       <div 
         className="table-body-region flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]"

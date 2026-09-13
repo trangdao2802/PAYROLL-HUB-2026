@@ -3312,33 +3312,12 @@ export function BulkPayment({
                   <span>{formatMoneyVND(bankExportTotal)}</span>
                 </div>
               )}
-              {rightPanelTab === "reconcile" && (
-                <div
-                  className="inline-flex items-center gap-2 ml-2 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10.5px] font-bold tabular-nums select-none shrink-0"
-                  title="Tổng tiền AE, ACC và Chênh lệch"
-                >
-                  <span className="text-emerald-700 font-bold">
-                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">AE:</span>
-                    {formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className="text-slate-900 dark:text-slate-100 font-bold">
-                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">ACC:</span>
-                    {formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className={`font-black ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">Lệch:</span>
-                    {(reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")}
-                  </span>
-                </div>
-              )}
               </div>
               <p className="app-table-title-meta max-w-[320px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
                 {rightPanelTab === "table"
                   ? `${displayBankExportData.length} giao dịch • Tổng tiền: ${formatMoneyVND(bankExportTotal)}`
                   : rightPanelTab === "reconcile"
-                    ? `Đối chiếu số liệu • AE: ${formatMoneyVND(reconcileTotals.ae)} • ACC: ${formatMoneyVND(reconcileTotals.accAmt)} • Lệch: ${formatMoneyVND(reconcileTotals.diff)}`
+                    ? `Đối chiếu số liệu thanh toán và bảng lương`
                     : "Theo dõi biến động và vòng đời các khoản Hold"}
               </p>
             </div>
@@ -3451,11 +3430,9 @@ export function BulkPayment({
                   onClick={() =>
                     chooseExcelExport(() => {
                       if (rightPanelTab === "table") {
-                        downloadTransactionBankExport(displayBankExportData, {
-                          headers: columns
+                        downloadTransactionBankExport(displayBankExportData, undefined, columns
                             .map((c) => c.key)
-                            .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)),
-                        });
+                            .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)));
                       } else {
                         handleExportReconciliationExcel();
                       }
@@ -3492,11 +3469,9 @@ export function BulkPayment({
                     <DropdownMenuItem
                       onClick={() => {
                         chooseExcelExport(() =>
-                          downloadTransactionBankExport(displayBankExportData, {
-                            headers: columns
+                          downloadTransactionBankExport(displayBankExportData, undefined, columns
                               .map((c) => c.key)
-                              .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)),
-                          }),
+                              .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)))
                         );
                       }}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold text-xs"
@@ -3781,19 +3756,6 @@ export function BulkPayment({
                     </div>
 
                     <div className="flex items-center gap-2.5 text-[10.5px] font-medium ml-auto shrink-0 whitespace-nowrap">
-                      <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-border/60">
-                        <span className="text-slate-600 dark:text-slate-300 font-semibold">
-                          <strong className="text-slate-900 dark:text-slate-100">AE:</strong> {formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")}
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-600">•</span>
-                        <span className="text-slate-600 dark:text-slate-300 font-semibold">
-                          <strong className="text-slate-900 dark:text-slate-100">ACC:</strong> {formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")}
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-600">•</span>
-                        <span className={`font-black ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                          <strong>Lệch:</strong> {(reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")}
-                        </span>
-                      </div>
                       <span className="tabular-nums text-muted-foreground">
                         {reconcileSelectedBU !== "ALL" ? (
                           <span>

@@ -3443,10 +3443,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           {/* BU Filter Bar */}
           {buColumn && (
             <div
-              className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b shrink-0 overflow-x-auto select-none z-10 h-[36px] min-h-[36px] max-h-[36px]"
+              className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
               style={{
                 backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
                 borderColor: borderColorHex,
+                height: "36px",
+                minHeight: "36px",
+                maxHeight: "36px",
+                flex: "0 0 36px"
               }}
             >
               <div className="flex items-center gap-1.5 flex-wrap">

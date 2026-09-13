@@ -3670,3 +3670,23 @@ body {
 .bulk-payment-layout::before, .bulk-payment-layout::after { content: none !important; }
 
 .master-ae-table-wrapper[data-split-panels="true"]::after { content: none !important; }
+
+/* Focus Mode Fix for bu-filter-bar */
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div#table-card:nth-of-type(2) > div:nth-of-type(1) {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  flex: 0 0 36px !important;
+  box-sizing: border-box !important;
+}
+
+
+/* Focus Mode CSS for User Selected Element */
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div#table-card:nth-of-type(2) > div:nth-of-type(1) {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  flex: 0 0 36px !important;
+  box-sizing: border-box !important;
+}
+
