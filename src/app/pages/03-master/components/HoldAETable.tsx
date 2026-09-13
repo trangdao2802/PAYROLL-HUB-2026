@@ -1033,7 +1033,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl border-slate-100 z-[99999]">
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-slate-100 z-[99999]">
                 <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">
                   Action Center
                 </DropdownMenuLabel>
@@ -1043,8 +1043,8 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={handleToggleSearch}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Search className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-bold text-slate-700">
+                  <Search className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">
                     {isSearchVisible ? "Ẩn công cụ tìm kiếm" : "Tìm kiếm..."}
                   </span>
                 </DropdownMenuItem>
@@ -1053,16 +1053,16 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={handleRefresh}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-bold text-slate-700">Làm mới dữ liệu</span>
+                  <RefreshCw className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Làm mới dữ liệu</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleBulkSyncFromReconcile}
                   disabled={!pendingSync || isCurrentMonthLocked}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors data-[disabled]:bg-muted data-[disabled]:text-muted-foreground"
                 >
-                  <Zap className={`w-4 h-4 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
-                  <span className="text-xs font-bold text-slate-700">
+                  <Zap className={`w-4 h-4 shrink-0 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">
                     Đồng bộ từ Reconcile
                   </span>
                 </DropdownMenuItem>
@@ -1071,24 +1071,24 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Settings className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-bold text-slate-700">Cài đặt Giao diện</span>
+                  <Settings className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Cài đặt Giao diện</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={handleExportExcel}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Download className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-700">Xuất Excel</span>
+                  <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Xuất Excel</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-50" />
                 <DropdownMenuItem
                   onClick={handleClearAll}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-600 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="text-xs font-bold">Xóa dữ liệu bảng Deductions</span>
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-bold truncate flex-1">Xóa dữ liệu bảng Deductions</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

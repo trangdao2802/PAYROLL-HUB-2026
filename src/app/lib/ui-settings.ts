@@ -69,6 +69,7 @@ export interface UiSettings {
   tableHeaderBg?: string;
   tableFooterBg?: string;
   tableColumnHeaderBg?: string;
+  tableColumnHeaderTextColor?: string;
   tableDataBg?: string;
   preset?: string;
 }
@@ -86,6 +87,7 @@ export interface TastePreset {
   tableHeaderBg: string;
   tableFooterBg: string;
   tableColumnHeaderBg?: string;
+  tableColumnHeaderTextColor?: string;
   tableDataBg: string;
   tableFont: string;
   tableRadius: string;
@@ -96,8 +98,8 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     id: "systematic",
     name: "Autumn Palette (Mặc định)",
     bg: "#F4EFEB",
-    accent: "#A34C54",
-    text: "#5F4840",
+    accent: "#8B2635",
+    text: "#4A332D",
     border: "#D8CCC0",
     stripeColor1: "#F9F6F3",
     stripeColor2: "#EFEBE7",
@@ -105,6 +107,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableHeaderBg: "#D8CCC0",
     tableFooterBg: "#CC9E48",
     tableColumnHeaderBg: "#B17259",
+    tableColumnHeaderTextColor: "#FFFFFF",
     tableDataBg: "#F9F6F3",
     tableFont: "var(--font-main)",
     tableRadius: "0px",
@@ -151,8 +154,8 @@ export const defaultSettings: UiSettings = {
   bgImage: "",
   bgImageStyle: "cover",
   bgImageOpacity: 100,
-  accent: "#A34C54",
-  text: "#5F4840",
+  accent: "#8B2635",
+  text: "#4A332D",
   border: "#D8CCC0",
   fontSize: "13px",
   tablePadding: "12px 16px",
@@ -170,6 +173,7 @@ export const defaultSettings: UiSettings = {
   tableHeaderBg: "#D8CCC0",
   tableFooterBg: "#CC9E48",
   tableColumnHeaderBg: "#B17259",
+  tableColumnHeaderTextColor: "#FFFFFF",
   tableDataBg: "#F9F6F3",
   showPivotSubtotals: true,
   showGrandTotals: true,
@@ -630,6 +634,42 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
   root.style.setProperty("--table-column-header-bg", settings.tableColumnHeaderBg || "#D9C9D0");
   root.style.setProperty("--table-data-bg", settings.tableDataBg || "#FBF8FA");
 
+  // Dynamic high-contrast header text color computation
+  const colHeaderBg = settings.tableColumnHeaderBg || "#D9C9D0";
+  const parsedHeaderBg = parseCssColor(colHeaderBg);
+  let computedHeaderTextColor = settings.tableColumnHeaderTextColor || "";
+
+  if (!computedHeaderTextColor || !isValidColor(computedHeaderTextColor)) {
+    if (parsedHeaderBg) {
+      const linear = ({ r, g, b }: RgbColor) =>
+        [r, g, b].map((c) => {
+          const v = c / 255;
+          return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        });
+      const [r, g, b] = linear(parsedHeaderBg);
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      // If header background is dark or mid-tone (lum < 0.42, such as terracotta #B17259),
+      // text must be crisp white (#FFFFFF) for WCAG AA readability (>= 4.5:1).
+      if (lum < 0.42) {
+        computedHeaderTextColor = "#FFFFFF";
+      } else {
+        const accentParsed = parseCssColor(settings.accent || "#8B2635");
+        if (accentParsed) {
+          const [ar, ag, ab] = linear(accentParsed);
+          const alum = 0.2126 * ar + 0.7152 * ag + 0.0722 * ab;
+          const ratio = (Math.max(lum, alum) + 0.05) / (Math.min(lum, alum) + 0.05);
+          computedHeaderTextColor = ratio >= 3.8 ? (settings.accent || "#3B1E1A") : "#241815";
+        } else {
+          computedHeaderTextColor = "#241815";
+        }
+      }
+    } else {
+      computedHeaderTextColor = "#FFFFFF";
+    }
+  }
+
+  root.style.setProperty("--table-column-header-text", computedHeaderTextColor);
+
   if (settings.titleAlign) {
     const [flexAlign, textAlign] = settings.titleAlign.split("|");
     root.style.setProperty("--title-align", flexAlign);
@@ -785,9 +825,18 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     tr.total-row td,
     tr.total-row th {
       background-color: ${settings.tableColumnHeaderBg || "#D9C9D0"} !important;
-      color: ${settings.accent || "#7B4F85"} !important;
+      color: ${computedHeaderTextColor} !important;
       border-left: none !important;
       border-right: none !important;
+    }
+
+    table thead th :where(span, div, p),
+    .pivot-master-table thead th :where(span, div, p),
+    .data-table-wrapper thead th :where(span, div, p),
+    .master-ae-table-wrapper thead th :where(span, div, p),
+    .audit-data-table-wrapper thead th :where(span, div, p),
+    table thead th svg:not(.stroke-rose-600):not(.text-rose-600) {
+      color: ${computedHeaderTextColor} !important;
     }
 
     .unified-table-frame-header,
@@ -977,9 +1026,12 @@ export async function loadUiSettings(): Promise<UiSettings> {
     if (
       result.preset === "systematic" &&
       typeof result.accent === "string" &&
-      ["#8E659A", "#413644"].includes(result.accent.toUpperCase())
+      ["#8E659A", "#413644", "#A34C54"].includes(result.accent.toUpperCase())
     ) {
       result.accent = defaultSettings.accent;
+    }
+    if (!result.tableColumnHeaderTextColor) {
+      result.tableColumnHeaderTextColor = defaultSettings.tableColumnHeaderTextColor || "#FFFFFF";
     }
     // Migrate only untouched values from the previous default palette. Custom
     // user colors and non-default presets remain unchanged.

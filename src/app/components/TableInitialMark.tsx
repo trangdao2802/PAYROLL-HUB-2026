@@ -30,9 +30,11 @@ function getTableTitleRemainder(label: string): string {
 export function TableTitleRemainder({
   label,
   className = "",
+  style,
 }: {
   label: string;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <>
@@ -40,6 +42,7 @@ export function TableTitleRemainder({
       <span
         aria-hidden="true"
         className={`app-table-title-remainder ${className}`.trim()}
+        style={style}
       >
         {getTableTitleRemainder(label)}
       </span>
@@ -47,10 +50,19 @@ export function TableTitleRemainder({
   );
 }
 
+interface TableInitialMarkProps {
+  label: string;
+  className?: string;
+  style?: CSSProperties;
+  glyphStyle?: CSSProperties;
+}
+
 /** An exact, theme-aware crop of the supplied A–Z reference alphabet. */
 export function TableInitialMark({
   label,
   className = "",
+  style,
+  glyphStyle: customGlyphStyle,
 }: TableInitialMarkProps) {
   const initial = getTitleCharacters(label)[0]?.toLocaleUpperCase("vi-VN") || "";
   const normalizedInitial = initial
@@ -62,11 +74,12 @@ export function TableInitialMark({
   const glyphStyle = {
     "--table-initial-mask": `url("/fonts/rare-alphabet/${assetName}.png")`,
     "--table-initial-glyph-width": `${((sourceWidth / REFERENCE_CELL_HEIGHT) * DISPLAY_GLYPH_HEIGHT_REM).toFixed(3)}rem`,
+    ...customGlyphStyle,
   } as CSSProperties;
   const classes = `app-table-initial-mark app-table-initial-mark--reference ${className}`.trim();
 
   return (
-    <span aria-hidden="true" className={classes} data-glyph={glyphKey}>
+    <span aria-hidden="true" className={classes} data-glyph={glyphKey} style={style}>
       <span className="app-table-initial-mark__glyph" style={glyphStyle}>
         {initial}
       </span>

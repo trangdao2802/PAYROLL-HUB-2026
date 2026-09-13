@@ -110,7 +110,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { DataTable } from "../../components/DataTable";
+import { DataTable, isAhpBuValue } from "../../components/DataTable";
 import { BulkPaymentAnalytics } from "./components/BulkPaymentAnalytics";
 import { buildBulkPaymentAnalytics } from "../../lib/utils/bulk-payment-analytics";
 import { markTransactionSaved } from "../../lib/utils/transaction-activity";
@@ -740,8 +740,50 @@ export function BulkPayment({
 
   const displayBankExportData = useMemo(() => {
     const rows = bankExportData || [];
-    return rows.map((row: any) => withCanonicalTransactionDocumentId(row));
-  }, [bankExportData]);
+    const sheet1Rows = appData.Sheet1_AE?.data || [];
+    const holdRows = appData.Hold_AE?.data || [];
+
+    return rows.map((row: any) => {
+      const canonical = withCanonicalTransactionDocumentId(row);
+      if (!canonical.BU && !canonical.Business) {
+        let bu = String(row["_fileBank"] || row["Business"] || row["BU"] || "").trim();
+        if (!bu) {
+          const docId = String(canonical["Document ID"] || canonical["ID Number"] || "").trim();
+          const accNo = String(canonical["Beneficiary Account No."] || canonical["Bank Account Number"] || "").trim();
+          if (docId || accNo) {
+            const matchedS1 = sheet1Rows.find((s: any) => {
+              const sDoc = String(s["ID Number"] || s["CCCD"] || s["Document ID"] || "").trim();
+              const sAcc = String(s["Bank Account Number"] || s["Beneficiary Account No."] || "").trim();
+              return (docId && sDoc === docId) || (accNo && sAcc === accNo);
+            });
+            if (matchedS1) {
+              bu = matchedS1.Business || matchedS1.BU || "";
+            } else {
+              const matchedHold = holdRows.find((h: any) => {
+                const hDoc = String(h["ID Number"] || h["CCCD"] || h["Document ID"] || "").trim();
+                const hAcc = String(h["Bank Account Number"] || h["Beneficiary Account No."] || "").trim();
+                return (docId && hDoc === docId) || (accNo && hAcc === accNo);
+              });
+              if (matchedHold) {
+                bu = matchedHold.Business || matchedHold.BU || "";
+              }
+            }
+          }
+        }
+        if (!bu) {
+          const det = String(row["Payment details"] || row["Beneficiary Name"] || "").toUpperCase();
+          if (det.includes("AHP") || det.includes("HAI PHONG") || det.includes("HAIPHONG")) bu = "AHP";
+          else if (det.includes("ATH") || det.includes("THANH HOA")) bu = "ATH";
+          else if (det.includes("ATN") || det.includes("THAI NGUYEN")) bu = "ATN";
+          else if (det.includes("APT") || det.includes("PHU THO")) bu = "APT";
+          else bu = "AHN";
+        }
+        if (bu === "AHN_HP") bu = "AHP";
+        canonical.BU = bu;
+      }
+      return canonical;
+    });
+  }, [bankExportData, appData.Sheet1_AE?.data, appData.Hold_AE?.data]);
 
   const analysAnalytics = useMemo(() => {
     if (rightPanelTab !== "visuals" || displayBankExportData.length === 0) {
@@ -1793,7 +1835,11 @@ export function BulkPayment({
   const filteredTransactionAudits = useMemo(() => {
     return reconciliationAudit.transactionAuditList.filter((item) => {
       if (historyHasExceptions && item.status === "MATCHED") return false;
-      if (reconcileSelectedBU !== "ALL" && item.bu !== reconcileSelectedBU) {
+      if (reconcileSelectedBU === "EXCLUDE_AHP") {
+        if (isAhpBuValue(item.bu)) {
+          return false;
+        }
+      } else if (reconcileSelectedBU !== "ALL" && item.bu !== reconcileSelectedBU) {
         return false;
       }
       if (effectiveReconcileFilterStatus === "ALL") {
@@ -1831,6 +1877,25 @@ export function BulkPayment({
     effectiveReconcileFilterStatus,
     reconcileSearchQuery,
   ]);
+
+  const reconcileBuOptions = useMemo(() => {
+    const set = new Set<string>();
+    reconciliationAudit.transactionAuditList.forEach((item) => {
+      const u = String(item.bu || "").trim().toUpperCase();
+      if (u && !isAhpBuValue(u)) {
+        set.add(u);
+      }
+    });
+    const standardOrder = ["AHN", "ATH", "ATN", "APT", "OTHER"];
+    return Array.from(set).sort((a, b) => {
+      const idxA = standardOrder.indexOf(a);
+      const idxB = standardOrder.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [reconciliationAudit.transactionAuditList]);
 
   const totalItems = filteredTransactionAudits.length;
   const itemsPerPage = reconcileRowsPerPage === "all" ? totalItems : reconcileRowsPerPage;
@@ -1916,6 +1981,22 @@ export function BulkPayment({
     }, true, true);
   }, [bankExportData, updateAppData]);
 
+  const reconcileTotals = useMemo(() => {
+    return filteredTransactionAudits.reduce(
+      (acc, item) => {
+        const ae = Number(item.actualAmount) || 0;
+        const accAmt = Number(item.sheet1Amount + item.holdAmount) || 0;
+        const diff = Number(item.variance) || 0;
+        return {
+          ae: acc.ae + ae,
+          accAmt: acc.accAmt + accAmt,
+          diff: acc.diff + diff,
+        };
+      },
+      { ae: 0, accAmt: 0, diff: 0 },
+    );
+  }, [filteredTransactionAudits]);
+
   const reconciliationExportRows = useMemo(() => filteredTransactionAudits.map(t => ({
       "No.": t.id.startsWith("unmatched-") ? "DISC" : t.serialNo,
       "ID NUMBER": t.docId,
@@ -1952,7 +2033,6 @@ export function BulkPayment({
         ? [...appData.BankExport.headers]
         : [
             "Payment Serial Number",
-            "Tháng báo cáo",
             "Transaction Type Code",
             "Payment Type",
             "Customer Reference No",
@@ -2052,6 +2132,16 @@ export function BulkPayment({
       };
     });
   }, [appData.BankExport?.headers, displayBankExportData]);
+
+  useEffect(() => registerTableExport("master-transaction", () => ({
+    schema: {
+      columns: columns
+        .filter((c) => !c.key.startsWith("_") && !/tháng\s*báo\s*cáo/i.test(c.key))
+        .map((c) => ({ key: c.key, label: c.label, type: c.type })),
+      hiddenColumns: [],
+    },
+    rows: displayBankExportData,
+  })), [columns, displayBankExportData]);
 
   return (
     <motion.div
@@ -3138,7 +3228,7 @@ export function BulkPayment({
                         ? "BATCH PAYMENT"
                         : rightPanelTab === "reconcile"
                           ? "RECONCILIATION"
-                          : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                          : "ACCOUNTS PAYABLE AGING"
                     }
                   />
                 </button>
@@ -3157,7 +3247,7 @@ export function BulkPayment({
                           ? "BATCH PAYMENT"
                           : rightPanelTab === "reconcile"
                             ? "RECONCILIATION"
-                            : "ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                            : "ACCOUNTS PAYABLE AGING"
                       }
                     />
                   </button>
@@ -3166,7 +3256,7 @@ export function BulkPayment({
                 align="start"
                 sideOffset={8}
                 collisionPadding={8}
-                className="table-switch-menu w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1"
+                className="table-switch-menu w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1 z-[99999]"
               >
                 <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   CHUYỂN BẢNG
@@ -3207,16 +3297,48 @@ export function BulkPayment({
                   className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <BarChart2 className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>Analysis</span>
+                  <span>Accounts Payable Aging</span>
                 </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Total amount badge after table title */}
+              {rightPanelTab === "table" && (
+                <div
+                  className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10.5px] tabular-nums select-none shrink-0"
+                  title="Tổng tiền bảng Batch Payment"
+                >
+                  <span className="text-[8.5px] uppercase font-bold text-primary/70 tracking-wider">Tổng tiền:</span>
+                  <span>{formatMoneyVND(bankExportTotal)}</span>
+                </div>
+              )}
+              {rightPanelTab === "reconcile" && (
+                <div
+                  className="inline-flex items-center gap-2 ml-2 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10.5px] font-bold tabular-nums select-none shrink-0"
+                  title="Tổng tiền AE, ACC và Chênh lệch"
+                >
+                  <span className="text-emerald-700 font-bold">
+                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">AE:</span>
+                    {formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="text-slate-900 dark:text-slate-100 font-bold">
+                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">ACC:</span>
+                    {formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className={`font-black ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    <span className="text-[8.5px] text-slate-400 font-bold mr-1 uppercase">Lệch:</span>
+                    {(reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")}
+                  </span>
+                </div>
+              )}
               </div>
-              <p className="app-table-title-meta max-w-[260px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
+              <p className="app-table-title-meta max-w-[320px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
                 {rightPanelTab === "table"
-                  ? `${displayBankExportData.length} giao dịch chuyển khoản`
+                  ? `${displayBankExportData.length} giao dịch • Tổng tiền: ${formatMoneyVND(bankExportTotal)}`
                   : rightPanelTab === "reconcile"
-                    ? "Đối chiếu số tiền thực tế và dữ liệu Master"
+                    ? `Đối chiếu số liệu • AE: ${formatMoneyVND(reconcileTotals.ae)} • ACC: ${formatMoneyVND(reconcileTotals.accAmt)} • Lệch: ${formatMoneyVND(reconcileTotals.diff)}`
                     : "Theo dõi biến động và vòng đời các khoản Hold"}
               </p>
             </div>
@@ -3269,31 +3391,31 @@ export function BulkPayment({
             {/* Reconciliation Summary Stats in Header */}
             {displayBankExportData.length > 0 && rightPanelTab === "reconcile" && (
               <div
-                className="hidden lg:flex items-center gap-5 border-l border-slate-200 pl-5 h-8 ml-2"
-                style={{ width: "420px", paddingRight: "20px" }}
+                className="hidden sm:flex items-center gap-4 border-l border-slate-200 pl-4 h-8 ml-2"
+                style={{ width: "auto", paddingRight: "16px" }}
               >
                 <div className="flex flex-col leading-tight">
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                    Thực Tế (Bank)
+                    Tổng AE
                   </span>
-                  <span className="text-[11px] font-black tabular-nums text-sky-600">
-                    {formatMoneyVND(reconciliationAudit.totalActualSum).replace(" ₫", "")}
-                  </span>
-                </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                    Target Expected
-                  </span>
-                  <span className="text-[11px] font-black tabular-nums text-emerald-600">
-                    {formatMoneyVND(reconciliationAudit.totalExpectedSum).replace(" ₫", "")}
+                  <span className="text-[11px] font-black tabular-nums text-emerald-700">
+                    {formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")}
                   </span>
                 </div>
                 <div className="flex flex-col leading-tight">
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                    Tổng Lệch
+                    Tổng ACC
                   </span>
-                  <span className={`text-[11px] font-black tabular-nums ${reconciliationAudit.netVariance === 0 ? "text-slate-500" : "text-rose-600"}`}>
-                    {formatMoneyVND(reconciliationAudit.netVariance).replace(" ₫", "")}
+                  <span className="text-[11px] font-black tabular-nums text-slate-900 dark:text-slate-100">
+                    {formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")}
+                  </span>
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                    Chênh lệch
+                  </span>
+                  <span className={`text-[11px] font-black tabular-nums ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                    {(reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")}
                   </span>
                 </div>
               </div>
@@ -3326,7 +3448,19 @@ export function BulkPayment({
                   <span>Cài đặt Giao diện</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => chooseExcelExport(() => { if (rightPanelTab === "table") downloadTransactionBankExport(displayBankExportData); else handleExportReconciliationExcel(); })}
+                  onClick={() =>
+                    chooseExcelExport(() => {
+                      if (rightPanelTab === "table") {
+                        downloadTransactionBankExport(displayBankExportData, {
+                          headers: columns
+                            .map((c) => c.key)
+                            .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)),
+                        });
+                      } else {
+                        handleExportReconciliationExcel();
+                      }
+                    })
+                  }
                   className="text-slate-700"
                 >
                   <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-700" />
@@ -3357,7 +3491,13 @@ export function BulkPayment({
                     </DropdownMenuLabel>
                     <DropdownMenuItem
                       onClick={() => {
-                        chooseExcelExport(() => downloadTransactionBankExport(displayBankExportData));
+                        chooseExcelExport(() =>
+                          downloadTransactionBankExport(displayBankExportData, {
+                            headers: columns
+                              .map((c) => c.key)
+                              .filter((k) => !/tháng\s*báo\s*cáo/i.test(k)),
+                          }),
+                        );
                       }}
                       className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-bold text-xs"
                     >
@@ -3580,6 +3720,103 @@ export function BulkPayment({
                   </div>
                   )}
 
+                  {/* BU Quick Filter Bar for Reconcile */}
+                  <div
+                    className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
+                    style={{
+                      backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+                      borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+                        <Filter className="w-3 h-3 text-primary" />
+                        <span>Lọc BU:</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReconcileSelectedBU("ALL")}
+                        className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                          reconcileSelectedBU === "ALL"
+                            ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                            : "bg-background hover:bg-muted text-foreground border border-border/80"
+                        }`}
+                      >
+                        Tất cả
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReconcileSelectedBU(reconcileSelectedBU === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+                        }
+                        className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+                          reconcileSelectedBU === "EXCLUDE_AHP"
+                            ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                            : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+                        }`}
+                        title="Lọc bảng đối chiếu trừ BU AHP (Hải Phòng)"
+                      >
+                        <span>Trừ AHP</span>
+                        {reconcileSelectedBU === "EXCLUDE_AHP" && (
+                          <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+                        )}
+                      </button>
+                      {(reconcileBuOptions.length > 0 ? reconcileBuOptions : ["AHN", "ATH", "ATN", "APT"]).map((bu) => {
+                        const isSelected = reconcileSelectedBU === bu;
+                        return (
+                          <button
+                            key={bu}
+                            type="button"
+                            onClick={() => setReconcileSelectedBU(isSelected ? "ALL" : bu)}
+                            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                                : "bg-background hover:bg-muted text-foreground border border-border/80"
+                            }`}
+                          >
+                            {bu}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-2.5 text-[10.5px] font-medium ml-auto shrink-0 whitespace-nowrap">
+                      <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-border/60">
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">
+                          <strong className="text-slate-900 dark:text-slate-100">AE:</strong> {formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">
+                          <strong className="text-slate-900 dark:text-slate-100">ACC:</strong> {formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <span className={`font-black ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                          <strong>Lệch:</strong> {(reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")}
+                        </span>
+                      </div>
+                      <span className="tabular-nums text-muted-foreground">
+                        {reconcileSelectedBU !== "ALL" ? (
+                          <span>
+                            <strong className="text-primary font-bold">{filteredTransactionAudits.length}</strong> / {reconciliationAudit.transactionAuditList.length} GD
+                          </span>
+                        ) : (
+                          <span>{filteredTransactionAudits.length} GD</span>
+                        )}
+                      </span>
+                      {reconcileSelectedBU !== "ALL" && (
+                        <button
+                          type="button"
+                          onClick={() => setReconcileSelectedBU("ALL")}
+                          className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5 ml-1"
+                          title="Bỏ lọc BU"
+                        >
+                          <X className="w-3 h-3" />
+                          Bỏ lọc
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Transaction Audit Table */}
                   <div
                     className="reconcile-table-region table-body-region flex-1 min-h-0 relative rounded-none bg-white overflow-auto custom-scrollbar"
@@ -3592,7 +3829,7 @@ export function BulkPayment({
                       >
                         <tr>
                           <th
-                            className="group relative px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] w-12 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal cursor-pointer select-none"
+                            className="group relative px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] w-12 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal cursor-pointer select-none overflow-visible"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             <div className="inline-flex items-center justify-center gap-1">
@@ -3611,55 +3848,55 @@ export function BulkPayment({
                             </div>
                           </th>
                           <th
-                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             ID NUMBER
                           </th>
                           <th
-                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             FULL NAME
                           </th>
                           <th
-                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
                             style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Bank Acc No. from AE
                           </th>
                           <th
-                            className="px-1.5 py-1 font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal"
+                            className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                              Bank Acc No. from ACC
                           </th>
                           <th
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             TOTAL BANK AE
                           </th>
                           <th
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             TOTAL BANK ACC
                           </th>
                           <th
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Diff
                           </th>
                           <th
-                            className="p-2.5 text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal"
+                            className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Process Sync
                           </th>
                           <th
-                            className="px-1.5 py-1 text-center font-bold uppercase tracking-wider text-[9px] border-b border-[var(--table-border-color,#E7E5E4)] align-middle whitespace-normal"
+                            className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-b border-[var(--table-border-color,#E7E5E4)] align-middle whitespace-normal overflow-visible"
                             style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Problems
@@ -3924,22 +4161,31 @@ export function BulkPayment({
                             (_, columnIndex) => (
                             <td
                               key={`reconcile-total-${columnIndex}`}
-                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${columnIndex === 6 ? "text-right font-extrabold uppercase tracking-wider text-[12.5px] text-slate-800" : ""} ${columnIndex === 7 ? "text-right tabular-nums font-black text-rose-600 text-[13px]" : ""}`}
+                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${
+                                columnIndex === 4
+                                  ? "text-right font-extrabold uppercase tracking-wider text-[11.5px] text-slate-800"
+                                  : columnIndex === 5
+                                    ? "text-right tabular-nums font-black text-slate-900 text-[12.5px]"
+                                    : columnIndex === 6
+                                      ? "text-right tabular-nums font-black text-slate-900 text-[12.5px]"
+                                      : columnIndex === 7
+                                        ? `text-right tabular-nums font-black text-[13px] ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`
+                                        : ""
+                              }`}
                               style={{
                                 backgroundColor:
                                   "var(--table-column-header-bg, #F4ECD8)",
                               }}
                             >
-                              {columnIndex === 6
-                                ? "TỔNG LỆCH:"
-                                : columnIndex === 7
-                                  ? formatMoneyVND(
-                                      filteredTransactionAudits.reduce(
-                                        (acc, item) => acc + item.variance,
-                                        0,
-                                      ),
-                                    ).replace(" ₫", "")
-                              : ""}
+                              {columnIndex === 4
+                                ? "TỔNG TIỀN:"
+                                : columnIndex === 5
+                                  ? formatMoneyVND(reconcileTotals.ae).replace(" ₫", "")
+                                  : columnIndex === 6
+                                    ? formatMoneyVND(reconcileTotals.accAmt).replace(" ₫", "")
+                                    : columnIndex === 7
+                                      ? (reconcileTotals.diff > 0 ? "+" : "") + formatMoneyVND(reconcileTotals.diff).replace(" ₫", "")
+                                      : ""}
                             </td>
                             ),
                           )}

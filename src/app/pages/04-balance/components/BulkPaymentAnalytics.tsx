@@ -76,13 +76,13 @@ const MOVEMENT_GROUP = "III. PHÁT SINH TẠI KỲ BÁO CÁO";
 const RESULT_GROUP = "IV. KẾT QUẢ ĐẾN CUỐI KỲ";
 
 const CONTEXT_GROUP_STYLE =
-  "!bg-primary/[0.04] !text-primary border-primary/15 tracking-[0.12em]";
+  "!bg-primary/[0.04] !text-primary border-primary/15 tracking-[0.08em] py-2 leading-normal";
 const ORIGIN_GROUP_STYLE =
-  "!bg-primary/[0.07] !text-primary border-primary/20 tracking-[0.12em]";
+  "!bg-primary/[0.07] !text-primary border-primary/20 tracking-[0.08em] py-2 leading-normal";
 const MOVEMENT_GROUP_STYLE =
-  "!bg-primary/[0.10] !text-primary border-primary/25 tracking-[0.12em]";
+  "!bg-primary/[0.10] !text-primary border-primary/25 tracking-[0.08em] py-2 leading-normal";
 const RESULT_GROUP_STYLE =
-  "!bg-primary/[0.12] !text-primary border-primary/30 tracking-[0.12em]";
+  "!bg-primary/[0.12] !text-primary border-primary/30 tracking-[0.08em] py-2 leading-normal";
 
 const formatAmount = (value: number) => {
   const rounded = Math.round(value);
@@ -356,6 +356,13 @@ export function BulkPaymentAnalytics({
     ].map(([key, label]) => ({key, label})), hiddenColumns: [] },
     rows: filteredRows,
   })), [filteredRows]);
+
+  const totalRemainingBalance = useMemo(() => {
+    return filteredRows.reduce(
+      (sum, r) => sum + (Number(r["Số dư HOLD còn lại"]) || 0),
+      0,
+    );
+  }, [filteredRows]);
 
   const currentPeriod = useMemo(() => {
     return (
@@ -1158,7 +1165,7 @@ export function BulkPaymentAnalytics({
                 }
                 aria-expanded={isBulkPaymentCardVisible}
               >
-                <TableInitialMark label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE" />
+                <TableInitialMark label="ACCOUNTS PAYABLE AGING" />
               </button>
 
             <DropdownMenu>
@@ -1169,7 +1176,7 @@ export function BulkPaymentAnalytics({
                   title="Chuyển bảng"
                 >
                   <TableTitleRemainder
-                    label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
+                    label="ACCOUNTS PAYABLE AGING"
                     className="app-table-title-remainder--expanded"
                   />
                 </button>
@@ -1178,7 +1185,7 @@ export function BulkPaymentAnalytics({
                 align="start"
                 sideOffset={8}
                 collisionPadding={8}
-                className="table-switch-menu w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1"
+                className="table-switch-menu w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1 z-[99999]"
               >
                 <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   CHUYỂN BẢNG
@@ -1202,16 +1209,25 @@ export function BulkPaymentAnalytics({
                   className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold bg-primary/10 text-primary rounded-lg cursor-pointer"
                 >
                   <BarChart2 className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>Analysis</span>
+                  <span>Accounts Payable Aging</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Tổng số dư HOLD còn lại sau tiêu đề bảng */}
+            <div
+              className="inline-flex items-center gap-1.5 ml-2.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10.5px] tabular-nums select-none shrink-0"
+              title="Tổng số dư HOLD còn lại của bảng"
+            >
+              <span className="text-[8.5px] uppercase font-bold text-primary/70 tracking-wider">Tổng dư nợ:</span>
+              <span>{formatAmount(totalRemainingBalance)} ₫</span>
+            </div>
             </div>
             <p
               className="app-table-title-meta truncate text-[9.5px] font-medium leading-tight text-muted-foreground"
-              title="Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ"
+              title={`Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: ${analytics.currentPeriod}) • Tổng dư nợ: ${formatAmount(totalRemainingBalance)} ₫`}
             >
-              Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod})
+              Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod}) • Tổng dư nợ: {formatAmount(totalRemainingBalance)} ₫
             </p>
           </div>
         </div>

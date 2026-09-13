@@ -1929,6 +1929,28 @@ export function UiSettingsModal({
                     </div>
                     <div className="flex items-center justify-between">
                       <label
+                        htmlFor="table-column-header-text"
+                        className="font-bold text-[0.8125rem]"
+                      >
+                        Màu Chữ Tiêu đề Cột & Tổng Cộng
+                      </label>
+                      <input
+                        id="table-column-header-text"
+                        type="color"
+                        value={
+                          settings.tableColumnHeaderTextColor?.startsWith("#") &&
+                          settings.tableColumnHeaderTextColor.length === 7
+                            ? settings.tableColumnHeaderTextColor
+                            : "#FFFFFF"
+                        }
+                        onChange={(e) =>
+                          setSettings({ ...settings, tableColumnHeaderTextColor: e.target.value })
+                        }
+                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label
                         htmlFor="table-data-bg"
                         className="font-bold text-[0.8125rem]"
                       >

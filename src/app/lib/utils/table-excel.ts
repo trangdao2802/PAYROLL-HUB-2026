@@ -37,13 +37,25 @@ export function tableExportValue(row: Record<string, unknown>, col: ExportColumn
 }
 
 export function buildTableWorksheet(rows: Record<string, unknown>[], schema: TableExportSchema) {
-  const columns = schema.columns.filter(col => !col.key.startsWith("_"));
+  const hiddenSet = new Set(schema.hiddenColumns || []);
+  const columns = schema.columns.filter(
+    (col) =>
+      !col.key.startsWith("_") &&
+      !col.hidden &&
+      !hiddenSet.has(col.key) &&
+      !/tháng\s*báo\s*cáo/i.test(col.key) &&
+      !/tháng\s*báo\s*cáo/i.test(col.label),
+  );
   const sheet = XLSX.utils.aoa_to_sheet([
-    columns.map(col => col.label),
-    ...rows.map((row, index) => columns.map(col => tableExportValue(row, col, index))),
+    columns.map((col) => col.label),
+    ...rows.map((row, index) => columns.map((col) => tableExportValue(row, col, index))),
   ]);
-  sheet["!cols"] = columns.map(col => ({ wch: Math.max(12, Math.min(35, col.label.length + 2)), hidden: schema.hiddenColumns.includes(col.key) }));
-  Object.values(sheet).forEach(cell => { if (cell?.t === "n") cell.z = "General"; });
+  sheet["!cols"] = columns.map((col) => ({
+    wch: Math.max(12, Math.min(35, col.label.length + 2)),
+  }));
+  Object.values(sheet).forEach((cell) => {
+    if (cell?.t === "n") cell.z = "General";
+  });
   return sheet;
 }
 

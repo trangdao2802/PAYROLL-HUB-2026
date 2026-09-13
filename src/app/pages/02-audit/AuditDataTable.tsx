@@ -50,6 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { isBuColumnKeyOrLabel, isAhpBuValue } from "../../components/DataTable";
 import {
   parseMoneyToNumber,
   formatNumber,
@@ -760,6 +761,37 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const [columnFilters, setColumnFilters] = useState<
       Record<string, Set<any> | undefined>
     >({});
+    const [buFilterMode, setBuFilterMode] = useState<string>("ALL");
+
+    // Detect if this table has a BU or Business column
+    const buColumn = useMemo(() => {
+      return columns.find((c) => isBuColumnKeyOrLabel(c.key, c.label));
+    }, [columns]);
+
+    // Extract unique BU values from data, strictly excluding AHP
+    const buValues = useMemo(() => {
+      if (!buColumn) return [];
+      const set = new Set<string>();
+      const currentRows = supabaseTableName ? supabaseData : data;
+      currentRows.forEach((row: any) => {
+        const val = row[buColumn.key] ?? row._subtotalGroup;
+        if (val != null && String(val).trim()) {
+          const clean = String(val).trim().toUpperCase();
+          if (clean && !isAhpBuValue(clean)) {
+            set.add(clean);
+          }
+        }
+      });
+      const standardOrder = ["AHN", "ATH", "ATN", "APT", "OTHER"];
+      return Array.from(set).sort((a, b) => {
+        const idxA = standardOrder.indexOf(a);
+        const idxB = standardOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+    }, [buColumn, data, supabaseData, supabaseTableName]);
     const [internalSearchTerm, setInternalSearchTerm] = useState("");
     const [deleteConfirmState, setDeleteConfirmState] = useState<{
       isOpen: boolean;
@@ -1219,6 +1251,20 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         }
       });
 
+      // Apply BU quick filter
+      if (buColumn && buFilterMode !== "ALL") {
+        result = result.filter((row) => {
+          if (row._isNew === true || row._isTotalRow) return true;
+          const rawVal = row[buColumn.key] ?? row._subtotalGroup;
+          if (rawVal == null) return false;
+          if (buFilterMode === "EXCLUDE_AHP") {
+            return !isAhpBuValue(rawVal);
+          }
+          const strVal = String(rawVal).trim().toUpperCase();
+          return strVal === buFilterMode;
+        });
+      }
+
       // Apply sorting
       if (sortConfig) {
         const col = columns.find((c) => c.key === sortConfig.key);
@@ -1265,7 +1311,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       }
 
       return result;
-    }, [data, sortConfig, columnFilters, debouncedSearchTerm, supabaseTableName, supabaseData, columns, debouncedColumnFilters]);
+    }, [data, sortConfig, columnFilters, debouncedSearchTerm, supabaseTableName, supabaseData, columns, debouncedColumnFilters, buColumn, buFilterMode]);
 
     const footerTotals = useMemo(() => {
       const totals: Record<string, number | null> = {};
@@ -1334,7 +1380,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     ]);
 
     const activeFilters = useMemo(() => {
-      return Object.entries(columnFilters)
+      const filters = Object.entries(columnFilters)
         .filter(([_, value]) => value instanceof Set && value.size > 0)
         .map(([key]) => {
           const col = columns.find((c) => c.key === key);
@@ -1343,7 +1389,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             label: col ? col.label : key,
           };
         });
-    }, [columnFilters, columns]);
+      if (buColumn && buFilterMode !== "ALL") {
+        filters.push({
+          key: buColumn.key,
+          label: buFilterMode === "EXCLUDE_AHP" ? "BU: Trừ AHP" : `BU: ${buFilterMode}`,
+        });
+      }
+      return filters;
+    }, [columnFilters, columns, buColumn, buFilterMode]);
 
     const hasActiveFilters = activeFilters.length > 0;
 
@@ -1709,12 +1762,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
     const clearAllFilters = () => {
       setColumnFilters({});
+      setBuFilterMode("ALL");
       setInternalSearchTerm("");
       if (onExternalSearchChange) onExternalSearchChange("");
       toast.success("Đã xóa tất cả bộ lọc");
     };
 
     const resetTableConfig = () => {
+      setBuFilterMode("ALL");
       if (storageKey) {
         localStorage.removeItem(`dt_hidden_${storageKey}`);
         localStorage.removeItem(`dt_widths_${storageKey}`);
@@ -2739,6 +2794,99 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } as any
           }
         >
+          {/* BU Filter Bar */}
+          {buColumn && (
+            <div
+              className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
+              style={{
+                backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+                borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
+              }}
+            >
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+                  <Filter className="w-3 h-3 text-primary" />
+                  <span>Lọc BU:</span>
+                </span>
+
+                {/* Nút Tất cả */}
+                <button
+                  type="button"
+                  onClick={() => setBuFilterMode("ALL")}
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                    buFilterMode === "ALL"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                      : "bg-background hover:bg-muted text-foreground border border-border/80"
+                  }`}
+                >
+                  Tất cả
+                </button>
+
+                {/* Nút Trừ AHP */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+                  }
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+                    buFilterMode === "EXCLUDE_AHP"
+                      ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                      : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+                  }`}
+                  title="Lọc toàn bộ bảng trừ BU AHP (Hải Phòng)"
+                >
+                  <span>Trừ AHP</span>
+                  {buFilterMode === "EXCLUDE_AHP" && (
+                    <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+                  )}
+                </button>
+
+                {/* Các nút BU cụ thể (loại trừ AHP) */}
+                {(buValues.length > 0 ? buValues : ["AHN", "ATH", "ATN", "APT"]).map((bu) => {
+                  const isSelected = buFilterMode === bu;
+                  return (
+                    <button
+                      key={bu}
+                      type="button"
+                      onClick={() => setBuFilterMode(isSelected ? "ALL" : bu)}
+                      className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                          : "bg-background hover:bg-muted text-foreground border border-border/80"
+                      }`}
+                    >
+                      {bu}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Counter & quick reset */}
+              <div className="flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground ml-auto shrink-0 whitespace-nowrap">
+                <span className="tabular-nums">
+                  {buFilterMode !== "ALL" ? (
+                    <span>
+                      Đang lọc BU: <strong className="text-primary font-bold">{filteredAndSortedData.length}</strong> / {(supabaseTableName ? supabaseData : data).length} dòng
+                    </span>
+                  ) : (
+                    <span>{filteredAndSortedData.length} dòng</span>
+                  )}
+                </span>
+                {buFilterMode !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => setBuFilterMode("ALL")}
+                    className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5 ml-1"
+                    title="Bỏ lọc BU (Hiện tất cả)"
+                  >
+                    <X className="w-3 h-3" />
+                    Bỏ lọc
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Table Scroll Container — virtual scrolling host */}
           <div
             ref={scrollContainerRef}

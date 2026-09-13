@@ -2253,9 +2253,9 @@ export function HoldAddDashboard() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-[240px] bg-white dark:bg-card border-[#e7dbdc] shadow-xl p-2 flex flex-col gap-2"
+                className="w-[290px] bg-white dark:bg-card border border-[#e7dbdc] dark:border-border shadow-2xl p-2.5 flex flex-col gap-2 rounded-xl overflow-hidden z-[99999]"
               >
-                <div className="h-8 flex items-center justify-center px-4 bg-primary/10 text-primary rounded-md font-nunito font-bold tracking-wider text-[11px]">
+                <div className="h-8 flex items-center justify-center px-4 bg-primary/10 text-primary rounded-lg font-bold tracking-wide text-xs">
                   Kỳ: {currentPeriod}
                 </div>
                 
@@ -2265,40 +2265,40 @@ export function HoldAddDashboard() {
                   size="sm"
                   onClick={handleSaveBalances}
                   disabled={isPeriodSaved(currentPeriod)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs border disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs border disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer px-3 overflow-hidden"
                   style={{
                     backgroundColor: isPeriodSaved(currentPeriod) ? "#9ca3af" : "#b183ad",
                     color: "#ffffff",
                     borderColor: "#e8eae9",
                   }}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {isPeriodSaved(currentPeriod) ? "Đã Lưu Dữ Liệu" : "Lưu Dữ Liệu"}
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">{isPeriodSaved(currentPeriod) ? "Đã lưu dữ liệu" : "Lưu dữ liệu"}</span>
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => setShowDeletePeriodDialog(true)}
                   disabled={!isPeriodSaved(currentPeriod)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45 px-3 overflow-hidden"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dữ liệu kỳ hiện tại
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xóa dữ liệu kỳ hiện tại</span>
                 </Button>
 
                 <Button
                   size="sm"
                   onClick={() => setShowClearBalancePageDialog(true)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer px-3 overflow-hidden"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dữ liệu trang Balance
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xóa dữ liệu trang Balance</span>
                 </Button>
 
                 <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="h-8 text-[12px] w-full bg-background border-[#e7dbdc] text-foreground rounded-md">
+                  <SelectTrigger className="h-8 text-xs normal-case tracking-normal w-full bg-background border-[#e7dbdc] text-foreground rounded-lg px-3 font-medium">
                     <SelectValue placeholder="Năm" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-card border border-[#e7dbdc]">
+                  <SelectContent className="bg-white dark:bg-card border border-[#e7dbdc] z-[99999]">
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="2026">2026</SelectItem>
                   </SelectContent>
@@ -2307,19 +2307,19 @@ export function HoldAddDashboard() {
                   onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                   variant="outline"
                   size="sm"
-                  className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer px-3 font-semibold overflow-hidden"
                 >
-                  <Settings className="w-3.5 h-3.5 text-slate-500" />
-                  Cài đặt Giao diện
+                  <Settings className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="truncate flex-1 text-left">Cài đặt giao diện</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => chooseExcelExport(handleExportExcel, handleExportExcel)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer px-3 font-semibold overflow-hidden"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  Xuất Excel Trial Balance
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xuất Excel Trial Balance</span>
                 </Button>
               </DropdownMenuContent>
             </DropdownMenu>
