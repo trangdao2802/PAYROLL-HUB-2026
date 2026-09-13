@@ -1878,25 +1878,6 @@ export function BulkPayment({
     reconcileSearchQuery,
   ]);
 
-  const reconcileBuOptions = useMemo(() => {
-    const set = new Set<string>();
-    reconciliationAudit.transactionAuditList.forEach((item) => {
-      const u = String(item.bu || "").trim().toUpperCase();
-      if (u && !isAhpBuValue(u)) {
-        set.add(u);
-      }
-    });
-    const standardOrder = ["AHN", "ATH", "ATN", "APT", "OTHER"];
-    return Array.from(set).sort((a, b) => {
-      const idxA = standardOrder.indexOf(a);
-      const idxB = standardOrder.indexOf(b);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }, [reconciliationAudit.transactionAuditList]);
-
   const totalItems = filteredTransactionAudits.length;
   const itemsPerPage = reconcileRowsPerPage === "all" ? totalItems : reconcileRowsPerPage;
   const totalPages = itemsPerPage > 0 ? Math.ceil(totalItems / itemsPerPage) : 1;
@@ -3736,23 +3717,6 @@ export function BulkPayment({
                           <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
                         )}
                       </button>
-                      {(reconcileBuOptions.length > 0 ? reconcileBuOptions : ["AHN", "ATH", "ATN", "APT"]).map((bu) => {
-                        const isSelected = reconcileSelectedBU === bu;
-                        return (
-                          <button
-                            key={bu}
-                            type="button"
-                            onClick={() => setReconcileSelectedBU(isSelected ? "ALL" : bu)}
-                            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
-                              isSelected
-                                ? "bg-primary text-primary-foreground shadow-2xs font-black"
-                                : "bg-background hover:bg-muted text-foreground border border-border/80"
-                            }`}
-                          >
-                            {bu}
-                          </button>
-                        );
-                      })}
                     </div>
 
                     <div className="flex items-center gap-2.5 text-[10.5px] font-medium ml-auto shrink-0 whitespace-nowrap">

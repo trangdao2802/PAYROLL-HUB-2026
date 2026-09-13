@@ -357,13 +357,6 @@ export function BulkPaymentAnalytics({
     rows: filteredRows,
   })), [filteredRows]);
 
-  const totalRemainingBalance = useMemo(() => {
-    return filteredRows.reduce(
-      (sum, r) => sum + (Number(r["Số dư HOLD còn lại"]) || 0),
-      0,
-    );
-  }, [filteredRows]);
-
   const currentPeriod = useMemo(() => {
     return (
       parseMonthPeriod(analytics.currentPeriod) ||
@@ -1214,20 +1207,12 @@ export function BulkPaymentAnalytics({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Tổng số dư HOLD còn lại sau tiêu đề bảng */}
-            <div
-              className="inline-flex items-center gap-1.5 ml-2.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10.5px] tabular-nums select-none shrink-0"
-              title="Tổng số dư HOLD còn lại của bảng"
-            >
-              <span className="text-[8.5px] uppercase font-bold text-primary/70 tracking-wider">Tổng dư nợ:</span>
-              <span>{formatAmount(totalRemainingBalance)} ₫</span>
-            </div>
             </div>
             <p
               className="app-table-title-meta truncate text-[9.5px] font-medium leading-tight text-muted-foreground"
-              title={`Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: ${analytics.currentPeriod}) • Tổng dư nợ: ${formatAmount(totalRemainingBalance)} ₫`}
+              title={`Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: ${analytics.currentPeriod})`}
             >
-              Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod}) • Tổng dư nợ: {formatAmount(totalRemainingBalance)} ₫
+              Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod})
             </p>
           </div>
         </div>

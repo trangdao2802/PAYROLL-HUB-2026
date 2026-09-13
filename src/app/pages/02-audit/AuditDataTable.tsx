@@ -768,30 +768,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       return columns.find((c) => isBuColumnKeyOrLabel(c.key, c.label));
     }, [columns]);
 
-    // Extract unique BU values from data, strictly excluding AHP
-    const buValues = useMemo(() => {
-      if (!buColumn) return [];
-      const set = new Set<string>();
-      const currentRows = supabaseTableName ? supabaseData : data;
-      currentRows.forEach((row: any) => {
-        const val = row[buColumn.key] ?? row._subtotalGroup;
-        if (val != null && String(val).trim()) {
-          const clean = String(val).trim().toUpperCase();
-          if (clean && !isAhpBuValue(clean)) {
-            set.add(clean);
-          }
-        }
-      });
-      const standardOrder = ["AHN", "ATH", "ATN", "APT", "OTHER"];
-      return Array.from(set).sort((a, b) => {
-        const idxA = standardOrder.indexOf(a);
-        const idxB = standardOrder.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
-      });
-    }, [buColumn, data, supabaseData, supabaseTableName]);
     const [internalSearchTerm, setInternalSearchTerm] = useState("");
     const [deleteConfirmState, setDeleteConfirmState] = useState<{
       isOpen: boolean;
@@ -1756,9 +1732,81 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       });
     };
 
-    const handleFilterChange = (key: string, values: Set<any> | undefined) => {
+    const handleSetBuFilterMode = useCallback((mode: string) => {
+      setBuFilterMode(mode);
+      if (!buColumn) return;
+
+      const currentRows = supabaseTableName ? supabaseData : data;
+
+      if (mode === "ALL") {
+        setColumnFilters((prev) => {
+          const next = { ...prev };
+          delete next[buColumn.key];
+          return next;
+        });
+      } else if (mode === "EXCLUDE_AHP") {
+        const allowed = new Set<any>();
+        currentRows.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim()) {
+            const cleanStr = String(val).trim();
+            if (!isAhpBuValue(cleanStr)) {
+              allowed.add(cleanStr);
+              allowed.add(String(val));
+            }
+          }
+        });
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      } else {
+        const allowed = new Set<any>();
+        currentRows.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim().toUpperCase() === mode) {
+            allowed.add(String(val).trim());
+            allowed.add(String(val));
+          }
+        });
+        if (allowed.size === 0) {
+          allowed.add(mode);
+        }
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      }
+    }, [buColumn, data, supabaseData, supabaseTableName]);
+
+    const handleFilterChange = useCallback((key: string, values: Set<any> | undefined) => {
       setColumnFilters((prev) => ({ ...prev, [key]: values }));
-    };
+
+      if (buColumn && key === buColumn.key) {
+        if (!values || values.size === 0) {
+          setBuFilterMode("ALL");
+        } else {
+          let hasAhp = false;
+          let nonAhpCount = 0;
+          const nonAhpVals = new Set<string>();
+
+          values.forEach((v) => {
+            if (isAhpBuValue(v)) {
+              hasAhp = true;
+            } else {
+              nonAhpCount += 1;
+              nonAhpVals.add(String(v).trim().toUpperCase());
+            }
+          });
+
+          if (!hasAhp && nonAhpCount > 0) {
+            if (nonAhpVals.size === 1) {
+              setBuFilterMode(Array.from(nonAhpVals)[0]);
+            } else {
+              setBuFilterMode("EXCLUDE_AHP");
+            }
+          } else if (hasAhp && nonAhpCount > 0) {
+            setBuFilterMode("ALL");
+          } else {
+            setBuFilterMode("CUSTOM");
+          }
+        }
+      }
+    }, [buColumn]);
 
     const clearAllFilters = () => {
       setColumnFilters({});
@@ -2812,7 +2860,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 {/* Nút Tất cả */}
                 <button
                   type="button"
-                  onClick={() => setBuFilterMode("ALL")}
+                  onClick={() => handleSetBuFilterMode("ALL")}
                   className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
                     buFilterMode === "ALL"
                       ? "bg-primary text-primary-foreground shadow-2xs font-black"
@@ -2826,7 +2874,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 <button
                   type="button"
                   onClick={() =>
-                    setBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+                    handleSetBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
                   }
                   className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
                     buFilterMode === "EXCLUDE_AHP"
@@ -2840,25 +2888,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
                   )}
                 </button>
-
-                {/* Các nút BU cụ thể (loại trừ AHP) */}
-                {(buValues.length > 0 ? buValues : ["AHN", "ATH", "ATN", "APT"]).map((bu) => {
-                  const isSelected = buFilterMode === bu;
-                  return (
-                    <button
-                      key={bu}
-                      type="button"
-                      onClick={() => setBuFilterMode(isSelected ? "ALL" : bu)}
-                      className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground shadow-2xs font-black"
-                          : "bg-background hover:bg-muted text-foreground border border-border/80"
-                      }`}
-                    >
-                      {bu}
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Counter & quick reset */}
@@ -2875,7 +2904,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 {buFilterMode !== "ALL" && (
                   <button
                     type="button"
-                    onClick={() => setBuFilterMode("ALL")}
+                    onClick={() => handleSetBuFilterMode("ALL")}
                     className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5 ml-1"
                     title="Bỏ lọc BU (Hiện tất cả)"
                   >

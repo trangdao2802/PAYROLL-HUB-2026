@@ -381,7 +381,13 @@ export function PivotSheet() {
     return "ALL";
   });
 
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [buFilterMode, setBuFilterMode] = useState<string>("ALL");
+
+  const handleSetBuFilterMode = useCallback((mode: string) => {
+    setBuFilterMode(mode);
+    setCurrentPage(1);
+  }, []);
 
   const [groupedData, setGroupedData] = useState<Record<string, Record<string, Record<string, Record<string, number>>>>>(() => {
     try {
@@ -455,7 +461,6 @@ export function PivotSheet() {
       return 50;
     }
   });
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({ month: true });
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -1565,7 +1570,13 @@ export function PivotSheet() {
     }> = [];
 
     let rIdx = 1;
-    const currentSortedBUs = Object.keys(safeGroupedData).sort();
+    const currentSortedBUs = Object.keys(safeGroupedData)
+      .filter((bu) => {
+        if (buFilterMode === "ALL") return true;
+        if (buFilterMode === "EXCLUDE_AHP") return !isAhpBuValue(bu);
+        return String(bu).trim().toUpperCase() === buFilterMode.trim().toUpperCase();
+      })
+      .sort();
     currentSortedBUs.forEach(bu => {
       const l07s = Object.keys(safeGroupedData[bu] || {}).sort();
       l07s.forEach(l07 => {
@@ -1615,7 +1626,7 @@ export function PivotSheet() {
       });
     });
     return { allFlatRows, totalCenters, totalSalarySum, grandTotals, superGrandTotal };
-  }, [safeGroupedData, safeTypeColumns, selectedMonthFilter]);
+  }, [safeGroupedData, safeTypeColumns, selectedMonthFilter, buFilterMode]);
 
   const isTypeColHidden = useCallback((type: string, idx: number) => {
     if (hiddenColumns[`type_${type}`] !== undefined) {
@@ -2319,7 +2330,7 @@ export function PivotSheet() {
           {/* Nút Tất cả */}
           <button
             type="button"
-            onClick={() => setBuFilterMode("ALL")}
+            onClick={() => handleSetBuFilterMode("ALL")}
             className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
               buFilterMode === "ALL"
                 ? "bg-primary text-primary-foreground shadow-2xs font-black"
@@ -2332,7 +2343,7 @@ export function PivotSheet() {
           <button
             type="button"
             onClick={() =>
-              setBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+              handleSetBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
             }
             className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
               buFilterMode === "EXCLUDE_AHP"
@@ -2346,32 +2357,6 @@ export function PivotSheet() {
               <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
             )}
           </button>
-          
-          {/* Các nút BU cụ thể (loại trừ AHP) */}
-          {(() => {
-             const buValues = Object.keys(safeGroupedData).filter(bu => !isAhpBuValue(bu)).sort();
-             const displayBUs = buValues.length > 0 ? buValues : ["AHN", "ATH", "ATN", "APT"];
-             return displayBUs.map((bu) => {
-               const isSelected = buFilterMode === bu;
-               return (
-                 <button
-                   key={bu}
-                   type="button"
-                   onClick={() => setBuFilterMode(isSelected ? "ALL" : bu)}
-                   className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
-                     isSelected
-                       ? "bg-primary text-primary-foreground shadow-2xs font-black"
-                       : "bg-background hover:bg-muted text-foreground border border-border/80"
-                   }`}
-                 >
-                   {bu}
-                   {isSelected && (
-                     <span className="ml-1 text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
-                   )}
-                 </button>
-               );
-             });
-          })()}
         </div>
         
         {/* Counter & quick reset */}
@@ -2388,7 +2373,7 @@ export function PivotSheet() {
           {buFilterMode !== "ALL" && (
             <button
               type="button"
-              onClick={() => setBuFilterMode("ALL")}
+              onClick={() => handleSetBuFilterMode("ALL")}
               className="text-primary hover:text-primary/80 font-bold underline ml-2 transition-colors cursor-pointer"
             >
               Bỏ lọc
