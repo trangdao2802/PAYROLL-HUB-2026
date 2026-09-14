@@ -25,6 +25,7 @@ import {
   AlertCircle,
   ChevronDown,
   LayoutDashboard,
+  Check,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, useEffect, useRef } from "react";
@@ -189,7 +190,7 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
           filter: "blur(24px)",
         }}
       />
-        <div className="navbar-brand-area flex min-w-0 items-center gap-3">
+        <div className="navbar-brand-area flex min-w-0 items-center gap-1.5">
           <Link
             to="/"
             className="app-brand-lockup select-none border-0 bg-transparent p-0 shadow-none no-underline outline-none transition-transform active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -202,7 +203,6 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
           </Link>
           {location.pathname !== "/" && pageTabs[lookupPath] && (
             <div className="navbar-current-view flex min-w-0 items-center animate-in fade-in slide-in-from-left-4 duration-300">
-              <span className="text-muted-foreground/60 text-xs mr-2 tabular-nums select-none">/</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -212,7 +212,7 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
                     <span className="navbar-current-label truncate">
                       {currentPageLabel}
                     </span>
-                    <ChevronDown className="w-3 h-3 opacity-60" />
+                    <ChevronDown className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

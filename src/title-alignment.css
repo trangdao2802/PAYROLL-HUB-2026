@@ -21,8 +21,6 @@
   transform: scale(1.025) !important;
 }
 
-/* Page sub-title in the navbar uses sentence case: only the first character
- * is capitalized, e.g. “Bulk payment” instead of “Bulk Payment”. */
 .navbar-current-label {
   display: inline-block;
   text-transform: lowercase !important;
