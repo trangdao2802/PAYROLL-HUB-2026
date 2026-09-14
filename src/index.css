@@ -1954,6 +1954,12 @@ body, #root, .bg-background {
   font-size: 10px !important; 
 }
 
+.analysis-data-table thead th :where(span, div, p, button),
+.data-table-wrapper thead th :where(span, div, p, button),
+table thead th :where(span, div, p, button) {
+  color: inherit !important;
+}
+
 .analysis-data-table > .table-footer-pagination {
   background: var(--analysis-soft-surface) !important;
   color: var(--card-foreground, #334155) !important;

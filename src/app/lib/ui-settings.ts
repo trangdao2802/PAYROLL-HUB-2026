@@ -835,8 +835,9 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .data-table-wrapper thead th :where(span, div, p),
     .master-ae-table-wrapper thead th :where(span, div, p),
     .audit-data-table-wrapper thead th :where(span, div, p),
+    .analysis-data-table thead th :where(span, div, p),
     table thead th svg:not(.stroke-rose-600):not(.text-rose-600) {
-      color: ${computedHeaderTextColor} !important;
+      color: inherit !important;
     }
 
     .unified-table-frame-header,

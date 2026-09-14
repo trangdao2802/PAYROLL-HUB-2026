@@ -3272,7 +3272,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
       const filteredHeaderBgColor = isColFiltered
         ? "#FEF3C7"
-        : "var(--table-column-header-bg, #F4ECD8)";
+        : (col.group ? undefined : "var(--table-column-header-bg, #F4ECD8)");
 
       // Since the parent thead is sticky, individual cells only need horizontal sticky positioning
       const stickyClass = [
@@ -3293,7 +3293,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"} ${col.group ? "" : "text-slate-800"}`}
+          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"}`}
           style={{
             padding: "var(--table-padding, 0.25rem 0.4rem)",
             paddingTop: "5px",
@@ -3309,9 +3309,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } : {})
           }}
         >
-          <div className={`flex items-center gap-1.5 ${headerFlexJustify} min-h-full px-1 min-w-0 w-full overflow-visible`}>
+          <div className={`flex items-center gap-1.5 ${headerFlexJustify} min-h-full px-1 min-w-0 w-full overflow-visible text-inherit`}>
             <span
-              className={`transition-colors flex-1 min-w-0 flex flex-wrap items-center ${headerFlexJustify} gap-1 ${col.sortable !== false ? "hover:text-accent active:scale-[0.98] cursor-pointer" : ""} ${col.headerSpanClassName || ""}`}
+              className={`transition-colors flex-1 min-w-0 flex flex-wrap items-center ${headerFlexJustify} gap-1 text-inherit ${col.sortable !== false ? "hover:text-accent active:scale-[0.98] cursor-pointer" : ""} ${col.headerSpanClassName || ""}`}
               onClick={(e) => {
                 if (col.sortable !== false) {
                   e.stopPropagation();
@@ -3320,7 +3320,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               }}
               title={col.sortable !== false ? "Nhấp để thêm cấp sort (Tăng dần → Giảm dần → Hủy); cột bấm trước được ưu tiên trước" : undefined}
             >
-              <span className={`whitespace-normal break-words leading-normal pt-0.5 ${headerTextAlign} max-w-full min-w-0 block font-bold`}>
+              <span className={`whitespace-normal break-words leading-normal pt-0.5 ${headerTextAlign} max-w-full min-w-0 block font-bold text-inherit`}>
                 {col.label}
               </span>
               {col.sortable !== false && activeSort && (
