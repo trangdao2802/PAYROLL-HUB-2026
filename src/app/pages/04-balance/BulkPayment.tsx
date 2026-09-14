@@ -2276,7 +2276,12 @@ export function BulkPayment({
                                   {selected ? (
                                     <Check className="h-3.5 w-3.5 shrink-0" />
                                   ) : !hasData ? (
-                                    <span className="text-[8px] font-bold tracking-wider text-muted-foreground">TRỐNG</span>
+                                    <span 
+                                      className="text-[8px] font-bold tracking-wider text-muted-foreground inline-flex items-center"
+                                      style={{ lineHeight: "18px", height: "18.9982px" }}
+                                    >
+                                      TRỐNG
+                                    </span>
                                   ) : null}
                                 </DropdownMenuItem>
                               );
