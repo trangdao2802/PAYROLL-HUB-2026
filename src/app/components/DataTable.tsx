@@ -1659,14 +1659,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const groupColorMap = useMemo(() => {
       const map = new Map<string, string>();
       const colors = [
-        "bg-blue-50 text-blue-900",
-        "bg-emerald-50 text-emerald-900",
-        "bg-amber-50 text-amber-900",
-        "bg-purple-50 text-purple-900",
-        "bg-pink-50 text-pink-900",
-        "bg-indigo-50 text-indigo-900",
-        "bg-cyan-50 text-cyan-900",
-        "bg-rose-50 text-rose-900",
+        "bg-[#F0F5FA] text-[#1E2C35]", // Breeze Blue
+        "bg-[#FDF7EA] text-[#574116]", // Butter Yellow
+        "bg-[#FAF2F3] text-[#4A2630]", // Blush Pink
+        "bg-[#FBF1EF] text-[#59261D]", // Coral Clay
+        "bg-[#F0FAF8] text-[#1D4039]", // Mint Fountain
+        "bg-[#F4F6FC] text-[#283144]", // Lavender Dream
+        "bg-[#FAF7F7] text-[#3D2A2A]", // Espresso Neutral
       ];
       let colorIdx = 0;
       columns.forEach((c) => {
@@ -3293,12 +3292,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"}`}
+          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"} text-[var(--table-column-header-text-color,#1e293b)]`}
           style={{
             padding: "var(--table-padding, 0.25rem 0.4rem)",
             paddingTop: "5px",
             paddingBottom: "4px",
             backgroundColor: filteredHeaderBgColor,
+            color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))",
             width: widthStyle,
             minWidth: widthStyle,
             maxWidth: widthStyle,
@@ -3438,7 +3438,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs ${
                       action.variant === "destructive"
                         ? "bg-rose-600 hover:bg-rose-700 text-white"
-                        : "bg-white hover:bg-slate-100 text-slate-800 border border-slate-300"
+                        : "bg-white hover:bg-slate-100 text-[var(--table-column-header-text-color,#1e293b)] border border-slate-300"
                     }`}
                   >
                     {action.icon}
@@ -3491,7 +3491,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <div
               className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
               style={{
-                backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+                backgroundColor: "var(--table-header-bg, #FAF5EE)",
                 borderColor: borderColorHex,
                 height: "36px",
                 minHeight: "36px",
@@ -3619,14 +3619,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   );
                 })}
               </colgroup>
-              <thead className={stickyHeader ? "sticky top-0 z-[120] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]" : ""}>
+              <thead className={stickyHeader ? "sticky top-0 z-[120] bg-[var(--table-column-header-bg,#F4ECD8)]" : ""}>
                 {/* Grouped Headers Row if any column has a group defined */}
                 {columns.some(c => c.group) && (
                   <tr className="bg-[var(--table-column-header-bg,#F4ECD8)]">
                     {selectable && (
                       <th
                         rowSpan={2}
-                        className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                        className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                         style={{ 
                           padding: "var(--table-padding, 0.25rem 0.4rem)", 
                           paddingTop: "5px", 
@@ -3666,7 +3666,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     {isRowNumberVisible && (
                       <th
                         rowSpan={2}
-                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
+                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                         style={{ 
                           padding: "var(--table-padding, 0.25rem 0.4rem)", 
                           paddingTop: "5px", 
@@ -3706,7 +3706,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                             <th 
                               key={idx} 
                               colSpan={g.count}
-                              className={`has-group ${groupBg} border-r ${borderClass} py-2 leading-normal text-[var(--header-font-size,0.65rem)] font-bold uppercase text-center shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] whitespace-normal align-middle`}
+                              className={`has-group ${groupBg} border-r ${borderClass} py-2 leading-normal text-[var(--header-font-size,0.65rem)] font-bold uppercase text-center border-b border-[var(--table-border-color,#e7dbdc)] whitespace-normal align-middle text-[var(--table-column-header-text-color,#1e293b)]`}
+                              style={{ color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))" }}
                             >
                               {g.group}
                             </th>
@@ -3719,10 +3720,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     })()}
                   </tr>
                 )}
-                <tr className={headerClassName ? "" : "bg-[var(--table-column-header-bg,#F4ECD8)] text-foreground"}>
+                <tr className={headerClassName ? "" : "bg-[var(--table-column-header-bg,#F4ECD8)] text-[var(--table-column-header-text-color,#1e293b)]"}>
                   {selectable && !columns.some(c => c.group) && (
                     <th
-                      className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                      className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                       style={{ 
                         padding: "var(--table-padding, 0.25rem 0.4rem)", 
                         paddingTop: "5px", 
@@ -3761,7 +3762,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   )}
                   {isRowNumberVisible && !columns.some(c => c.group) && (
                     <th
-                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
+                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                       style={{ 
                         padding: "var(--table-padding, 0.25rem 0.4rem)", 
                         paddingTop: "5px", 
@@ -3907,11 +3908,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   }}
                 >
                   <tr
-                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold total-row`}
+                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold total-row`}
                   >
                     {selectable && (
                       <td
-                        className={`border-b border-r-0 border-l-0 border-t ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold ${stickyFirstColumn ? "sticky-col-selectable sticky-footer-col" : "sticky-footer-col"} total-row`}
+                        className={`border-b border-r-0 border-l-0 ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold ${stickyFirstColumn ? "sticky-col-selectable sticky-footer-col" : "sticky-footer-col"} total-row`}
                         style={{
                           position: "sticky",
                           bottom: 0,
@@ -3926,7 +3927,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     )}
                     {isRowNumberVisible && (
                       <td
-                        className={`border-b border-r-0 border-l-0 border-t ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold ${stickyFirstColumn ? "sticky-col-row-number sticky-footer-col" : "sticky-footer-col"} total-row`}
+                        className={`border-b border-r-0 border-l-0 ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold ${stickyFirstColumn ? "sticky-col-row-number sticky-footer-col" : "sticky-footer-col"} total-row`}
                         style={{
                           position: "sticky",
                           bottom: 0,
@@ -4020,7 +4021,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                           <td
                             key={`footer-grand-${col.key}`}
                             colSpan={shouldMergeFirstTwo && cIdx === 0 ? 2 : 1}
-                            className={`whitespace-nowrap font-extrabold border-b border-t border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
+                            className={`whitespace-nowrap font-extrabold border-b border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
                             style={{
                               padding: "var(--table-padding, 0.2rem 0.6rem)",
                               paddingTop: "3px",

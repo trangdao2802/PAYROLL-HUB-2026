@@ -143,6 +143,7 @@ interface AuditSourceCardProps {
   emptyHint: string;
   inputId?: string;
   onFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  paletteTone?: "blue" | "rose" | "butter" | "coral";
 }
 
 function AuditSourceCard({
@@ -157,6 +158,7 @@ function AuditSourceCard({
   emptyHint,
   inputId,
   onFileChange,
+  paletteTone,
 }: AuditSourceCardProps) {
   const content = isReady ? (
     <div className="audit-source-card__content">
@@ -201,7 +203,7 @@ function AuditSourceCard({
   );
 
   return (
-    <section className={`audit-source-card ${isReady ? "is-ready" : "is-empty"}`}>
+    <section className={`audit-source-card ${isReady ? "is-ready" : "is-empty"} ${paletteTone ? `audit-source-card--${paletteTone}` : ""}`}>
       <div className="audit-source-card__header">
         <span className="audit-source-card__code">{sourceCode}</span>
         <span className="audit-source-card__title" title={title}>
@@ -1579,6 +1581,7 @@ export function Audit() {
                     emptyHint="Hỗ trợ .xlsx, .xls, .csv"
                     inputId="upload-file-a-audit"
                     onFileChange={onFileAChange}
+                    paletteTone="butter"
                   />
 
                   <AuditSourceCard
@@ -1593,6 +1596,7 @@ export function Audit() {
                     emptyHint="Hỗ trợ .xlsx, .xls, .csv"
                     inputId="upload-file-config-audit"
                     onFileChange={onFileConfigChange}
+                    paletteTone="blue"
                   />
 
                   <AuditSourceCard
@@ -1605,6 +1609,7 @@ export function Audit() {
                     readyLabel="Roster OK"
                     emptyTitle="Chưa có Roster"
                     emptyHint="Tải dữ liệu tại Timesheet Hub"
+                    paletteTone="rose"
                   />
                 </div>
 
@@ -1648,7 +1653,7 @@ export function Audit() {
                 <button
                   type="button"
                   onClick={handleBackToAuditOverview}
-                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-white px-2.5 text-[0.625rem] font-semibold text-primary shadow-xs transition-colors hover:bg-primary/5 active:scale-[0.98]"
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#DFD0D6] bg-[#F8EEF1] px-2.5 text-[0.625rem] font-semibold text-[#A26377] shadow-xs transition-colors hover:bg-[#f1e1e6] active:scale-[0.98]"
                   title="Quay trở về bảng Audit Overview"
                   aria-label="Quay trở về bảng Audit Overview"
                 >
@@ -1674,7 +1679,7 @@ export function Audit() {
                       />
                     </button>
                   ) : (
-                    <TableInitialMark label="ALLOWED INTERN CAPACITY RULES BY CLASS" className="shrink-0 text-primary" />
+                    <TableInitialMark label="ALLOWED INTERN CAPACITY RULES BY CLASS" className="shrink-0 text-[#574116]" />
                   )}
 
                   {/* Active table name */}
@@ -1686,7 +1691,7 @@ export function Audit() {
                         className="app-table-title-remainder--expanded"
                       />
                       {reviewRequiredOverviewData.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-[#F8EEF1] text-[#A26377] border border-[#DFD0D6]">
                           {reviewRequiredOverviewData.length}
                         </span>
                       )}
@@ -1695,10 +1700,10 @@ export function Audit() {
                     <>
                       <TableTitleRemainder
                         label="AUDIT CLASS CAPACITY DISCREPANCY DETAILS"
-                        className="app-table-title-remainder--expanded text-emerald-800"
+                        className="app-table-title-remainder--expanded text-[#1E2C35]"
                       />
                       {filteredDetailData.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-emerald-100 text-emerald-800">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-[#E4ECEF] text-[#1E2C35] border border-[#CCD8DF]">
                           {filteredDetailData.length}
                         </span>
                       )}
@@ -1707,9 +1712,9 @@ export function Audit() {
                     <>
                       <TableTitleRemainder
                         label="ALLOWED INTERN CAPACITY RULES BY CLASS"
-                        className="app-table-title-remainder--expanded"
+                        className="app-table-title-remainder--expanded text-[#574116]"
                       />
-                      <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-primary/10 text-primary">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full tabular-nums font-bold bg-[#FDF7EA] text-[#574116] border border-[#F5DC9C]">
                         {allowedTaRules.length}
                       </span>
                     </>

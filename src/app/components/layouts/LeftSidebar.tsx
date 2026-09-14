@@ -33,12 +33,68 @@ interface SidebarProps {
   onOpenSettings?: () => void;
 }
 
-const navItems: { to: string; icon: React.ElementType; label: string }[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/centers", icon: BarChart3, label: "Timesheet" },
-  { to: "/audit", icon: ShieldCheck, label: "Audit" },
-  { to: "/master-ae", icon: Database, label: "Master" },
-  { to: "/hold-dashboard", icon: Wallet, label: "Balance" },
+interface NavItemConfig {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  activeClass: string;
+  hoverClass: string;
+  iconActive: string;
+  iconInactive: string;
+  tooltipClass: string;
+}
+
+const navItems: NavItemConfig[] = [
+  {
+    to: "/",
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    activeClass: "bg-[#FAF7F7] text-[#3D2A2A] border border-[#CBBABA] shadow-sm ring-2 ring-[#3D2A2A]/20",
+    hoverClass: "hover:bg-[#FAF7F7]/80 hover:text-[#3D2A2A]",
+    iconActive: "text-[#3D2A2A]",
+    iconInactive: "text-slate-500 group-hover:text-[#3D2A2A]",
+    tooltipClass: "bg-[#3D2A2A] text-white",
+  },
+  {
+    to: "/centers",
+    icon: BarChart3,
+    label: "Timesheet",
+    activeClass: "bg-[#FDF7EA] text-[#574116] border border-[#F5DC9C] shadow-sm ring-2 ring-[#FBE8B9]/50",
+    hoverClass: "hover:bg-[#FDF7EA]/70 hover:text-[#574116]",
+    iconActive: "text-[#574116]",
+    iconInactive: "text-slate-500 group-hover:text-[#574116]",
+    tooltipClass: "bg-[#574116] text-white",
+  },
+  {
+    to: "/audit",
+    icon: ShieldCheck,
+    label: "Audit",
+    activeClass: "bg-[#F8EEF1] text-[#2D2126] border border-[#DFD0D6] shadow-sm ring-2 ring-[#A26377]/30",
+    hoverClass: "hover:bg-[#F8EEF1]/60 hover:text-[#2D2126]",
+    iconActive: "text-[#2D2126]",
+    iconInactive: "text-slate-500 group-hover:text-[#2D2126]",
+    tooltipClass: "bg-[#2D2126] text-white",
+  },
+  {
+    to: "/master-ae",
+    icon: Database,
+    label: "Master AE",
+    activeClass: "bg-[#FBF1EF] text-[#59261D] border border-[#E8B0A5] shadow-sm ring-2 ring-[#CC7C6B]/30",
+    hoverClass: "hover:bg-[#FBF1EF]/80 hover:text-[#59261D]",
+    iconActive: "text-[#59261D]",
+    iconInactive: "text-slate-500 group-hover:text-[#59261D]",
+    tooltipClass: "bg-[#59261D] text-white",
+  },
+  {
+    to: "/hold-dashboard",
+    icon: Wallet,
+    label: "Balance",
+    activeClass: "bg-[#E4ECEF] text-[#1E2C35] border border-[#CCD8DF] shadow-sm ring-2 ring-[#6F8E9F]/30",
+    hoverClass: "hover:bg-[#E4ECEF]/60 hover:text-[#1E2C35]",
+    iconActive: "text-[#1E2C35]",
+    iconInactive: "text-slate-500 group-hover:text-[#1E2C35]",
+    tooltipClass: "bg-[#1E2C35] text-white",
+  },
 ];
 
 export function LeftSidebar({
@@ -123,7 +179,7 @@ export function LeftSidebar({
       </div>
 
       {/* Nav Sections */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 flex flex-col items-center gap-4 py-4 px-2">
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 flex flex-col items-center gap-3 py-4 px-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
@@ -131,21 +187,21 @@ export function LeftSidebar({
               <TooltipTrigger asChild>
                 <Link
                   to={item.to}
-                  style={{ width: "56px", height: "56px" }}
-                  className={`relative flex items-center justify-center rounded-2xl transition-all duration-300 group ${
+                  style={{ width: "52px", height: "52px" }}
+                  className={`relative flex items-center justify-center rounded-2xl transition-all duration-200 group active:scale-[0.96] ${
                     isActive
-                      ? "bg-primary text-white shadow-lg shadow-primary/20 ring-1 ring-primary/20"
-                      : "bg-transparent text-slate-500 hover:bg-primary/5 hover:text-primary"
+                      ? item.activeClass
+                      : `bg-transparent text-slate-500 ${item.hoverClass}`
                   }`}
                 >
                   <item.icon
-                    className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-primary"} transition-colors`}
+                    className={`w-5 h-5 shrink-0 ${isActive ? item.iconActive : item.iconInactive} transition-colors`}
                   />
                 </Link>
               </TooltipTrigger>
               <TooltipContent
                 side="right"
-                className="bg-primary text-white font-bold text-[0.65rem] uppercase px-3 py-1.5 rounded-lg border-none"
+                className={`${item.tooltipClass} font-bold text-[0.65rem] uppercase px-3 py-1.5 rounded-lg border-none shadow-md`}
               >
                 {item.label}
               </TooltipContent>
@@ -155,20 +211,20 @@ export function LeftSidebar({
       </div>
 
       {/* Settings at Bottom */}
-      <div className="mt-auto p-4 w-full flex flex-col items-center relative z-10 pb-8">
+      <div className="mt-auto p-3 w-full flex flex-col items-center relative z-10 pb-6">
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <button
               onClick={onOpenSettings}
-              style={{ width: "56px", height: "56px" }}
-              className="flex items-center justify-center rounded-2xl transition-colors duration-300 text-slate-500 hover:bg-primary/5 hover:text-primary"
+              style={{ width: "52px", height: "52px" }}
+              className="flex items-center justify-center rounded-2xl transition-colors duration-200 text-slate-500 hover:bg-[#F8EEF1] hover:text-[#2D2126] hover:border hover:border-[#DFD0D6] active:scale-[0.96] cursor-pointer"
             >
               <Wrench className="w-5 h-5 shrink-0" />
             </button>
           </TooltipTrigger>
           <TooltipContent
             side="right"
-            className="bg-primary text-white font-bold text-[0.65rem] uppercase px-3 py-1.5 rounded-lg border-none"
+            className="bg-[#2D2126] text-white font-bold text-[0.65rem] uppercase px-3 py-1.5 rounded-lg border-none shadow-md"
           >
             Settings
           </TooltipContent>

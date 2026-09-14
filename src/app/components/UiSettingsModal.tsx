@@ -1737,6 +1737,7 @@ export function UiSettingsModal({
                               tableHeaderBg: presetData.tableHeaderBg,
                               tableFooterBg: presetData.tableFooterBg,
                               tableColumnHeaderBg: presetData.tableColumnHeaderBg,
+                              tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
                               tableDataBg: presetData.tableDataBg,
                               tableFont: presetData.tableFont,
                               tableRadius: presetData.tableRadius,
@@ -1769,7 +1770,7 @@ export function UiSettingsModal({
                         value={
                           settings.accent?.startsWith("#") && settings.accent.length === 7
                             ? settings.accent
-                            : "#8E4A49"
+                            : "#7A9476"
                         }
                         onChange={(e) =>
                           setSettings({ ...settings, accent: e.target.value })

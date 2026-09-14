@@ -2708,9 +2708,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase`}
+          className={`relative z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)]`}
           style={{
             padding: "var(--table-padding, 0.25rem 0.4rem)",
+            color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))",
             width: widthStyle,
             minWidth: widthStyle,
             maxWidth: widthStyle,
@@ -2847,7 +2848,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <div
               className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
               style={{
-                backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+                backgroundColor: "var(--table-header-bg, #FAF5EE)",
                 borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
               }}
             >

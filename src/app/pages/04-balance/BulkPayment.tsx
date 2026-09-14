@@ -3550,8 +3550,8 @@ export function BulkPayment({
                     ignoreSavedHiddenColumns={false}
                     showFooter={true}
                     hideSearch={true}
-                    headerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-slate-800 border-[#e7dbdc] font-bold"
-                    footerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-slate-800 border-[#e7dbdc] font-black text-[12.5px] md:text-[13px]"
+                    headerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-[var(--table-column-header-text-color,#1e293b)] border-[#e7dbdc] font-bold"
+                    footerClassName="bg-[var(--table-column-header-bg,#F4ECD8)] text-[var(--table-column-header-text-color,#1e293b)] border-[#e7dbdc] font-black text-[12.5px] md:text-[13px]"
                     footerActionContent={
                       <button
                         type="button"
@@ -3671,7 +3671,7 @@ export function BulkPayment({
                   <div
                     className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
                     style={{
-                      backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+                      backgroundColor: "var(--table-header-bg, #FAF5EE)",
                       borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
                     }}
                   >

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Link, useLocation } from "react-router";
+import { ThemeSwitcher } from "../ThemeSwitcher";
 import {
   CircleDollarSign,
   Building2,
@@ -206,7 +207,7 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="navbar-view-trigger flex min-w-0 items-center gap-1 h-7 text-accent hover:text-foreground transition-all group font-bold text-xs tracking-tight cursor-pointer active:scale-95 px-1 bg-transparent border-none shadow-none outline-none focus:outline-none focus-visible:outline-none"
+                    className="navbar-view-trigger flex min-w-0 items-center gap-1.5 h-7 transition-all group font-bold text-xs tracking-tight cursor-pointer active:scale-95 px-1 bg-transparent border-0 shadow-none outline-none focus:outline-none focus-visible:outline-none"
                     aria-label={`Chuyển bảng, hiện tại: ${currentPageLabel}`}
                   >
                     <span className="navbar-current-label truncate">
@@ -233,11 +234,17 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
                            window.dispatchEvent(new CustomEvent("master-ae-request-tab-change", { detail: { tab: t.id } }));
                         }
                       }}
-                      className={`text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 hover:bg-accent/10 hover:text-accent focus:bg-accent/10 focus:text-accent transition-colors outline-none focus:outline-none focus-visible:outline-none ${
-                        t.id === currentTabId ? "bg-accent/10 text-accent" : "text-foreground"
+                      className={`text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 transition-colors outline-none ${
+                        t.id === currentTabId
+                          ? lookupPath === "/centers"
+                            ? "bg-[#E4ECEF] text-[#1E2C35] font-bold"
+                            : lookupPath === "/audit"
+                            ? "bg-[#F8EEF1] text-[#2D2126] font-bold"
+                            : "bg-[#DFE7DC] text-[#2B362A] font-bold"
+                          : "text-foreground hover:bg-muted/70"
                       }`}
                     >
-                      <t.icon className="w-3.5 h-3.5 opacity-70 text-accent" />
+                      <t.icon className="w-3.5 h-3.5 opacity-80" />
                       {t.label}
                     </DropdownMenuItem>
                   ))}
@@ -251,12 +258,23 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
           <nav className="hidden md:flex gap-6 items-center">
               {navigationItems.filter((item) => item.id !== "dashboard").map((item) => {
                 const isActive = location.pathname === item.path;
+                const toneClass =
+                  item.id === "centers" || item.id === "timesheet"
+                    ? { activeText: "text-[#574116]", line: "bg-[#FBE8B9]", hoverText: "hover:text-[#574116]" }
+                    : item.id === "audit"
+                    ? { activeText: "text-[#4A2630]", line: "bg-[#F0CCCE]", hoverText: "hover:text-[#4A2630]" }
+                    : item.id === "master-ae"
+                    ? { activeText: "text-[#59261D]", line: "bg-[#CC7C6B]", hoverText: "hover:text-[#59261D]" }
+                    : { activeText: "text-[#1E2C35]", line: "bg-[#C6D6E7]", hoverText: "hover:text-[#1E2C35]" };
+
                 return (
                   <Link
                     key={item.id}
                     to={item.path}
-                    className={`font-sans lowercase font-semibold tracking-wider text-xs no-underline relative transition-all outline-none focus:outline-none focus-visible:outline-none ${
-                      isActive ? "text-accent font-bold after:content-[''] after:absolute after:-bottom-[16px] after:left-0 after:w-full after:h-[2px] after:bg-accent" : "text-muted-foreground hover:text-foreground"
+                    className={`font-sans lowercase font-semibold tracking-wider text-xs no-underline relative transition-all outline-none ${
+                      isActive
+                        ? `${toneClass.activeText} font-bold after:content-[''] after:absolute after:-bottom-[16px] after:left-0 after:w-full after:h-[2px] ${toneClass.line}`
+                        : `text-muted-foreground ${toneClass.hoverText}`
                     }`}
                   >
                     {item.label}

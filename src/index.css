@@ -80,13 +80,14 @@
   display: inline-block;
   flex: 0 0 auto;
   background-color: var(--primary, #8E4A49);
-  transition: background-color 180ms ease, transform 180ms ease;
+  transition: background-color 180ms ease, transform 180ms ease, filter 180ms ease;
   -webkit-mask-position: center;
   mask-position: center;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   -webkit-mask-size: contain;
   mask-size: contain;
+  filter: drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.7)) drop-shadow(1px 1px 0px rgba(0, 0, 0, 0.3)) drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.15));
 }
 
 .app-table-initial-mark {
@@ -146,6 +147,7 @@
   margin-left: 0px;
   padding-left: 2px;
   text-align: left;
+  transform: translateY(2px);
 }
 
 .app-table-title-remainder--expanded {
@@ -177,7 +179,7 @@
   height: auto !important;
   min-height: 1.45rem;
   line-height: 1.4 !important;
-  padding-bottom: 0px !important;
+  padding-bottom: 2px !important;
 }
 
 .app-table-title-meta {
@@ -261,7 +263,8 @@
 }
 
 .app-brand-lockup:hover .app-brand-wordmark {
-  transform: translateY(-1px);
+  transform: translateY(-1px) scale(1.01);
+  filter: drop-shadow(-1px -1px 0px rgba(255, 255, 255, 0.75)) drop-shadow(1px 1.5px 0px rgba(0, 0, 0, 0.35)) drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.2));
 }
 
 
@@ -289,43 +292,105 @@
   --font-weight-bold: 600;
   --tracking-tight: 0.02em;
 
-  /* Lila Rose Palette - inspired by the approved blush/lilac references */
-  --bg: #F7F3F5;
-  --surface: #FBF8FA;
-  --ink: #493A3E;
-  --ink-muted: #75656B;
-  --accent: #8E4A49;
-  --accent-soft: #EADDE2;
-  --border: #D9C9D0;
+  /* Lila Rose / Dream State Palette - inspired by the approved Dream State visual reference */
+  --bg: #FAF7F8;
+  --surface: #FFFFFF;
+  --ink: #2D2126;
+  --ink-muted: #725D65;
+  --accent: #A26377;
+  --accent-soft: #F4E8EC;
+  --border: #DFD0D6;
   --radius-btn: 99px;
   --radius-card: 12px;
 
-  --background: #F7F3F5;
-  --foreground: #493A3E;
-  --card: #FBF8FA;
-  --card-foreground: #493A3E;
-  --primary: #8E4A49;
+  --background: #FAF7F8;
+  --foreground: #2D2126;
+  --card: #FFFFFF;
+  --card-foreground: #2D2126;
+  --primary: #A26377;
   --primary-foreground: #FFFFFF; 
-  --secondary: #D9C9D0;
-  --secondary-foreground: #493A3E;
+  --secondary: #F8EEF1;
+  --secondary-foreground: #2D2126;
   --accent-foreground: #FFFFFF;
-  --popover: #FBF8FA;
-  --popover-foreground: #493A3E;
-  --muted: #EADDE2;
-  --muted-foreground: #75656B;
-  --table-grid-color: #D9C9D0;
-  --grid-line-color: rgba(142, 74, 73, 0.10);
-  --table-border-color: #D9C9D0;
-  --table-header-bg: #E9D9DF;
-  --table-footer-bg: #E9D9DF;
-  --table-column-header-bg: #D9C9D0;
-  --table-column-header-text: #FFFFFF;
-  --table-data-bg: #FBF8FA;
-  --ring: #8E4A49;
-  --sky: #DDE0EB;
-  --rose: #8E4A49;
-  --peach: #E8C8C2;
+  --popover: #FFFFFF;
+  --popover-foreground: #2D2126;
+  --muted: #F4E8EC;
+  --muted-foreground: #725D65;
+  --table-grid-color: #DFD0D6;
+  --grid-line-color: rgba(162, 99, 119, 0.14);
+  --table-border-color: #DFD0D6;
+  --table-header-bg: #F4E8EC;
+  --table-footer-bg: #F8EEF1;
+  --table-column-header-bg: #F8EEF1;
+  --table-column-header-text: #2D2126;
+  --table-column-header-text-color: #2D2126;
+  --table-data-bg: #FFFFFF;
+  --ring: #A26377;
+  --sky: #E4ECEF;
+  --rose: #A26377;
+  --peach: #DFE7DC;
   --radius: 12px;
+
+  /* Coordinated Palette Collection (Bardak & Dido Market Reference) */
+  --palette-rose: #A26377;
+  --palette-rose-bg: #F8EEF1;
+  --palette-rose-soft: #FBF3F5;
+  --palette-rose-border: #DFD0D6;
+  --palette-rose-text: #2D2126;
+
+  --palette-blue: #6F8E9F;
+  --palette-blue-bg: #E4ECEF;
+  --palette-blue-soft: #F2F7F9;
+  --palette-blue-border: #CCD8DF;
+  --palette-blue-text: #1E2C35;
+
+  /* Bardak signature pastel palette (excluding soft matcha) */
+  --palette-butter-yellow: #FBE8B9;
+  --palette-butter-yellow-bg: #FDF7EA;
+  --palette-butter-yellow-soft: #FFFBF2;
+  --palette-butter-yellow-border: #F5DC9C;
+  --palette-butter-yellow-text: #574116;
+  --palette-butter-yellow-accent: #D4A338;
+
+  --palette-breeze-blue: #C6D6E7;
+  --palette-breeze-blue-bg: #F0F5FA;
+  --palette-breeze-blue-soft: #F7FAFD;
+  --palette-breeze-blue-border: #CCD8DF;
+  --palette-breeze-blue-text: #1E2C35;
+  --palette-breeze-blue-accent: #6F8E9F;
+
+  --palette-blush-pink: #F0CCCE;
+  --palette-blush-pink-bg: #FAF2F3;
+  --palette-blush-pink-soft: #FDF9FA;
+  --palette-blush-pink-border: #DFD0D6;
+  --palette-blush-pink-text: #4A2630;
+  --palette-blush-pink-accent: #A26377;
+
+  --palette-coral-clay: #CC7C6B;
+  --palette-coral-clay-bg: #FBF1EF;
+  --palette-coral-clay-soft: #FDF7F6;
+  --palette-coral-clay-border: #E8B0A5;
+  --palette-coral-clay-text: #59261D;
+  --palette-coral-clay-accent: #CC7C6B;
+
+  --palette-espresso-brown: #3D2A2A;
+  --palette-espresso-brown-bg: #F7F2F2;
+  --palette-espresso-brown-soft: #FAF7F7;
+  --palette-espresso-brown-border: #CBBABA;
+  --palette-espresso-brown-text: #3D2A2A;
+
+  /* Image 4: Dido Market & Mộng Hạch accents */
+  --palette-mint-fountain: #C2ECE5;
+  --palette-mint-fountain-bg: #F0FAF8;
+  --palette-mint-fountain-soft: #F7FDFB;
+  --palette-mint-fountain-border: #AEE2D8;
+  --palette-mint-fountain-text: #1D4039;
+
+  --palette-lavender-dream: #D8DFEE;
+  --palette-lavender-dream-bg: #F4F6FC;
+  --palette-lavender-dream-soft: #F9FAFD;
+  --palette-lavender-dream-border: #C4CEE5;
+  --palette-lavender-dream-text: #283144;
 
   --stripe-color1: #FBF8FA;
   --stripe-color2: #F1E7EB;
@@ -896,15 +961,21 @@
   }
 
   .data-table-wrapper th.academic-group {
-    background-color: #E0F2FE !important; /* Sky blue background */
-    color: #0369A1 !important; /* Sky blue text */
-    border-bottom: 2px solid #BAE6FD !important;
+    background-color: #FDF7EA !important; /* Butter yellow background */
+    color: #574116 !important; /* Butter yellow deep text */
+    border-bottom: 2px solid #F5DC9C !important;
   }
 
   .data-table-wrapper th.admin-group {
-    background-color: #FEF3C7 !important; /* Amber background */
-    color: #B45309 !important; /* Amber text */
-    border-bottom: 2px solid #FDE68A !important;
+    background-color: #E4ECEF !important; /* Breeze ice blue background */
+    color: #1E2C35 !important; /* Breeze blue deep text */
+    border-bottom: 2px solid #CCD8DF !important;
+  }
+
+  .data-table-wrapper th.rose-group {
+    background-color: #F8EEF1 !important; /* Lila rose background */
+    color: #2D2126 !important; /* Lila rose deep text */
+    border-bottom: 2px solid #DFD0D6 !important;
   }
 
   .data-table-wrapper td {
@@ -2895,6 +2966,137 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
     inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
 }
 
+/* Coordinated Palette Audit Source Cards */
+.audit-source-card--blue {
+  border-color: #CCD8DF !important;
+  background: #FFFFFF !important;
+}
+.audit-source-card--blue .audit-source-card__header {
+  background: #F2F7F9 !important;
+  border-bottom: 1px solid #CCD8DF !important;
+  color: #1E2C35 !important;
+}
+.audit-source-card--blue .audit-source-card__code {
+  background: #E4ECEF !important;
+  color: #6F8E9F !important;
+  border: 1px solid #CCD8DF !important;
+}
+.audit-source-card--blue.is-ready::before {
+  background: #6F8E9F !important;
+}
+.audit-source-card--blue .audit-source-card__state.is-ready {
+  background: #E4ECEF !important;
+  color: #1E2C35 !important;
+  border: 1px solid #CCD8DF !important;
+}
+.audit-source-card--blue .audit-source-card__ready-icon {
+  background: #E4ECEF !important;
+  color: #6F8E9F !important;
+}
+
+.audit-source-card--rose {
+  border-color: #DFD0D6 !important;
+  background: #FFFFFF !important;
+}
+.audit-source-card--rose .audit-source-card__header {
+  background: #FBF3F5 !important;
+  border-bottom: 1px solid #DFD0D6 !important;
+  color: #2D2126 !important;
+}
+.audit-source-card--rose .audit-source-card__code {
+  background: #F8EEF1 !important;
+  color: #A26377 !important;
+  border: 1px solid #DFD0D6 !important;
+}
+.audit-source-card--rose.is-ready::before {
+  background: #A26377 !important;
+}
+.audit-source-card--rose .audit-source-card__state.is-ready {
+  background: #F8EEF1 !important;
+  color: #2D2126 !important;
+  border: 1px solid #DFD0D6 !important;
+}
+.audit-source-card--rose .audit-source-card__ready-icon {
+  background: #F8EEF1 !important;
+  color: #A26377 !important;
+}
+
+.audit-source-card--butter {
+  border-color: #F5DC9C !important;
+  background: #FFFFFF !important;
+}
+.audit-source-card--butter .audit-source-card__header {
+  background: #FFFBF2 !important;
+  border-bottom: 1px solid #F5DC9C !important;
+  color: #574116 !important;
+}
+.audit-source-card--butter .audit-source-card__code {
+  background: #FDF7EA !important;
+  color: #D4A338 !important;
+  border: 1px solid #F5DC9C !important;
+}
+.audit-source-card--butter.is-ready::before {
+  background: #FBE8B9 !important;
+}
+.audit-source-card--butter .audit-source-card__state.is-ready {
+  background: #FDF7EA !important;
+  color: #574116 !important;
+  border: 1px solid #F5DC9C !important;
+}
+.audit-source-card--butter .audit-source-card__ready-icon {
+  background: #FDF7EA !important;
+  color: #D4A338 !important;
+}
+
+.audit-source-card--coral {
+  border-color: #E8B0A5 !important;
+  background: #FFFFFF !important;
+}
+.audit-source-card--coral .audit-source-card__header {
+  background: #FDF7F6 !important;
+  border-bottom: 1px solid #E8B0A5 !important;
+  color: #59261D !important;
+}
+.audit-source-card--coral .audit-source-card__code {
+  background: #FBF1EF !important;
+  color: #CC7C6B !important;
+  border: 1px solid #E8B0A5 !important;
+}
+.audit-source-card--coral.is-ready::before {
+  background: #CC7C6B !important;
+}
+.audit-source-card--coral .audit-source-card__state.is-ready {
+  background: #FBF1EF !important;
+  color: #59261D !important;
+  border: 1px solid #E8B0A5 !important;
+}
+.audit-source-card--coral .audit-source-card__ready-icon {
+  background: #FBF1EF !important;
+  color: #CC7C6B !important;
+}
+
+/* Bardak & Dream State Badge Tokens */
+.badge-butter {
+  background-color: var(--palette-butter-yellow-bg, #FDF7EA) !important;
+  color: var(--palette-butter-yellow-text, #574116) !important;
+  border: 1px solid var(--palette-butter-yellow-border, #F5DC9C) !important;
+}
+.badge-blue {
+  background-color: var(--palette-breeze-blue-bg, #F0F5FA) !important;
+  color: var(--palette-breeze-blue-text, #1E2C35) !important;
+  border: 1px solid var(--palette-breeze-blue-border, #CCD8DF) !important;
+}
+.badge-rose {
+  background-color: var(--palette-blush-pink-bg, #FAF2F3) !important;
+  color: var(--palette-blush-pink-text, #4A2630) !important;
+  border: 1px solid var(--palette-blush-pink-border, #DFD0D6) !important;
+}
+.badge-coral {
+  background-color: var(--palette-coral-clay-bg, #FBF1EF) !important;
+  color: var(--palette-coral-clay-text, #59261D) !important;
+  border: 1px solid var(--palette-coral-clay-border, #E8B0A5) !important;
+}
+
 @media (max-width: 767px) {
   .audit-source-panel {
     width: 100% !important;
@@ -3216,34 +3418,9 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
   border-spacing: 0 !important;
 }
 
-.table-container th:last-child,
-.table-container td:last-child,
-.data-table-wrapper th:last-child,
-.data-table-wrapper td:last-child,
-.pivot-table-container th:last-child,
-.pivot-table-container td:last-child,
-.audit-data-table-wrapper th:last-child,
-.audit-data-table-wrapper td:last-child,
-.master-ae-table-wrapper th:last-child,
-.master-ae-table-wrapper td:last-child,
-.trial-balance-table th:last-child,
-.trial-balance-table td:last-child,
-.unified-table-frame th:last-child,
-.unified-table-frame td:last-child {
-  border-right: none !important;
-  border-right-width: 0px !important;
-}
+/* removed border-right: none hack */
 
-.table-container tr:last-child td,
-.data-table-wrapper tr:last-child td,
-.pivot-table-container tr:last-child td,
-.audit-data-table-wrapper tr:last-child td,
-.master-ae-table-wrapper tr:last-child td,
-.trial-balance-table tr:last-child td,
-.unified-table-frame tr:last-child td {
-  border-bottom: none !important;
-  border-bottom-width: 0px !important;
-}
+/* removed border-bottom: none hack */
 
 /* Custom Pivot grids use the same hover and subtotal hierarchy as DataTable.
    The selectors intentionally outrank the runtime table-theme cell fill. */
@@ -3697,3 +3874,136 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   box-sizing: border-box !important;
 }
 
+
+[data-theme="lila-rose"] {
+  --bg: #FAF7F8;
+  --surface: #FFFFFF;
+  --ink: #2D2126;
+  --ink-muted: #725D65;
+  --accent: #A26377;
+  --accent-soft: #F4E8EC;
+  --border: #DFD0D6;
+  --background: #FAF7F8;
+  --foreground: #2D2126;
+  --card: #FFFFFF;
+  --card-foreground: #2D2126;
+  --primary: #A26377;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F8EEF1;
+  --secondary-foreground: #2D2126;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #2D2126;
+  --muted: #F4E8EC;
+  --muted-foreground: #725D65;
+  --table-grid-color: #DFD0D6;
+  --grid-line-color: rgba(162, 99, 119, 0.14);
+  --table-border-color: #DFD0D6;
+  --table-header-bg: #F4E8EC;
+  --table-footer-bg: #F8EEF1;
+  --table-column-header-bg: #F8EEF1;
+  --table-column-header-text-color: #2D2126;
+  --table-column-header-text: #2D2126;
+  --table-data-bg: #FFFFFF;
+}
+
+[data-theme="breeze-blue"] {
+  --bg: #F5F8FA;
+  --surface: #FFFFFF;
+  --ink: #1E2C35;
+  --ink-muted: #5E7482;
+  --accent: #6F8E9F;
+  --accent-soft: #E5EDF1;
+  --border: #CCD8DF;
+  --background: #F5F8FA;
+  --foreground: #1E2C35;
+  --card: #FFFFFF;
+  --card-foreground: #1E2C35;
+  --primary: #6F8E9F;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E4ECEF;
+  --secondary-foreground: #1E2C35;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #1E2C35;
+  --muted: #E5EDF1;
+  --muted-foreground: #5E7482;
+  --table-grid-color: #CCD8DF;
+  --grid-line-color: rgba(111, 142, 159, 0.14);
+  --table-border-color: #CCD8DF;
+  --table-header-bg: #E5EDF1;
+  --table-footer-bg: #E4ECEF;
+  --table-column-header-bg: #E4ECEF;
+  --table-column-header-text-color: #1E2C35;
+  --table-column-header-text: #1E2C35;
+  --table-data-bg: #FFFFFF;
+}
+
+[data-theme="dream-state"] {
+  --bg: #FAF8F7;
+  --surface: #FFFFFF;
+  --ink: #2B362A;
+  --ink-muted: #647763;
+  --accent: #7A9476;
+  --accent-soft: #EAEFE6;
+  --border: #CCD7C9;
+  --background: #FAF8F7;
+  --foreground: #2B362A;
+  --card: #FFFFFF;
+  --card-foreground: #2B362A;
+  --primary: #7A9476;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F8EEF1;
+  --secondary-foreground: #2D2126;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #2B362A;
+  --muted: #E4ECEF;
+  --muted-foreground: #5E7482;
+  --table-grid-color: #CCD7C9;
+  --grid-line-color: rgba(122, 148, 118, 0.18);
+  --table-border-color: #CCD7C9;
+  --table-header-bg: #E4ECEF;
+  --table-footer-bg: #F8EEF1;
+  --table-column-header-bg: #DFE7DC;
+  --table-column-header-text-color: #2B362A;
+  --table-column-header-text: #2B362A;
+  --table-data-bg: #FFFFFF;
+}
+
+[data-theme="espresso-blush"] {
+  --bg: #FDF9F9;
+  --surface: #FFFFFF;
+  --ink: #3D2A2A;
+  --ink-muted: #856E6E;
+  --accent: #cc7c6b;
+  --accent-soft: #F8EAE8;
+  --border: #E8D5D5;
+  --background: #FDF9F9;
+  --foreground: #3D2A2A;
+  --card: #FFFFFF;
+  --card-foreground: #3D2A2A;
+  --primary: #3D2A2A;
+  --primary-foreground: #fbe8b9;
+  --secondary: #f0ccce;
+  --secondary-foreground: #3D2A2A;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #3D2A2A;
+  --muted: #f0ccce;
+  --muted-foreground: #856E6E;
+  --table-grid-color: #E8D5D5;
+  --grid-line-color: rgba(61, 42, 42, 0.08);
+  --table-border-color: #E8D5D5;
+  --table-header-bg: #F8EAE8;
+  --table-footer-bg: #3D2A2A;
+  --table-column-header-bg: #3D2A2A;
+  --table-column-header-text-color: #FBE8B9;
+  --table-column-header-text: #FBE8B9;
+  --table-data-bg: #FFFFFF;
+}
+
+/* Restore Table double border correction hacks */
+/* removed border-right: none hack */
+
+/* removed border-bottom: none hack */

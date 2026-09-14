@@ -2191,7 +2191,14 @@ export function TimesheetHub() {
                 marginLeft: showSidebar ? "12px" : "0px"
               }}
             >
-              <div className="unified-table-frame table-container flex-1 flex flex-col min-h-0 relative bg-card border border-border rounded-none shadow-sm overflow-hidden" style={{ borderWidth: "0.2px" }}>
+              <div 
+                className="unified-table-frame table-container flex-1 flex flex-col min-h-0 relative bg-card border shadow-sm overflow-hidden" 
+                style={{ 
+                  borderRadius: "var(--table-radius, 12px)", 
+                  borderWidth: "1px", 
+                  borderColor: "var(--table-frame-border, var(--border))" 
+                }}
+              >
                 {isAuditNavigation && (
                   <div className="bg-rose-50 border-b border-rose-200 px-4 py-2 flex items-center justify-between z-[150] shrink-0">
                     <div className="flex items-center gap-2 text-rose-800 text-xs font-bold">

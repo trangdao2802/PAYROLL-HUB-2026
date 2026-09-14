@@ -47,24 +47,52 @@ export function Dashboard() {
       path: "/master-ae",
       desc: "Manage AE source files, mappings and payroll configuration.",
       icon: <Database className="h-5 w-5" />,
+      tone: {
+        card: "border-[#E8B0A5] bg-[#FDF7F6] hover:border-[#CC7C6B] shadow-[0_12px_30px_-24px_rgba(204,124,107,0.45)]",
+        iconBox: "border-[#E8B0A5] bg-[#FBF1EF] text-[#59261D]",
+        title: "group-hover:text-[#59261D]",
+        arrow: "group-hover:border-[#CC7C6B] group-hover:bg-[#CC7C6B] group-hover:text-white",
+        tag: "bg-[#FBF1EF] text-[#59261D] border-[#E8B0A5]",
+      },
     },
     {
       title: "Audit Center",
       path: "/audit",
       desc: "Compare source data and review payroll discrepancies.",
       icon: <ShieldCheck className="h-5 w-5" />,
+      tone: {
+        card: "border-[#DFD0D6] bg-[#FAF7F8] hover:border-[#A26377] shadow-[0_12px_30px_-24px_rgba(162,99,119,0.45)]",
+        iconBox: "border-[#DFD0D6] bg-[#F8EEF1] text-[#2D2126]",
+        title: "group-hover:text-[#2D2126]",
+        arrow: "group-hover:border-[#A26377] group-hover:bg-[#A26377] group-hover:text-white",
+        tag: "bg-[#F8EEF1] text-[#2D2126] border-[#DFD0D6]",
+      },
     },
     {
       title: "Balance",
       path: "/hold-dashboard",
       desc: "Track trial balance, deductions and carried Hold records.",
       icon: <Scale className="h-5 w-5" />,
+      tone: {
+        card: "border-[#CCD8DF] bg-[#F5F8FA] hover:border-[#6F8E9F] shadow-[0_12px_30px_-24px_rgba(111,142,159,0.45)]",
+        iconBox: "border-[#CCD8DF] bg-[#E4ECEF] text-[#1E2C35]",
+        title: "group-hover:text-[#1E2C35]",
+        arrow: "group-hover:border-[#6F8E9F] group-hover:bg-[#6F8E9F] group-hover:text-white",
+        tag: "bg-[#E4ECEF] text-[#1E2C35] border-[#CCD8DF]",
+      },
     },
     {
       title: "Timesheet Hub",
       path: "/centers",
       desc: "Review roster hours, center payments and MKT allocation.",
       icon: <Clock className="h-5 w-5" />,
+      tone: {
+        card: "border-[#F5DC9C] bg-[#FFFBF2] hover:border-[#D4A338] shadow-[0_12px_30px_-24px_rgba(212,163,56,0.45)]",
+        iconBox: "border-[#F5DC9C] bg-[#FDF7EA] text-[#574116]",
+        title: "group-hover:text-[#574116]",
+        arrow: "group-hover:border-[#D4A338] group-hover:bg-[#D4A338] group-hover:text-white",
+        tag: "bg-[#FDF7EA] text-[#574116] border-[#F5DC9C]",
+      },
     },
   ];
 
@@ -119,7 +147,7 @@ export function Dashboard() {
               {visibleCards.map((card, index) => (
                 <article
                   key={card.path}
-                  className="group relative flex min-h-[190px] cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[0_14px_34px_-30px_color-mix(in_srgb,var(--primary)_65%,transparent)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_22px_46px_-32px_color-mix(in_srgb,var(--primary)_70%,transparent)] sm:p-6"
+                  className={`group relative flex min-h-[190px] cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 sm:p-6 ${card.tone.card}`}
                 >
                   <Link
                     to={card.path}
@@ -128,11 +156,11 @@ export function Dashboard() {
                   />
 
                   <div className="pointer-events-none relative z-[1] flex items-start justify-between">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/15 bg-primary/[0.07] text-primary transition-transform group-hover:scale-105">
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border transition-transform group-hover:scale-105 ${card.tone.iconBox}`}>
                       {card.icon}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold tabular-nums tracking-[0.16em] text-muted-foreground/70">
+                      <span className={`text-[10px] font-bold tabular-nums tracking-[0.16em] px-2 py-0.5 rounded-full border ${card.tone.tag}`}>
                         {String(index + 1).padStart(2, "0")}
                       </span>
                       <button
@@ -150,14 +178,14 @@ export function Dashboard() {
                   <div className="pointer-events-none relative z-[1] mt-8">
                     <div className="flex items-end justify-between gap-3">
                       <div className="min-w-0">
-                        <h2 className="font-serif text-xl font-bold text-foreground transition-colors group-hover:text-primary sm:text-2xl">
+                        <h2 className={`font-serif text-xl font-bold text-foreground transition-colors sm:text-2xl ${card.tone.title}`}>
                           {card.title}
                         </h2>
                         <p className="mt-1.5 max-w-md text-xs leading-relaxed text-muted-foreground">
                           {card.desc}
                         </p>
                       </div>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all group-hover:border-primary/25 group-hover:bg-primary group-hover:text-primary-foreground">
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all ${card.tone.arrow}`}>
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
@@ -178,27 +206,27 @@ export function Dashboard() {
             </div>
 
             <div className="grid flex-1 content-center gap-3 py-5">
-              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600">
+              <div className="flex items-center gap-3 rounded-xl border border-[#F5DC9C] bg-[#FFFBF2] p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#F5DC9C] bg-[#FDF7EA] text-[#574116]">
                   <Activity className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Platform
                   </span>
-                  <span className="font-serif text-sm font-bold text-foreground">Operational</span>
+                  <span className="font-serif text-sm font-bold text-[#574116]">Operational</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.07] text-primary">
+              <div className="flex items-center gap-3 rounded-xl border border-[#CCD8DF] bg-[#F5F8FA] p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#CCD8DF] bg-[#E4ECEF] text-[#1E2C35]">
                   <Calendar className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Working date
                   </span>
-                  <span className="font-serif text-sm font-bold text-foreground">
+                  <span className="font-serif text-sm font-bold text-[#1E2C35]">
                     {new Date().toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "short",
@@ -208,15 +236,15 @@ export function Dashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/[0.07] text-primary">
+              <div className="flex items-center gap-3 rounded-xl border border-[#DFD0D6] bg-[#FAF7F8] p-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DFD0D6] bg-[#F8EEF1] text-[#2D2126]">
                   <Layers3 className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Visible modules
                   </span>
-                  <span className="font-serif text-sm font-bold text-foreground">
+                  <span className="font-serif text-sm font-bold text-[#2D2126]">
                     {visibleCards.length} / {cards.length}
                   </span>
                 </div>
@@ -226,7 +254,7 @@ export function Dashboard() {
             <button
               type="button"
               onClick={() => navigate("/audit")}
-              className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-primary px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]"
+              className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-xl bg-[#A26377] hover:bg-[#8e5264] px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all active:scale-[0.98]"
             >
               <Play className="h-4 w-4 fill-current" />
               Run audit process

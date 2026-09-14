@@ -2315,7 +2315,7 @@ export function PivotSheet() {
       <div
         className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b border-[var(--border)] flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
         style={{
-          backgroundColor: "var(--table-toolbar-bg, #FAF5EE)",
+          backgroundColor: "var(--table-header-bg, #FAF5EE)",
           height: "36px",
           minHeight: "36px",
           maxHeight: "36px",
