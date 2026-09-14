@@ -4093,7 +4093,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     scrollContainerRef.current?.scrollTo({ top: 0 });
                   }}
                 >
-                  <SelectTrigger className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0" style={{ height: "20px", width: "90px", fontSize: "10px", lineHeight: "14px" }}>
+                  <SelectTrigger className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0" style={{ height: "20px", width: "96.9912px", fontSize: "10px", lineHeight: "14px" }}>
                     <SelectValue placeholder="Chọn..." className="font-sans normal-case" />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--popover)] border-[#e7dbdc] z-[99999] opacity-100 font-sans">
@@ -4196,7 +4196,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     textStyle={{
                       fontFamily: "inherit",
                       fontWeight: "600",
-                      fontSize: "9px",
+                      fontSize: "10px",
                       color: "#475569",
                     }}
                     iconStyle={{

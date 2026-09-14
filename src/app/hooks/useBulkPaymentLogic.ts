@@ -700,8 +700,10 @@ export function useBulkPaymentLogic() {
         finalTotals[item.biz] = 0;
       }
       
-      const contribution = item.amount;
-      finalTotals[item.biz] += contribution;
+      // CANCEL is excluded from calculation of finalTotals
+      if (item.type !== "CANCEL") {
+        finalTotals[item.biz] += item.amount;
+      }
     });
 
     if (finalTotals["Unknown"]) {

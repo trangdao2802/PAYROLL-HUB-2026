@@ -2298,7 +2298,8 @@ export function BulkPayment({
                             const addOnly = holdAddItems.filter((i) => i.type === "ADD").reduce((sum, i) => sum + i.amount, 0);
                             const bonusOnly = holdAddItems.filter((i) => i.type === "BONUS").reduce((sum, i) => sum + i.amount, 0);
                             const cancelOnly = holdAddItems.filter((i) => i.type === "CANCEL").reduce((sum, i) => sum + i.amount, 0);
-                            const deductionsSum = holdOnly + addOnly + bonusOnly + cancelOnly;
+                            // CANCEL is displayed but excluded from card calculation
+                            const deductionsSum = holdOnly + addOnly + bonusOnly;
                             const finalTotal = isAll
                               ? targetBUs.reduce((sum, b) => {
                                   const s1 = dynamicReportStats.sheet1Totals[b] || 0;
@@ -2306,8 +2307,7 @@ export function BulkPayment({
                                   const h = items.filter((i) => i.type === "HOLD").reduce((acc, i) => acc + i.amount, 0);
                                   const a = items.filter((i) => i.type === "ADD").reduce((acc, i) => acc + i.amount, 0);
                                   const bo = items.filter((i) => i.type === "BONUS").reduce((acc, i) => acc + i.amount, 0);
-                                  const c = items.filter((i) => i.type === "CANCEL").reduce((acc, i) => acc + i.amount, 0);
-                                  return sum + (dynamicReportStats.finalTotals[b] || (s1 + h + a + bo + c));
+                                  return sum + (dynamicReportStats.finalTotals[b] || (s1 + h + a + bo));
                                 }, 0)
                               : (dynamicReportStats.finalTotals[biz] || (sheet1Val + deductionsSum));
                             
@@ -2317,10 +2317,7 @@ export function BulkPayment({
                               `DEDUCTIONS\t${deductionsSum >= 0 ? "+" : ""}${formatMoneyVND(deductionsSum).replace(" ₫", "")}\n` +
                               `  HOLD\t${holdOnly !== 0 ? `-${formatMoneyVND(Math.abs(holdOnly)).replace(" ₫", "")}` : "0"}\n` +
                               `  ADD\t${addOnly !== 0 ? `+${formatMoneyVND(Math.abs(addOnly)).replace(" ₫", "")}` : "0"}\n` +
-                              `  BONUS\t${bonusOnly !== 0 ? `+${formatMoneyVND(Math.abs(bonusOnly)).replace(" ₫", "")}` : "0"}\n` +
-                              (cancelOnly !== 0
-                                ? `  CANCEL\t-${formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}\n`
-                                : "") +
+                              `  CANCEL\t${cancelOnly !== 0 ? `-${formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}` : "0"}\n` +
                               `NET PAY\t${formatMoneyVND(finalTotal).replace(" ₫", "")}`;
                             
                             navigator.clipboard.writeText(text);
@@ -2363,7 +2360,8 @@ export function BulkPayment({
                           .filter((i) => i.type === "CANCEL")
                           .reduce((sum, i) => sum + i.amount, 0);
 
-                        const deductionsSum = holdOnly + addOnly + cancelOnly;
+                        // CANCEL is displayed in the breakdown but excluded from DEDUCTIONS and NET PAY calculation
+                        const deductionsSum = holdOnly + addOnly;
 
                         const finalTotal = isAll
                           ? targetBUs.reduce((sum, b) => {
@@ -2371,8 +2369,7 @@ export function BulkPayment({
                               const items = (dynamicReportStats.holdAddItems || []).filter((i) => i.biz === b);
                               const h = items.filter((i) => i.type === "HOLD").reduce((acc, i) => acc + i.amount, 0);
                               const a = items.filter((i) => i.type === "ADD").reduce((acc, i) => acc + i.amount, 0);
-                              const c = items.filter((i) => i.type === "CANCEL").reduce((acc, i) => acc + i.amount, 0);
-                              return sum + (dynamicReportStats.finalTotals[b] || (s1 + h + a + c));
+                              return sum + (dynamicReportStats.finalTotals[b] || (s1 + h + a));
                             }, 0)
                           : (dynamicReportStats.finalTotals[biz] || (sheet1Val + deductionsSum));
 
@@ -2442,24 +2439,24 @@ export function BulkPayment({
 
                               <div className="bu-payroll-detail-row">
                                 <span className="bu-summary-detail-label">
-                                  <span className="bu-payroll-detail-dot bu-payroll-detail-dot--bonus" />
-                                  BONUS
+                                  <span className="bu-payroll-detail-dot bu-payroll-detail-dot--cancel" />
+                                  CANCEL
                                 </span>
-                                <span className={`bu-summary-detail-value ${bonusOnly !== 0 ? "text-primary" : "text-muted-foreground"}`}>
-                                  {bonusOnly !== 0
-                                    ? `+${formatMoneyVND(Math.abs(bonusOnly)).replace(" ₫", "")}`
+                                <span className={`bu-summary-detail-value ${cancelOnly !== 0 ? "text-amber-700" : "text-muted-foreground"}`}>
+                                  {cancelOnly !== 0
+                                    ? `-${formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}`
                                     : "0"}
                                 </span>
                               </div>
 
-                              {cancelOnly !== 0 && (
+                              {bonusOnly !== 0 && (
                                 <div className="bu-payroll-detail-row">
                                   <span className="bu-summary-detail-label">
-                                    <span className="bu-payroll-detail-dot bu-payroll-detail-dot--cancel" />
-                                    CANCEL
+                                    <span className="bu-payroll-detail-dot bu-payroll-detail-dot--bonus" />
+                                    BONUS
                                   </span>
-                                  <span className="bu-summary-detail-value text-amber-700">
-                                    -{formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}
+                                  <span className="bu-summary-detail-value text-primary">
+                                    +{formatMoneyVND(Math.abs(bonusOnly)).replace(" ₫", "")}
                                   </span>
                                 </div>
                               )}
@@ -3282,17 +3279,6 @@ export function BulkPayment({
                 </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Total amount badge after table title */}
-              {rightPanelTab === "table" && (
-                <div
-                  className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-[10.5px] tabular-nums select-none shrink-0"
-                  title="Tổng tiền bảng Batch Payment"
-                >
-                  <span className="text-[8.5px] uppercase font-bold text-primary/70 tracking-wider">Tổng tiền:</span>
-                  <span>{formatMoneyVND(bankExportTotal)}</span>
-                </div>
-              )}
               </div>
               <p className="app-table-title-meta max-w-[320px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
                 {rightPanelTab === "table"
