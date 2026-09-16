@@ -320,7 +320,13 @@
   --grid-line-color: rgba(162, 99, 119, 0.14);
   --table-border-color: #DFD0D6;
   --table-header-bg: #F4E8EC;
-  --table-footer-bg: #F8EEF1;
+  --table-header-text-color: #2D2126;
+  --table-header-text: #2D2126;
+  --table-header-muted-color: #725D65;
+  --table-footer-bg: #F4E8EC;
+  --table-footer-text-color: #2D2126;
+  --table-footer-text: #2D2126;
+  --table-footer-muted-color: #725D65;
   --table-column-header-bg: #F8EEF1;
   --table-column-header-text: #2D2126;
   --table-column-header-text-color: #2D2126;
@@ -939,7 +945,7 @@
     letter-spacing: 0.1em !important;
     font-weight: 700 !important;
     font-size: 10px !important;
-    color: var(--accent) !important;
+    color: var(--table-column-header-text-color, var(--table-column-header-text, var(--primary-foreground, #fbe8b9))) !important;
     border-bottom: 1px solid var(--border) !important;
     text-align: center !important;
   }
@@ -958,6 +964,7 @@
   .pivot-master-table th span {
     justify-content: center !important;
     text-align: center !important;
+    color: inherit !important;
   }
 
   .data-table-wrapper th.academic-group {
@@ -984,15 +991,41 @@
   }
 
   .data-table-wrapper tfoot td,
+  .data-table-wrapper tfoot th,
   .master-ae-table-wrapper tfoot td,
+  .master-ae-table-wrapper tfoot th,
   .pivot-table-container tfoot td,
+  .pivot-table-container tfoot th,
+  .pivot-master-table tfoot td,
+  .pivot-master-table tfoot th,
+  .reconcile-table-region tfoot td,
+  .reconcile-table-region tfoot th,
+  .audit-sticky-footer td,
+  .audit-sticky-footer th,
+  tfoot td,
+  tfoot th,
+  .data-table-wrapper .total-row td,
+  .data-table-wrapper .total-row th,
+  .master-ae-table-wrapper .total-row td,
+  .master-ae-table-wrapper .total-row th,
+  .pivot-table-container .total-row td,
+  .pivot-table-container .total-row th,
+  .pivot-master-table .total-row td,
+  .pivot-master-table .total-row th,
+  .reconcile-table-region .total-row td,
+  .reconcile-table-region .total-row th,
+  .total-row td,
+  .total-row th,
   .data-table-wrapper .total-row,
   .master-ae-table-wrapper .total-row,
   .pivot-table-container .total-row,
+  .pivot-master-table .total-row,
+  .reconcile-table-region .total-row,
+  .total-row,
   .master-ae-table-wrapper tfoot tr td,
   .data-table-wrapper tfoot tr td {
     background-color: var(--table-column-header-bg, #F4ECD8) !important;
-    color: var(--accent, #1e293b) !important;
+    color: var(--table-column-header-text-color, var(--table-column-header-text, inherit)) !important;
     font-weight: 800 !important;
     font-size: 10px !important;
     line-height: 1.2 !important;
@@ -1006,6 +1039,32 @@
     bottom: 0 !important;
     z-index: 45 !important;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .dark tfoot td,
+  .dark tfoot th,
+  .dark .total-row td,
+  .dark .total-row th,
+  .dark .audit-sticky-footer td,
+  .dark .audit-sticky-footer th {
+    background-color: var(--table-column-header-bg, #1e293b) !important;
+    color: var(--table-column-header-text-color, var(--table-column-header-text, #f8fafc)) !important;
+  }
+
+  /* Ensure text inside span/div inside tfoot inherits the dark header text color */
+  tfoot td :where(span, div, p),
+  tfoot th :where(span, div, p),
+  .total-row td :where(span, div, p),
+  .total-row th :where(span, div, p) {
+    color: inherit !important;
+  }
+
+  /* Toolbar subtle bottom border for crisp visual separation */
+  .table-header,
+  .unified-table-frame-header,
+  .trial-balance-header,
+  .toolbar-container {
+    border-bottom: 1px solid color-mix(in srgb, var(--border, #cbd5e1) 70%, transparent) !important;
   }
 
   th.sticky:not(.has-group) {
@@ -2408,6 +2467,12 @@ section.unified-table-frame {
   border-radius: 0 !important;
   background: var(--table-header-bg, #FAF3E8) !important;
   background-color: var(--table-header-bg, #FAF3E8) !important;
+  color: var(--table-header-text-color, #2D2126) !important;
+}
+
+.bu-filter-bar {
+  background: var(--table-sub-header-bg, #EDE4DB) !important;
+  background-color: var(--table-sub-header-bg, #EDE4DB) !important;
 }
 
 /* A DataTable is framed by default when it is used on its own. */
@@ -2450,6 +2515,7 @@ div.audit-data-table-wrapper {
   box-shadow: none !important;
   background: var(--table-footer-bg, var(--table-header-bg, #FAF3E8)) !important;
   background-color: var(--table-footer-bg, var(--table-header-bg, #FAF3E8)) !important;
+  color: var(--table-footer-text-color, #2D2126) !important;
 }
 
 .unified-table-frame > .data-table-wrapper,
@@ -3843,7 +3909,10 @@ body {
 }
 
 /* Use one separator color across table titles, cells and footers. */
-:root { --table-frame-border: var(--table-border-color, var(--border)); }
+:root {
+  --table-frame-border: var(--table-border-color, var(--border));
+  --table-sub-header-bg: #EDE4DB;
+}
 :where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper, .pivot-table-container) :where(th, td, .table-footer-pagination, .table-header, .unified-table-frame-header) {
   border-color: var(--table-border-color, var(--border)) !important;
 }
@@ -3862,16 +3931,13 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   max-height: 36px !important;
   flex: 0 0 36px !important;
   box-sizing: border-box !important;
+  background: var(--table-sub-header-bg, #EDE4DB) !important;
+  background-color: var(--table-sub-header-bg, #EDE4DB) !important;
 }
 
-
-/* Focus Mode CSS for User Selected Element */
-div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(2) > div#table-card:nth-of-type(2) > div:nth-of-type(1) {
-  height: 36px !important;
-  min-height: 36px !important;
-  max-height: 36px !important;
-  flex: 0 0 36px !important;
-  box-sizing: border-box !important;
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) {
+  margin-top: 0px !important;
+  padding-bottom: 9.8475px !important;
 }
 
 
@@ -3900,7 +3966,8 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   --grid-line-color: rgba(162, 99, 119, 0.14);
   --table-border-color: #DFD0D6;
   --table-header-bg: #F4E8EC;
-  --table-footer-bg: #F8EEF1;
+  --table-sub-header-bg: #FFFFFF;
+  --table-footer-bg: #F4E8EC;
   --table-column-header-bg: #F8EEF1;
   --table-column-header-text-color: #2D2126;
   --table-column-header-text: #2D2126;
@@ -3908,66 +3975,134 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 }
 
 [data-theme="breeze-blue"] {
-  --bg: #F5F8FA;
+  --bg: #F2F7FA;
   --surface: #FFFFFF;
-  --ink: #1E2C35;
-  --ink-muted: #5E7482;
-  --accent: #6F8E9F;
-  --accent-soft: #E5EDF1;
-  --border: #CCD8DF;
-  --background: #F5F8FA;
-  --foreground: #1E2C35;
+  --ink: #1F2E38;
+  --ink-muted: #5B7382;
+  --accent: #4E7A94;
+  --accent-soft: #DCE8F0;
+  --border: #BACDD8;
+  --background: #F2F7FA;
+  --foreground: #1F2E38;
   --card: #FFFFFF;
-  --card-foreground: #1E2C35;
-  --primary: #6F8E9F;
+  --card-foreground: #1F2E38;
+  --primary: #4E7A94;
   --primary-foreground: #FFFFFF;
-  --secondary: #E4ECEF;
-  --secondary-foreground: #1E2C35;
+  --secondary: #FBE8B9;
+  --secondary-foreground: #2E2210;
   --accent-foreground: #FFFFFF;
   --popover: #FFFFFF;
-  --popover-foreground: #1E2C35;
-  --muted: #E5EDF1;
-  --muted-foreground: #5E7482;
-  --table-grid-color: #CCD8DF;
-  --grid-line-color: rgba(111, 142, 159, 0.14);
-  --table-border-color: #CCD8DF;
-  --table-header-bg: #E5EDF1;
-  --table-footer-bg: #E4ECEF;
-  --table-column-header-bg: #E4ECEF;
-  --table-column-header-text-color: #1E2C35;
-  --table-column-header-text: #1E2C35;
+  --popover-foreground: #1F2E38;
+  --muted: #E5EFF6;
+  --muted-foreground: #5B7382;
+  --table-grid-color: #BACDD8;
+  --grid-line-color: rgba(78, 122, 148, 0.12);
+  --table-border-color: #BACDD8;
+  --table-header-bg: #C6D6E7;
+  --table-sub-header-bg: #FAF4E8;
+  --table-footer-bg: #C6D6E7;
+  --table-column-header-bg: #FBE8B9;
+  --table-column-header-text-color: #2E2210;
+  --table-column-header-text: #2E2210;
   --table-data-bg: #FFFFFF;
 }
 
 [data-theme="dream-state"] {
-  --bg: #FAF8F7;
+  --bg: #FAF8F5;
   --surface: #FFFFFF;
-  --ink: #2B362A;
-  --ink-muted: #647763;
-  --accent: #7A9476;
-  --accent-soft: #EAEFE6;
-  --border: #CCD7C9;
-  --background: #FAF8F7;
-  --foreground: #2B362A;
+  --ink: #232B25;
+  --ink-muted: #5D6B60;
+  --accent: #5C7C60;
+  --accent-soft: #E6EFE6;
+  --border: #C8D7C9;
+  --background: #FAF8F5;
+  --foreground: #232B25;
   --card: #FFFFFF;
-  --card-foreground: #2B362A;
-  --primary: #7A9476;
+  --card-foreground: #232B25;
+  --primary: #5C7C60;
   --primary-foreground: #FFFFFF;
-  --secondary: #F8EEF1;
-  --secondary-foreground: #2D2126;
+  --secondary: #EAC5CD;
+  --secondary-foreground: #45242D;
   --accent-foreground: #FFFFFF;
   --popover: #FFFFFF;
-  --popover-foreground: #2B362A;
-  --muted: #E4ECEF;
-  --muted-foreground: #5E7482;
-  --table-grid-color: #CCD7C9;
-  --grid-line-color: rgba(122, 148, 118, 0.18);
-  --table-border-color: #CCD7C9;
-  --table-header-bg: #E4ECEF;
-  --table-footer-bg: #F8EEF1;
-  --table-column-header-bg: #DFE7DC;
-  --table-column-header-text-color: #2B362A;
-  --table-column-header-text: #2B362A;
+  --popover-foreground: #232B25;
+  --muted: #E8EFE8;
+  --muted-foreground: #5D6B60;
+  --table-grid-color: #C8D7C9;
+  --grid-line-color: rgba(92, 124, 96, 0.12);
+  --table-border-color: #C8D7C9;
+  --table-header-bg: #CFDABD;
+  --table-sub-header-bg: #FAF1F4;
+  --table-footer-bg: #CFDABD;
+  --table-column-header-bg: #D8E5EE;
+  --table-column-header-text-color: #1E2B1F;
+  --table-column-header-text: #1E2B1F;
+  --table-data-bg: #FFFFFF;
+}
+
+[data-theme="dido-dream"] {
+  --bg: #FAF5EB;
+  --surface: #FFFFFF;
+  --ink: #352323;
+  --ink-muted: #785D5D;
+  --accent: #523636;
+  --accent-soft: #E8E9F8;
+  --border: #CDCDE3;
+  --background: #FAF5EB;
+  --foreground: #352323;
+  --card: #FFFFFF;
+  --card-foreground: #352323;
+  --primary: #523636;
+  --primary-foreground: #A2E3D8;
+  --secondary: #F2A797;
+  --secondary-foreground: #3B221E;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #352323;
+  --muted: #EBEBF8;
+  --muted-foreground: #785D5D;
+  --table-grid-color: #CDCDE3;
+  --grid-line-color: rgba(82, 54, 54, 0.10);
+  --table-border-color: #CDCDE3;
+  --table-header-bg: #C5CAEC;
+  --table-sub-header-bg: #FAF0EB;
+  --table-footer-bg: #C5CAEC;
+  --table-column-header-bg: #9EE3D7;
+  --table-column-header-text-color: #1C3A35;
+  --table-column-header-text: #1C3A35;
+  --table-data-bg: #FFFFFF;
+}
+
+[data-theme="bardak-pastel"] {
+  --bg: #FAF7F3;
+  --surface: #FFFFFF;
+  --ink: #3D2A2A;
+  --ink-muted: #7E6868;
+  --accent: #CC7C6B;
+  --accent-soft: #F8ECE9;
+  --border: #CCD8DF;
+  --background: #FAF7F3;
+  --foreground: #3D2A2A;
+  --card: #FFFFFF;
+  --card-foreground: #3D2A2A;
+  --primary: #CC7C6B;
+  --primary-foreground: #FFFFFF;
+  --secondary: #C6D6E7;
+  --secondary-foreground: #1E2C35;
+  --accent-foreground: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #3D2A2A;
+  --muted: #EDF3E8;
+  --muted-foreground: #7E6868;
+  --table-grid-color: #CBD7DE;
+  --grid-line-color: rgba(61, 42, 42, 0.09);
+  --table-border-color: #CBD7DE;
+  --table-header-bg: #F6DFD9;
+  --table-sub-header-bg: #EFF5EC;
+  --table-footer-bg: #F6DFD9;
+  --table-column-header-bg: #FBE8B9;
+  --table-column-header-text-color: #3D2A2A;
+  --table-column-header-text: #3D2A2A;
   --table-data-bg: #FFFFFF;
 }
 
@@ -3995,12 +4130,40 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   --table-grid-color: #E8D5D5;
   --grid-line-color: rgba(61, 42, 42, 0.08);
   --table-border-color: #E8D5D5;
-  --table-header-bg: #F8EAE8;
-  --table-footer-bg: #3D2A2A;
-  --table-column-header-bg: #3D2A2A;
-  --table-column-header-text-color: #FBE8B9;
-  --table-column-header-text: #FBE8B9;
+  --table-header-bg: #E8BEC1;
+  --table-sub-header-bg: #FDF5F5;
+  --table-footer-bg: #E8BEC1;
+  --table-column-header-bg: #C49797;
+  --table-column-header-text-color: #3D2A2A;
+  --table-column-header-text: #3D2A2A;
   --table-data-bg: #FFFFFF;
+}
+
+[data-theme="systematic"] {
+  --table-header-bg: #D8CCC0;
+  --table-sub-header-bg: #EDE4DB;
+  --table-footer-bg: #D8CCC0;
+  --table-column-header-bg: #B17259;
+  --table-column-header-text-color: #FFFFFF;
+  --table-column-header-text: #FFFFFF;
+}
+
+[data-theme="ss26"] {
+  --table-header-bg: #E7C5D5;
+  --table-sub-header-bg: #EBF0F6;
+  --table-footer-bg: #E7C5D5;
+  --table-column-header-bg: #EFD67C;
+  --table-column-header-text-color: #394241;
+  --table-column-header-text: #394241;
+}
+
+[data-theme="flowbutter"] {
+  --table-header-bg: #E8DDB3;
+  --table-sub-header-bg: #EDF3F9;
+  --table-footer-bg: #E8DDB3;
+  --table-column-header-bg: #D4E0EC;
+  --table-column-header-text-color: #231815;
+  --table-column-header-text: #231815;
 }
 
 /* Restore Table double border correction hacks */

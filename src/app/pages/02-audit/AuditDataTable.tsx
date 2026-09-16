@@ -2848,7 +2848,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <div
               className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
               style={{
-                backgroundColor: "var(--table-header-bg, #FAF5EE)",
+                backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
                 borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
               }}
             >
@@ -3225,7 +3225,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 >
                   {/* Grand Total Row */}
                   <tr
-                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold border-t border-[var(--table-border-color,#e7dbdc)] total-row`}
+                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} font-bold border-t border-[var(--table-border-color,#e7dbdc)] total-row`}
                   >
                     {selectable && (
                       <td
@@ -3256,7 +3256,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       return (
                         <td
                           key={`footer-grand-${col.key}`}
-                          className={`whitespace-nowrap font-bold border-b border-t border-[var(--table-border-color,#e7dbdc)] border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[0.75rem] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} ${col.footerClassName || ""}`}
+                          className={`whitespace-nowrap font-bold border-b border-t border-[var(--table-border-color,#e7dbdc)] border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[0.75rem] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} ${col.footerClassName || ""}`}
                           style={{
                             padding: "var(--table-padding, 0.4rem 0.6rem)",
                             paddingTop: "5px",

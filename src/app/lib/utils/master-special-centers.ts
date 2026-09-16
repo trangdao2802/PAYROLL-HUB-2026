@@ -5,6 +5,16 @@ interface MasterSpecialCenter {
   business: string;
 }
 
+/** List of AE codes that should not be forced into AHP when resolving Cambridge */
+const EXCLUDED_HP_CAMBRIDGE_AE_CODES = [
+  "VIN01.CT",
+  "HP1.LHP",
+  "HP2.HBT",
+  "QN01.HL",
+  "BN01.LTT",
+  "BN02.TUS",
+];
+
 /** Resolve named allocations only for Gross Pay and Pivot Master. */
 export function resolveMasterSpecialCenter(
   value: unknown,
@@ -12,6 +22,13 @@ export function resolveMasterSpecialCenter(
 ): MasterSpecialCenter | null {
   const source = String(value ?? "").normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "").replace(/_/g, " ").toUpperCase();
+
+  // If source contains any excluded AE code, do not force Cambridge AHP
+  const containsExcludedAE = EXCLUDED_HP_CAMBRIDGE_AE_CODES.some((code) =>
+    source.includes(code.toUpperCase())
+  );
+  if (containsExcludedAE) return null;
+
   const names: SpecialL07[] = [];
   if (/CAMBRI(?:DGE|DE)/.test(source)) names.push("CAMBRIDGE");
   if (/\bCONTEST\b/.test(source)) names.push("CONTEST");

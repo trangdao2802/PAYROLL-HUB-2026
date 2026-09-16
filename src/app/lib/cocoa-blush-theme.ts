@@ -27,7 +27,7 @@ export const COCOA_BLUSH_PRESET: TastePreset = {
   stripeColor2: COCOA_BLUSH_PALETTE.powderBlue,
   gridLineColor: "rgba(90, 69, 66, 0.16)",
   tableHeaderBg: COCOA_BLUSH_PALETTE.dustyPink,
-  tableFooterBg: COCOA_BLUSH_PALETTE.blush,
+  tableFooterBg: COCOA_BLUSH_PALETTE.dustyPink,
   tableColumnHeaderBg: COCOA_BLUSH_PALETTE.warmBeige,
   tableDataBg: COCOA_BLUSH_PALETTE.canvas,
   tableFont: "var(--font-main)",

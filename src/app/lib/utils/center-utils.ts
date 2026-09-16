@@ -314,9 +314,86 @@ export function resolveSummerBonusCenterL07(rawCenter: unknown): SummerBonusCent
   };
 }
 
+export function resolveSingleAECode(code: string, customAeMap?: Record<string, { name: string; bus: string }>): { l07: string; aeCode: string; bus: string } {
+  if (!code) return { l07: "", aeCode: "", bus: "OTHER" };
+  const cleaned = String(code).trim();
+  const lowerKey = cleaned.toLowerCase();
+  const upperKey = cleaned.toUpperCase();
+
+  if (customAeMap && (customAeMap[lowerKey] || customAeMap[upperKey])) {
+    const entry = customAeMap[lowerKey] || customAeMap[upperKey];
+    const formalInfo = getCenterInfoByL07(entry.name) || getCenterInfoByAECode(entry.name);
+    return {
+      l07: formalInfo ? formalInfo.l07 : entry.name,
+      aeCode: formalInfo ? formalInfo.aeCode : entry.name,
+      bus: entry.bus || (formalInfo ? formalInfo.bus : "OTHER"),
+    };
+  }
+
+  const norm = normalizeCenterKey(cleaned);
+  let found = LOOKUP_MAP.get(norm);
+
+  if (!found) {
+    const mapped = mapL07(cleaned);
+    if (mapped) {
+      found = LOOKUP_MAP.get(normalizeCenterKey(mapped));
+    }
+  }
+
+  if (found) {
+    return { l07: found.l07, aeCode: found.aeCode, bus: found.bus };
+  }
+
+  return { l07: cleaned, aeCode: cleaned, bus: getBusinessFromL07(cleaned) };
+}
+
+export function resolveMultiOrSingleAE(
+  rawAE: string,
+  customAeMap?: Record<string, { name: string; bus: string }>
+): { l07: string; aeCode: string; bus: string; isMulti: boolean } {
+  if (!rawAE) return { l07: "", aeCode: "", bus: "", isMulti: false };
+  const cleaned = String(rawAE).trim();
+
+  // If there are multiple AE codes separated by comma or semicolon
+  if (cleaned.includes(",") || cleaned.includes(";")) {
+    const parts = cleaned.split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const resolvedList = parts.map((part) => resolveSingleAECode(part, customAeMap));
+      const combinedL07 = resolvedList.map((r) => r.l07 || r.aeCode).join(", ");
+      const combinedAECode = resolvedList.map((r) => r.aeCode || r.l07).join(", ");
+      
+      // Check if all parts share the exact same business unit / center BU
+      const firstBus = (resolvedList[0]?.bus || "").trim().toUpperCase();
+      const allSameBus = resolvedList.every(
+        (r) => (r.bus || "").trim().toUpperCase() === firstBus && firstBus !== ""
+      );
+
+      return {
+        l07: combinedL07,
+        aeCode: combinedAECode,
+        bus: allSameBus ? resolvedList[0].bus : "OTHER",
+        isMulti: true,
+      };
+    }
+  }
+
+  const single = resolveSingleAECode(cleaned, customAeMap);
+  return {
+    l07: single.l07,
+    aeCode: single.aeCode,
+    bus: single.bus,
+    isMulti: false,
+  };
+}
+
 export function getCenterInfoByAECode(aeCode: string): { l07: string; aeCode: string; bus: string } | null {
   if (!aeCode) return null;
   const cleaned = String(aeCode).trim();
+  if (cleaned.includes(",") || cleaned.includes(";")) {
+    const multi = resolveMultiOrSingleAE(cleaned);
+    return { l07: multi.l07, aeCode: multi.aeCode, bus: multi.bus };
+  }
+
   const norm = normalizeCenterKey(cleaned);
   let found = LOOKUP_MAP.get(norm);
 
@@ -347,13 +424,13 @@ export function getCenterInfoByL07(l07: string): { l07: string; aeCode: string; 
   return null;
 }
 
-export function resolveL07BuFromAeCode(code: string): { l07: string; bu: string } | null {
+export function resolveL07BuFromAeCode(
+  code: string,
+  customAeMap?: Record<string, { name: string; bus: string }>
+): { l07: string; bu: string } | null {
   if (!code) return null;
-  const info = getCenterInfoByAECode(code);
-  if (info) {
-    return { l07: info.l07, bu: info.bus };
-  }
-  return { l07: code, bu: getBusinessFromL07(code) };
+  const resolved = resolveMultiOrSingleAE(code, customAeMap);
+  return { l07: resolved.l07, bu: resolved.bus };
 }
 
 export function getBusinessFromL07(l07: string): string {

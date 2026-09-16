@@ -1802,37 +1802,37 @@ export function BulkPaymentAnalytics({
                       </div>
                     ) : (
                       <table className="w-full text-left text-xs border-separate border-spacing-0 border-0">
-                        <thead className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800">
+                        <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] text-[var(--table-column-header-text-color,#881337)]">
                           <tr>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               No.
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               ID NUMBER
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               FULL NAME
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[100px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[100px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               L07
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               TỔNG HOLD GỐC
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               {drilldownCategory === "opening"
                                 ? "SỐ DƯ TRƯỚC KỲ"
                                 : drilldownCategory === "paid_in_period"
                                 ? "THANH TOÁN TẠI KỲ"
                                 : "ĐÃ THANH TOÁN"}
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               ĐÃ CANCEL
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               SỐ DƯ CÒN LẠI
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[140px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[140px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               GHI CHÚ
                             </th>
                           </tr>
@@ -1944,30 +1944,30 @@ export function BulkPaymentAnalytics({
                     </div>
                   ) : (
                     <table className="w-full text-left text-xs border-separate border-spacing-0 border-0">
-                      <thead className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800">
+                      <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] text-[var(--table-column-header-text-color,#881337)]">
                         <tr>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             No.
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             ID NUMBER
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             FULL NAME
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             L07
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             NGHIỆP VỤ
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             BASE AMOUNT
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             KỲ BC
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             GHI CHÚ
                           </th>
                         </tr>

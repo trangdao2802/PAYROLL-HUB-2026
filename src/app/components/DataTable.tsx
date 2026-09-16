@@ -3491,7 +3491,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <div
               className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
               style={{
-                backgroundColor: "var(--table-header-bg, #FAF5EE)",
+                backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
                 borderColor: borderColorHex,
                 height: "36px",
                 minHeight: "36px",
@@ -4021,7 +4021,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                           <td
                             key={`footer-grand-${col.key}`}
                             colSpan={shouldMergeFirstTwo && cIdx === 0 ? 2 : 1}
-                            className={`whitespace-nowrap font-extrabold border-b border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
+                            className={`whitespace-nowrap font-extrabold border-b border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
                             style={{
                               padding: "var(--table-padding, 0.2rem 0.6rem)",
                               paddingTop: "3px",

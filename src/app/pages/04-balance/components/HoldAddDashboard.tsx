@@ -2338,10 +2338,10 @@ export function HoldAddDashboard() {
               fontSize: uiSettings.fontSize || "13px",
             }}
           >
-            <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[#F4F2EE] dark:bg-slate-900">
+            <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)]">
               <tr>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   rowSpan={2}
                 >
                   <div className="flex items-center justify-center gap-2 w-full">
@@ -2360,37 +2360,37 @@ export function HoldAddDashboard() {
                   </div>
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   rowSpan={2}
                 >
                   Ngày / Tháng
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-4 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 min-w-[200px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-4 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] min-w-[200px]"
                   rowSpan={2}
                 >
                   Business
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                   rowSpan={2}
                 >
                   Số dư Hold ĐK
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   colSpan={2}
                 >
                   Phát sinh trong kỳ
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                   colSpan={2}
                 >
                   Số dư CK
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[200px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[200px]"
                   rowSpan={2}
                 >
                   Note
@@ -2398,22 +2398,22 @@ export function HoldAddDashboard() {
               </tr>
               <tr>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Lương TA của tháng
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Lương Hold của tháng
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Tổng PS tại kỳ
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Số dư Hold còn lại
                 </th>
@@ -2722,44 +2722,44 @@ export function HoldAddDashboard() {
               })()}
             </tbody>
 
-            <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
-              <tr className="border-t-2 border-b-2 border-[#bfae98] dark:border-slate-700 bg-[#E8DEC8] dark:bg-slate-800">
+            <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.08)] bg-[var(--table-column-header-bg,#E8DEC8)] text-[var(--table-column-header-text-color,inherit)]">
+              <tr className="border-t-2 border-b-2 border-[#bfae98] dark:border-slate-700 bg-[var(--table-column-header-bg,#E8DEC8)] text-[var(--table-column-header-text-color,inherit)]">
                 <td
                   colSpan={3}
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 px-3 py-3 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-900 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 px-3 py-3 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   TỔNG CỘNG THÁNG {currentPeriodVal} —{" "}
-                  <span className="opacity-75 font-bold ml-1 tracking-normal tabular-nums text-xs text-slate-800 dark:text-slate-200">
+                  <span className="opacity-75 font-bold ml-1 tracking-normal tabular-nums text-xs text-[var(--table-column-header-text-color,inherit)]">
                     {countBusinesses(filteredData)} BU
                   </span>
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandOpenBal !== 0 ? fmt(grandOpenBal) : "0"}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-emerald-700 dark:text-emerald-300 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-emerald-400 whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandThu !== 0 ? fmt(grandThu) : "0"}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-rose-700 dark:text-rose-300 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-rose-400 whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandChi !== 0 ? fmt(grandChi) : "0"}
                 </td>
                 <td
-                  className={`border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20 ${grandBal >= 0 ? "text-slate-900 dark:text-slate-50" : "text-rose-600 font-extrabold"}`}
+                  className={`border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20 ${grandBal >= 0 ? "text-[var(--table-column-header-text-color,inherit)]" : "text-rose-400 font-extrabold"}`}
                 >
                   {fmt(grandBal)}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {fmt(monthKeys.reduce((sum, mk) => sum + (remainingHoldByMonth[mk]?.total || 0), 0))}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 />
               </tr>
             </tfoot>

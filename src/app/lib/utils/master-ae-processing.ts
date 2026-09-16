@@ -23,7 +23,8 @@ import { resolveDeductionsSheetSource } from "./deductions-sheet-source";
 import { hasRequiredDeductionsFields } from "./deductions-row-validation";
 import { resolveGrossPayTotal } from "./gross-pay";
 import {
-  mapL07, getCenterInfoByL07, getCenterInfoByAECode,
+  mapL07, getCenterInfoByAECode,
+  resolveMultiOrSingleAE,
   resolveMktAndCenterL07, resolveSummerBonusCenterL07,
 } from "./center-utils";
 import { parseDurationToHours } from "../schemas/excel-schema";
@@ -504,31 +505,9 @@ export async function processMasterAEData(
                       ? String(row[iCenter]).trim()
                       : "";
 
-                  const rawCenterKey = rawCenterVal.toLowerCase();
-                  let l07 = rawCenterVal;
-                  let business = "";
-
-                  if (rawCenterVal) {
-                    if (aeMap[rawCenterKey]) {
-                      l07 = aeMap[rawCenterKey].name;
-                      business = aeMap[rawCenterKey].bus;
-                    } else {
-                      const info = getCenterInfoByAECode(rawCenterVal);
-                      if (info) {
-                        l07 = info.l07;
-                        business = info.bus;
-                      } else {
-                        const mapped = mapL07(rawCenterVal);
-                        const info2 = getCenterInfoByL07(mapped);
-                        if (info2) {
-                          l07 = info2.l07;
-                          business = info2.bus;
-                        } else {
-                          l07 = mapped;
-                        }
-                      }
-                    }
-                  }
+                  const resolvedAe = resolveMultiOrSingleAE(rawCenterVal, aeMap);
+                  let l07 = resolvedAe.l07 || rawCenterVal;
+                  let business = resolvedAe.bus || "";
 
                   // OVERRIDE FOR MKT
                   if (rawCenterVal.toUpperCase().trim() === "MKT LOCAL NORTH") {
@@ -1197,33 +1176,9 @@ export async function processMasterAEData(
                         : "";
                     obj["_rawAE"] = rawCenterVal;
 
-                    let l07 = rawCenterVal;
-                    let business = "";
-
-                    if (rawCenterVal) {
-                      const rawCenterKey = rawCenterVal.toLowerCase();
-                      if (aeMap[rawCenterKey]) {
-                        const mappedName = aeMap[rawCenterKey].name;
-                        const formalInfo = getCenterInfoByL07(mappedName) || getCenterInfoByAECode(mappedName);
-                        l07 = formalInfo ? formalInfo.l07 : mappedName;
-                        business = aeMap[rawCenterKey].bus;
-                      } else {
-                        const info = getCenterInfoByAECode(rawCenterVal);
-                        if (info) {
-                          l07 = info.l07;
-                          business = info.bus;
-                        } else {
-                          const mapped = mapL07(rawCenterVal);
-                          const info2 = getCenterInfoByL07(mapped);
-                          if (info2) {
-                            l07 = info2.l07;
-                            business = info2.bus;
-                          } else {
-                            l07 = mapped || rawCenterVal || "UNKNOWN";
-                          }
-                        }
-                      }
-                    }
+                    const resolvedAe = resolveMultiOrSingleAE(rawCenterVal, aeMap);
+                    let l07 = resolvedAe.l07 || rawCenterVal;
+                    let business = resolvedAe.bus || "";
 
                     // OVERRIDE FOR MKT
                     if (rawCenterVal.toUpperCase().trim() === "MKT LOCAL NORTH") {
@@ -1374,33 +1329,9 @@ export async function processMasterAEData(
       const rawCenterVal = String(row["Mã ae"] || row["CENTER"] || "").trim();
       const aeMap = appData.AE_Map;
 
-      let l07 = String(row["L07"] || "").trim() || rawCenterVal;
-      let business = String(row["Business"] || row["BU"] || "").trim();
-
-      if (rawCenterVal) {
-        const rawKey = rawCenterVal.toLowerCase();
-        if (aeMap[rawKey]) {
-          const mappedName = aeMap[rawKey].name;
-          const formalInfo = getCenterInfoByL07(mappedName) || getCenterInfoByAECode(mappedName);
-          l07 = formalInfo ? formalInfo.l07 : mappedName;
-          business = aeMap[rawKey].bus;
-        } else {
-          const info = getCenterInfoByAECode(rawCenterVal);
-          if (info) {
-            l07 = info.l07;
-            business = info.bus;
-          } else {
-            const mapped = mapL07(rawCenterVal);
-            const info2 = getCenterInfoByL07(mapped);
-            if (info2) {
-              l07 = info2.l07;
-              business = info2.bus;
-            } else {
-              l07 = mapped;
-            }
-          }
-        }
-      }
+      const resolvedAe = resolveMultiOrSingleAE(rawCenterVal, aeMap);
+      const l07 = resolvedAe.l07 || String(row["L07"] || "").trim() || rawCenterVal;
+      const business = resolvedAe.bus || String(row["Business"] || row["BU"] || "").trim();
 
       row["L07"] = l07;
       row["Business"] = business;

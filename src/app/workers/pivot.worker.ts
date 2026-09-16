@@ -34,21 +34,78 @@ const rawCenterToMktMap: Record<string, string> = {
 };
 
 const aeCodeToL07Map: Record<string, string> = {
-  "Ngo Si Lien": "BN0001.LTT", "Tu Son": "BN0002.TSN", "Pho Hue Junior": "HN0001.PHY",
-  "Pho Hue": "HN0001.PHY", "Thai Ha": "HN0002.THA", "Thai Ha (center Láng Hạ)": "HN0002.THA",
-  "Thai Ha (center Lang Ha)": "HN0002.THA", "Hoang Quoc Viet": "HN0003.HQV",
-  "Lieu Giai": "HN0004.LGI", "Nguyen Van Linh": "HN0005.NVL", "Van Quan": "HN0007.VQN",
-  "My Dinh": "HN0010.MDH", "The Garden": "HN0010.MDH", "Hoang Mai": "HN0012.NHT",
-  "Nguyen Huu Tho": "HN0012.NHT", "Tan Mai": "HN0014.TMI", "Van Phu": "HN0015.VPU",
-  "Phan Dinh Phung": "HN0016.PDP", "Ham Nghi": "HN0017.HNI", "Vu Tong Phan": "HN0018.VTP",
-  "Nguyen Tuan": "HN0019.NTN", "Ngoai Giao Doan": "HN0021.NGD", "Mo Lao": "HN0022.NVO",
-  "Linh Dam": "HN0023.LDM", "Times City": "HN0024.TCY", "Le Trong Tan": "HN0025.LTT",
-  "Viet Hung": "HN0026.VHG", "Ocean Park": "HN0027.OPK", "Pham Van Dong": "HN0028.PVD",
-  "Vu Pham Ham": "HN0029.VPH", "An Khanh": "HN0030.AKH", "An Hung": "HN0031.AHG",
-  "Lac Long Quan": "HN0032.LLQ", "Dong Anh": "HN0033.DAH", "Hong Tien": "HN0034.HTN",
-  "Ecopark": "HY0001.ECP", "Hai Phong": "Hai Phong", "Quang Ninh": "QN0001.HLG",
-  "Vinh": "VIN001.CTG", "Vinh Phuc": "VP0001.PCT", "Thanh Hoa": "TH0001.TPU",
-  "Thai Nguyen": "TN0001.LNQ", "Phu Tho": "PT0001.HVG", "NTW": "NTW"
+  "Ngo Si Lien": "BN0001.LTT",
+  "BN01.LTT": "BN0001.LTT",
+  "Tu Son": "BN0002.TSN",
+  "BN02.TUS": "BN0002.TSN",
+  "Pho Hue Junior": "HN0001.PHY",
+  "Pho Hue": "HN0001.PHY",
+  "Thai Ha": "HN0002.THA",
+  "Thai Ha (center Láng Hạ)": "HN0002.THA",
+  "Thai Ha (center Lang Ha)": "HN0002.THA",
+  "Hoang Quoc Viet": "HN0003.HQV",
+  "Lieu Giai": "HN0004.LGI",
+  "Nguyen Van Linh": "HN0005.NVL",
+  "Van Quan": "HN0007.VQN",
+  "My Dinh": "HN0010.MDH",
+  "The Garden": "HN0010.MDH",
+  "Hoang Mai": "HN0012.NHT",
+  "Nguyen Huu Tho": "HN0012.NHT",
+  "Tan Mai": "HN0014.TMI",
+  "Van Phu": "HN0015.VPU",
+  "Phan Dinh Phung": "HN0016.PDP",
+  "Ham Nghi": "HN0017.HNI",
+  "Vu Tong Phan": "HN0018.VTP",
+  "Nguyen Tuan": "HN0019.NTN",
+  "Ngoai Giao Doan": "HN0021.NGD",
+  "Nguyen Van Loc": "HN0022.NVO",
+  "Mo Lao": "HN0022.NVO",
+  "Linh Dam": "HN0023.LDM",
+  "TIMES CITY": "HN0024.TCY",
+  "Le Trong Tan": "HN0025.LTT",
+  "Viet Hung": "HN0026.VHG",
+  "Ocepark": "HN0027.OPK",
+  "Ocean Park": "HN0027.OPK",
+  "Pham Van Dong": "HN0028.PVD",
+  "Vu Pham Ham": "HN0029.VPH",
+  "An Khanh": "HN0030.AKH",
+  "An Hung": "HN0031.AHG",
+  "Xuan Dieu (đổi thành Lạc Long Quân)": "HN0032.LLQ",
+  "Xuan Dieu": "HN0032.LLQ",
+  "Lac Long Quan": "HN0032.LLQ",
+  "HN33.DAH": "HN0033.DAH",
+  "Dong Anh": "HN0033.DAH",
+  "HN34.HTN": "HN0034.HTN",
+  "Hong Tien": "HN0034.HTN",
+  "Ecopark": "HY0001.ECP",
+  "Hai Phong": "Hai Phong",
+  "Hai Phong 1": "HP0001.LHP",
+  "HP1.LHP": "HP0001.LHP",
+  "Hai Phong 2": "HP0002.HBT",
+  "Hai Phong 3": "HP0003.VIN",
+  "Ha Long": "QN0001.HLG",
+  "Quang Ninh": "QN0001.HLG",
+  "QN01.HL": "QN0001.HLG",
+  "Vinh": "VIN001.CTG",
+  "VIN01.CT": "VIN001.CTG",
+  "Vinh Phuc": "VP0001.PCT",
+  "TH01.TPU": "TH0001.TPU",
+  "Thanh Hoa": "TH0001.TPU",
+  "TN01.LNQ": "TN0001.LNQ",
+  "Thai Nguyen": "TN0001.LNQ",
+  "PT01.HVG": "PT0001.HVG",
+  "Phu Tho": "PT0001.HVG",
+  "Apollo Advance -South": "AA",
+  "ASP - HN": "HN0200.ASP",
+  "MKT LOCAL NORTH": "MKT LOCAL NORTH",
+  "Cambridge": "CAMBRIDGE",
+  "MKT HP": "MKT LOCAL NORTH_HP",
+  "MKT TN01.LNQ": "MKT LOCAL NORTH_TN",
+  "MKT PT01.HVG": "MKT LOCAL NORTH_PT",
+  "MKT TH01.TPU": "MKT LOCAL NORTH_TH",
+  "NTW": "NTW",
+  "Contest": "CONTEST",
+  "Job Fair": "JOB FAIR"
 };
 
 const L07_TO_BU_MAP: Record<string, string> = {
@@ -60,9 +117,9 @@ const L07_TO_BU_MAP: Record<string, string> = {
   "HN0025.LTT": "AHN", "HN0026.VHG": "AHN", "HN0027.OPK": "AHN", "HN0028.PVD": "AHN",
   "HN0029.VPH": "AHN", "HN0030.AKH": "AHN", "HN0031.AHG": "AHN", "HN0032.LLQ": "AHN",
   "HN0033.DAH": "AHN", "HN0034.HTN": "AHN", "HY0001.ECP": "AHN",
-  "QN0001.HLG": "APH", "VIN001.CTG": "APH", "VP0001.PCT": "APH",
+  "QN0001.HLG": "AHN", "VIN001.CTG": "AHN", "VP0001.PCT": "AHN",
   "TH0001.TPU": "ATH", "TN0001.LNQ": "ATN", "PT0001.HVG": "APT",
-  "NTW": "NTW", "Hai Phong": "APH"
+  "NTW": "AHN", "Hai Phong": "AHP"
 };
 
 function parseMoneyToNumber(val: any): number {
@@ -87,9 +144,27 @@ function processTimesheetMktLogic(row: any) {
 }
 
 function processNorthLogic(rawCenter: string) {
+  const cleaned = rawCenter ? String(rawCenter).trim() : "";
+  if (!cleaned) return { bu: "", l07: "" };
+
+  if (cleaned.includes(",") || cleaned.includes(";")) {
+    const parts = cleaned.split(/[,;]+/).map((s) => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const resolvedList = parts.map((p) => processNorthLogic(p));
+      const combinedL07 = resolvedList.map((r) => r.l07).join(", ");
+      const firstBu = (resolvedList[0]?.bu || "").trim().toUpperCase();
+      const allSameBu = resolvedList.every(
+        (r) => (r.bu || "").trim().toUpperCase() === firstBu && firstBu !== ""
+      );
+      return {
+        bu: allSameBu ? resolvedList[0].bu : "OTHER",
+        l07: combinedL07,
+      };
+    }
+  }
+
   const specialCenter = resolveMasterSpecialCenter(rawCenter);
   if (specialCenter) return { l07: specialCenter.l07, bu: specialCenter.business };
-  const cleaned = rawCenter ? String(rawCenter).trim() : "";
   let l07 = cleaned;
 
   for (const [key, value] of Object.entries(aeCodeToL07Map)) {

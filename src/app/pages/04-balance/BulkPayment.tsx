@@ -3671,7 +3671,7 @@ export function BulkPayment({
                   <div
                     className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
                     style={{
-                      backgroundColor: "var(--table-header-bg, #FAF5EE)",
+                      backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
                       borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
                     }}
                   >
@@ -3741,13 +3741,12 @@ export function BulkPayment({
                   >
                     <table aria-label="Đối chiếu tiền Reconcile" className="w-full min-w-max text-left border-separate border-spacing-0 text-[11px] font-sans">
                       <thead 
-                        className="sticky top-0 text-slate-800 z-30 shadow-sm"
-                        style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                        className="sticky top-0 z-30 shadow-sm bg-[var(--table-column-header-bg,#F4ECD8)] text-[var(--table-column-header-text-color,#1e293b)]"
                       >
                         <tr>
                           <th
                             className="group relative px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] w-12 text-center border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal cursor-pointer select-none overflow-visible"
-                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                            style={{ textAlign: "center" }}
                           >
                             <div className="inline-flex items-center justify-center gap-1">
                               <span>No.</span>
@@ -3756,7 +3755,7 @@ export function BulkPayment({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                 }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black/10 rounded text-slate-700 cursor-pointer shrink-0"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-black/10 rounded cursor-pointer shrink-0"
                                 title="Tự động căn chỉnh độ rộng cột"
                                 aria-label="Tự động căn chỉnh độ rộng cột"
                               >
@@ -3766,55 +3765,49 @@ export function BulkPayment({
                           </th>
                           <th
                             className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
-                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                            style={{ textAlign: "center" }}
                           >
                             ID NUMBER
                           </th>
                           <th
                             className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
-                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                            style={{ textAlign: "center" }}
                           >
                             FULL NAME
                           </th>
                           <th
                             className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
-                            style={{ textAlign: "center", backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
+                            style={{ textAlign: "center" }}
                           >
                             Bank Acc No. from AE
                           </th>
                           <th
                             className="px-2 py-2 leading-normal font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle text-center whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                              Bank Acc No. from ACC
                           </th>
                           <th
                             className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             TOTAL BANK AE
                           </th>
                           <th
                             className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             TOTAL BANK ACC
                           </th>
                           <th
                             className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Diff
                           </th>
                           <th
                             className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-r border-b border-[var(--grid-line-color,rgba(0,0,0,0.035))] align-middle whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Process Sync
                           </th>
                           <th
                             className="px-2 py-2 leading-normal text-center font-bold uppercase tracking-wider text-[9px] border-b border-[var(--table-border-color,#E7E5E4)] align-middle whitespace-normal overflow-visible"
-                            style={{ backgroundColor: "var(--table-column-header-bg, #F4ECD8)" }}
                           >
                             Problems
                           </th>
@@ -4071,22 +4064,22 @@ export function BulkPayment({
                           })
                         )}
                       </tbody>
-                      <tfoot>
+                      <tfoot className="sticky bottom-0 z-30 bg-[var(--table-column-header-bg,#F4ECD8)]">
                         <tr className="total-row">
                           {Array.from(
                             { length: RECONCILE_DISPLAY_COLUMN_KEYS.length },
                             (_, columnIndex) => (
                             <td
                               key={`reconcile-total-${columnIndex}`}
-                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 ${
+                              className={`p-2.5 border-b border-t border-[var(--table-border-color,#E7E5E4)] border-r-0 border-l-0 text-[var(--table-column-header-text-color,inherit)] ${
                                 columnIndex === 4
-                                  ? "text-right font-extrabold uppercase tracking-wider text-[11.5px] text-slate-800"
+                                  ? "text-right font-extrabold uppercase tracking-wider text-[11.5px]"
                                   : columnIndex === 5
-                                    ? "text-right tabular-nums font-black text-slate-900 text-[12.5px]"
+                                    ? "text-right tabular-nums font-black text-[12.5px]"
                                     : columnIndex === 6
-                                      ? "text-right tabular-nums font-black text-slate-900 text-[12.5px]"
+                                      ? "text-right tabular-nums font-black text-[12.5px]"
                                       : columnIndex === 7
-                                        ? `text-right tabular-nums font-black text-[13px] ${reconcileTotals.diff === 0 ? "text-emerald-600" : "text-rose-600"}`
+                                        ? `text-right tabular-nums font-black text-[13px] ${reconcileTotals.diff === 0 ? "text-emerald-300" : "text-amber-300"}`
                                         : ""
                               }`}
                               style={{

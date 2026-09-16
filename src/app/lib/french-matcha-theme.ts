@@ -25,7 +25,7 @@ export const FRENCH_MATCHA_PRESET: TastePreset = {
   stripeColor2: FRENCH_MATCHA_PALETTE.cloudyLatte,
   gridLineColor: "rgba(39, 41, 44, 0.16)",
   tableHeaderBg: FRENCH_MATCHA_PALETTE.matchaCoded,
-  tableFooterBg: FRENCH_MATCHA_PALETTE.frenchTips,
+  tableFooterBg: FRENCH_MATCHA_PALETTE.matchaCoded,
   tableColumnHeaderBg: FRENCH_MATCHA_PALETTE.veryButtery,
   tableDataBg: FRENCH_MATCHA_PALETTE.canvas,
   tableFont: "var(--font-main)",

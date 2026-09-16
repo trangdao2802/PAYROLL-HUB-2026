@@ -29,6 +29,7 @@ import { ConfirmDialog } from "./shared/ConfirmDialog";
 import { createClearedWebData } from "../lib/utils/data-clear-scopes";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { clearSupabaseRosterData } from "../lib/supabase-sync-utils";
+import { ThemePreviewCard } from "./ThemePreviewCard";
 import {
   type UiSettings,
   defaultSettings,
@@ -1756,6 +1757,35 @@ export function UiSettingsModal({
                       <p className="text-[10px] text-gray-500 font-medium">
                         * Thay đổi giao diện mẫu sẽ tự động cấu hình các thông số màu sắc, bo góc và phông chữ của bảng theo chuẩn Taste-Skill.
                       </p>
+
+                      {/* Live Theme & Table Preview Card */}
+                      <div className="mt-2.5">
+                        <ThemePreviewCard
+                          initialPresetId={settings.preset || "systematic"}
+                          customSettingsPreview={settings}
+                          compact={true}
+                          onApply={(pId, presetData) => {
+                            setSettings((prev) => ({
+                              ...prev,
+                              preset: pId,
+                              bg: presetData.bg,
+                              accent: presetData.accent,
+                              text: presetData.text,
+                              border: presetData.border,
+                              stripeColor1: presetData.stripeColor1,
+                              stripeColor2: presetData.stripeColor2,
+                              gridLineColor: presetData.gridLineColor,
+                              tableHeaderBg: presetData.tableHeaderBg,
+                              tableFooterBg: presetData.tableFooterBg,
+                              tableColumnHeaderBg: presetData.tableColumnHeaderBg,
+                              tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
+                              tableDataBg: presetData.tableDataBg,
+                              tableFont: presetData.tableFont,
+                              tableRadius: presetData.tableRadius,
+                            }));
+                          }}
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <label

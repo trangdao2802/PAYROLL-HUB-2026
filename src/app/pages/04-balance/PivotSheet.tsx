@@ -207,7 +207,9 @@ const rawCenterToMktMap: Record<string, string> = {
 
 const aeCodeToL07Map: Record<string, string> = {
   "Ngo Si Lien": "BN0001.LTT",
+  "BN01.LTT": "BN0001.LTT",
   "Tu Son": "BN0002.TSN",
+  "BN02.TUS": "BN0002.TSN",
   "Pho Hue Junior": "HN0001.PHY",
   "Pho Hue": "HN0001.PHY",
   "Thai Ha": "HN0002.THA",
@@ -250,11 +252,14 @@ const aeCodeToL07Map: Record<string, string> = {
   "Ecopark": "HY0001.ECP",
   "Hai Phong": "Hai Phong",
   "Hai Phong 1": "HP0001.LHP",
+  "HP1.LHP": "HP0001.LHP",
   "Hai Phong 2": "HP0002.HBT",
   "Hai Phong 3": "HP0003.VIN",
   "Ha Long": "QN0001.HLG",
   "Quang Ninh": "QN0001.HLG",
+  "QN01.HL": "QN0001.HLG",
   "Vinh": "VIN001.CTG",
+  "VIN01.CT": "VIN001.CTG",
   "Vinh Phuc": "VP0001.PCT",
   "TH01.TPU": "TH0001.TPU",
   "Thanh Hoa": "TH0001.TPU",
@@ -2315,7 +2320,7 @@ export function PivotSheet() {
       <div
         className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b border-[var(--border)] flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
         style={{
-          backgroundColor: "var(--table-header-bg, #FAF5EE)",
+          backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
           height: "36px",
           minHeight: "36px",
           maxHeight: "36px",
@@ -2408,12 +2413,12 @@ export function PivotSheet() {
               )}
               {!hiddenColumns.grandTotal && <col style={{ width: `${columnWidths.grandTotal || 140}px` }} />}
             </colgroup>
-            <thead className="sticky top-0 z-20 border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-bold text-[var(--table-column-header-text,#FFFFFF)] shadow-2xs">
+            <thead className="sticky top-0 z-20 border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-bold text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] shadow-2xs">
               <tr>
                 {!hiddenColumns.no && (
                   <th 
                     onClick={() => toggleSort("no")}
-                    className="group relative cursor-pointer align-middle border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/10"
+                    className="group relative cursor-pointer align-middle border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     style={{ width: columnWidths["no"] || 60, minWidth: columnWidths["no"] || 60, maxWidth: columnWidths["no"] || 60, textTransform: "none" }}
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
@@ -2445,7 +2450,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["business"] || 90, minWidth: columnWidths["business"] || 90, maxWidth: columnWidths["business"] || 90 }}
                     onClick={() => toggleSort("bu")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/10"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
@@ -2463,7 +2468,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["charge"] || 220, minWidth: columnWidths["charge"] || 220, maxWidth: columnWidths["charge"] || 220 }}
                     onClick={() => toggleSort("l07")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/10"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center gap-1">
@@ -2481,7 +2486,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["month"] || 90, minWidth: columnWidths["month"] || 90, maxWidth: columnWidths["month"] || 90 }}
                     onClick={() => toggleSort("month")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/10"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
@@ -2504,7 +2509,7 @@ export function PivotSheet() {
                       key={type}
                       style={{ width: w, minWidth: w, maxWidth: w }}
                       onClick={() => toggleSort(colKey)}
-                      className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/10"
+                      className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                       title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                     >
                       <div className="flex w-full min-w-0 items-center justify-end gap-1">
@@ -2523,7 +2528,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
                     onClick={() => toggleSort("rowTotal")}
-                    className="relative cursor-pointer bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-[var(--table-column-header-text,#FFFFFF)] transition-colors hover:bg-white/15"
+                    className="relative cursor-pointer bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/15"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-end gap-1 w-full">
@@ -2544,12 +2549,12 @@ export function PivotSheet() {
 
             {/* GRAND TOTAL FOOTER ROW */}
             {paginatedRows.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-black text-[var(--table-column-header-text,#FFFFFF)] shadow-sm">
+              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-black text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))] shadow-sm">
                 <tr className="total-row">
                   {pivotLabelColumnSpan > 0 && (
                     <td
                       colSpan={pivotLabelColumnSpan}
-                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left font-black text-[var(--table-column-header-text,#FFFFFF)]"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left font-black text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                     >
                       TỔNG CỘNG TẤT CẢ
                     </td>
@@ -2563,7 +2568,7 @@ export function PivotSheet() {
                       <td 
                         key={idx} 
                         style={{ width: w, minWidth: w, maxWidth: w }}
-                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text,#FFFFFF)]"
+                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                       >
                         {v ? formatNumber(v) : "0"}
                       </td>
@@ -2572,7 +2577,7 @@ export function PivotSheet() {
                   {!hiddenColumns.grandTotal && (
                     <td 
                       style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
-                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text,#FFFFFF)]"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                     >
                       {superGrandTotal ? formatNumber(superGrandTotal) : "0"}
                     </td>
