@@ -2772,7 +2772,7 @@ export function HoldAddDashboard() {
         style={{ height: "50.9848px", minHeight: "50.9848px", backgroundColor: "var(--table-footer-bg, var(--table-header-bg, #FAF3E8))" }}
       >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 font-sans">
+            <span className="text-[12px] font-semibold text-slate-700 dark:text-slate-300 font-sans">
               Hiển thị:
             </span>
             <Select
@@ -2782,21 +2782,21 @@ export function HoldAddDashboard() {
               }}
             >
               <SelectTrigger 
-                className="rounded-full px-3 text-[11px] font-bold font-sans text-slate-700 dark:text-slate-200 border-[#e7dbdc] bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-                style={{ height: "26px", width: "100px" }}
+                className="rounded-full px-3 text-[12px] font-bold font-sans text-slate-700 dark:text-slate-200 border-[#e7dbdc] bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                style={{ height: "26px", width: "100px", fontSize: "12px" }}
               >
-                <SelectValue placeholder="Tất cả" />
+                <SelectValue placeholder="Tất cả" className="text-[12px]" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-slate-800 border-[#e7dbdc] z-[99999] opacity-100 font-sans">
-                <SelectItem value="10" className="text-[11px] font-medium font-sans">10 dòng</SelectItem>
-                <SelectItem value="20" className="text-[11px] font-medium font-sans">20 dòng</SelectItem>
-                <SelectItem value="50" className="text-[11px] font-medium font-sans">50 dòng</SelectItem>
-                <SelectItem value="100" className="text-[11px] font-medium font-sans">100 dòng</SelectItem>
-                <SelectItem value="all" className="text-[11px] font-medium font-sans">Tất cả</SelectItem>
+                <SelectItem value="10" className="text-[12px] font-medium font-sans">10 dòng</SelectItem>
+                <SelectItem value="20" className="text-[12px] font-medium font-sans">20 dòng</SelectItem>
+                <SelectItem value="50" className="text-[12px] font-medium font-sans">50 dòng</SelectItem>
+                <SelectItem value="100" className="text-[12px] font-medium font-sans">100 dòng</SelectItem>
+                <SelectItem value="all" className="text-[12px] font-medium font-sans">Tất cả</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 font-sans">
+          <div className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 font-sans">
             Tổng số: {monthKeys.length} kỳ ({currentPeriodRows.filter(row => !hideInactivePastHold(row, currentPeriod)).length} dòng dữ liệu)
           </div>
       </div>

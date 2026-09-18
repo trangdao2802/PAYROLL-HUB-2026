@@ -1346,7 +1346,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     .unified-table-frame-footer,
     .unified-table-frame-footer * {
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
-      font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
+      font-size: 12px !important;
     }
 
     button:not(.rounded-full):not(.rounded-none):not(.search-btn-exception),

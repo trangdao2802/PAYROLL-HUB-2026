@@ -4222,3 +4222,15 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 .bulk-payment-layout .bu-report-card .border-t > span {
   color: #fff !important;
 }
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) {
+  height: 43.9531px;
+  padding-bottom: 4.92375px;
+}
+
+/* Enforce 12px font size on all table footers and pagination bars across all pages */
+:is(.table-footer-pagination, .unified-table-frame-footer, .master-config-footer),
+:is(.table-footer-pagination, .unified-table-frame-footer, .master-config-footer) :is(span, p, label, button, select, [role="combobox"], div, a) {
+  font-size: 12px !important;
+}
+

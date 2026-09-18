@@ -2592,7 +2592,7 @@ export function PivotSheet() {
         >
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="whitespace-nowrap text-[11px] font-medium text-muted-foreground">
+              <span className="whitespace-nowrap text-[12px] font-medium text-muted-foreground">
                 Hiển thị:
               </span>
               <Select
@@ -2605,22 +2605,22 @@ export function PivotSheet() {
                 }}
               >
                 <SelectTrigger
-                  className="h-5 w-[100px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
-                  style={{ width: "100px", height: "23.5312px" }}
+                  className="h-[22px] w-[100px] rounded-full border-border bg-card px-2.5 py-0 text-[12px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
+                  style={{ width: "100px", height: "22px", fontSize: "12px" }}
                 >
-                  <SelectValue placeholder="Chọn..." />
+                  <SelectValue placeholder="Chọn..." className="text-[12px]" />
                 </SelectTrigger>
                 <SelectContent className="z-[99999] border-border bg-popover font-sans opacity-100">
-                  <SelectItem value="10" className="font-sans text-[11px] font-medium normal-case">10 dòng</SelectItem>
-                  <SelectItem value="20" className="font-sans text-[11px] font-medium normal-case">20 dòng</SelectItem>
-                  <SelectItem value="50" className="font-sans text-[11px] font-medium normal-case">50 dòng</SelectItem>
-                  <SelectItem value="100" className="font-sans text-[11px] font-medium normal-case">100 dòng</SelectItem>
-                  <SelectItem value="all" className="font-sans text-[11px] font-medium normal-case">Tất cả</SelectItem>
+                  <SelectItem value="10" className="font-sans text-[12px] font-medium normal-case">10 dòng</SelectItem>
+                  <SelectItem value="20" className="font-sans text-[12px] font-medium normal-case">20 dòng</SelectItem>
+                  <SelectItem value="50" className="font-sans text-[12px] font-medium normal-case">50 dòng</SelectItem>
+                  <SelectItem value="100" className="font-sans text-[12px] font-medium normal-case">100 dòng</SelectItem>
+                  <SelectItem value="all" className="font-sans text-[12px] font-medium normal-case">Tất cả</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <span className="whitespace-nowrap border-l border-border pl-3 text-[11px] font-medium text-muted-foreground">
+            <span className="whitespace-nowrap border-l border-border pl-3 text-[12px] font-medium text-muted-foreground">
               {totalRowsCount === 0
                 ? "0 dòng"
                 : `Hiển thị ${startIndex + 1} - ${endIndex} / ${totalRowsCount} dòng`}
@@ -2650,7 +2650,7 @@ export function PivotSheet() {
 
             <span 
               className="min-w-[90px] whitespace-nowrap px-3 text-center font-display uppercase tracking-widest text-foreground/70"
-              style={{ fontWeight: "normal", fontSize: "10px", lineHeight: "16px" }}
+              style={{ fontWeight: "normal", fontSize: "12px", lineHeight: "16px" }}
             >
               TRANG {validCurrentPage} / {totalPages}
             </span>

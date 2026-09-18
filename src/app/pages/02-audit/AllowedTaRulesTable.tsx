@@ -206,17 +206,17 @@ export function AllowedTaRulesTable({ rules, onSave }: AllowedTaRulesTableProps)
       </div>
 
       <div className="table-footer-pagination flex min-h-[44px] shrink-0 items-center justify-between gap-3 border-t border-[var(--table-border-color,#d5d8dc)] bg-[var(--table-footer-bg,var(--table-header-bg,#FAF3E8))] px-3 py-1.5">
-        <div className="text-[11px] font-semibold text-slate-600">
+        <div className="text-[12px] font-semibold text-slate-600">
           Hiển thị: <span className="font-black text-slate-800">{draft.length} dòng quy tắc</span>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-[10px] font-bold text-slate-500">
+          <p className="text-[12px] font-bold text-slate-500">
             No. Students = 0 → Allowed Interns = 0
           </p>
           <button
             type="button"
             onClick={resetRules}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-[10px] font-black uppercase tracking-wide text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-[12px] font-black uppercase tracking-wide text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Về mặc định

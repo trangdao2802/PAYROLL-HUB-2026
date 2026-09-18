@@ -1144,7 +1144,7 @@ export function AEDataConfig({
             >
               <RefreshCw className={`h-4 w-4 ${isProcessing ? "animate-spin" : ""}`} />
             </button>
-            <p className="text-[0.625rem] font-bold uppercase tracking-widest text-foreground/40">
+            <p className="text-[12px] font-bold uppercase tracking-widest text-foreground/40">
               Hiển thị{" "}
               <span className="text-foreground">
                 {filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
@@ -1166,7 +1166,7 @@ export function AEDataConfig({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="min-w-[72px] text-center text-[0.625rem] font-bold uppercase tracking-widest text-foreground/60">
+            <span className="min-w-[72px] text-center text-[12px] font-bold uppercase tracking-widest text-foreground/60">
               Trang {currentPage} / {totalPages}
             </span>
             <button

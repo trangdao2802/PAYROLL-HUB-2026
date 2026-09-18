@@ -4142,7 +4142,7 @@ export function BulkPayment({
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">
+                        <span className="text-[12px] font-medium text-slate-500 whitespace-nowrap">
                           Hiển thị:
                         </span>
                         <Select
@@ -4153,17 +4153,17 @@ export function BulkPayment({
                           }}
                         >
                           <SelectTrigger
-                            className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0"
-                            style={{ height: "20px", width: "90px" }}
+                            className="rounded-full px-2.5 text-[12px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[22px] py-0"
+                            style={{ height: "22px", width: "90px", fontSize: "12px" }}
                           >
-                            <SelectValue placeholder="Chọn..." className="font-sans normal-case" />
+                            <SelectValue placeholder="Chọn..." className="font-sans normal-case text-[12px]" />
                           </SelectTrigger>
                           <SelectContent className="bg-[var(--popover,#fff)] border-[#e7dbdc] z-[99999] opacity-100 font-sans shadow-xl rounded-xl">
-                            <SelectItem value="10" className="text-[11px] font-medium font-sans normal-case cursor-pointer">10 dòng</SelectItem>
-                            <SelectItem value="20" className="text-[11px] font-medium font-sans normal-case cursor-pointer">20 dòng</SelectItem>
-                            <SelectItem value="50" className="text-[11px] font-medium font-sans normal-case cursor-pointer">50 dòng</SelectItem>
-                            <SelectItem value="100" className="text-[11px] font-medium font-sans normal-case cursor-pointer">100 dòng</SelectItem>
-                            <SelectItem value="all" className="text-[11px] font-medium font-sans normal-case cursor-pointer">Tất cả</SelectItem>
+                            <SelectItem value="10" className="text-[12px] font-medium font-sans normal-case cursor-pointer">10 dòng</SelectItem>
+                            <SelectItem value="20" className="text-[12px] font-medium font-sans normal-case cursor-pointer">20 dòng</SelectItem>
+                            <SelectItem value="50" className="text-[12px] font-medium font-sans normal-case cursor-pointer">50 dòng</SelectItem>
+                            <SelectItem value="100" className="text-[12px] font-medium font-sans normal-case cursor-pointer">100 dòng</SelectItem>
+                            <SelectItem value="all" className="text-[12px] font-medium font-sans normal-case cursor-pointer">Tất cả</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -4190,7 +4190,7 @@ export function BulkPayment({
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
                       
-                      <span className="text-[10px] font-bold text-slate-700 px-1.5 tabular-nums whitespace-nowrap text-center min-w-[70px]">
+                      <span className="text-[12px] font-bold text-slate-700 px-1.5 tabular-nums whitespace-nowrap text-center min-w-[70px]">
                         TRANG {safePage} / {totalPages || 1}
                       </span>
 

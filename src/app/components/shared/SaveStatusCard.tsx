@@ -39,12 +39,12 @@ export const SaveStatusCard: React.FC<{
         style={iconStyle}
       />
       <span 
-        className="text-[0.65rem] font-bold tracking-wider text-blue-700 uppercase whitespace-nowrap"
-        style={{ fontSize: "10px", lineHeight: "15px", ...textStyle }}
+        className="text-[12px] font-bold tracking-wider text-blue-700 uppercase whitespace-nowrap"
+        style={{ fontSize: "12px", lineHeight: "16px", ...textStyle }}
       >
         {scope === "transaction" ? "TRANSACTION" : "SAVED"}: {formattedWithAmPm}
         {scope === "transaction" && (
-          <span className="ml-1.5 border-l border-blue-200 pl-1.5" style={{ fontSize: "10px", lineHeight: "13px" }}>
+          <span className="ml-1.5 border-l border-blue-200 pl-1.5" style={{ fontSize: "12px", lineHeight: "16px" }}>
             SỬA: {transactionActivity?.editCount || 0}
           </span>
         )}

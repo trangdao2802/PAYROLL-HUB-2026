@@ -3292,7 +3292,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <div className="flex items-center gap-3">
               {/* Page Size Selector */}
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                   Hiển thị:
                 </span>
                 <Select
@@ -3304,17 +3304,17 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   }}
                 >
                   <SelectTrigger
-                    className="h-[20px] px-2 text-[10px] font-bold text-slate-800 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-3xs rounded-full w-[90px] py-0"
-                    style={{ height: "20px" }}
+                    className="h-[22px] px-2 text-[12px] font-bold text-slate-800 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-3xs rounded-full w-[90px] py-0"
+                    style={{ height: "22px", fontSize: "12px" }}
                   >
-                    <SelectValue placeholder="Chọn..." />
+                    <SelectValue placeholder="Chọn..." className="text-[12px]" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover dark:bg-slate-800 border-border z-[99999] w-[100px] min-w-[80px]">
-                    <SelectItem value="10" className="text-[11px] font-medium">10 dòng</SelectItem>
-                    <SelectItem value="20" className="text-[11px] font-medium">20 dòng</SelectItem>
-                    <SelectItem value="50" className="text-[11px] font-medium">50 dòng</SelectItem>
-                    <SelectItem value="100" className="text-[11px] font-medium">100 dòng</SelectItem>
-                    <SelectItem value="all" className="text-[11px] font-medium">Tất cả</SelectItem>
+                    <SelectItem value="10" className="text-[12px] font-medium">10 dòng</SelectItem>
+                    <SelectItem value="20" className="text-[12px] font-medium">20 dòng</SelectItem>
+                    <SelectItem value="50" className="text-[12px] font-medium">50 dòng</SelectItem>
+                    <SelectItem value="100" className="text-[12px] font-medium">100 dòng</SelectItem>
+                    <SelectItem value="all" className="text-[12px] font-medium">Tất cả</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -3423,17 +3423,17 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-3xs cursor-pointer select-none"
+                    className="flex items-center gap-1 px-2.5 h-7 rounded-full border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-[12px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-3xs cursor-pointer select-none"
                     title="Chọn trang nhanh"
                   >
-                    <span className="font-sans uppercase tracking-wider text-[10.5px]">
+                    <span className="font-sans uppercase tracking-wider text-[12px]">
                       TRANG <span className="font-black text-slate-900 dark:text-white">{currentPage}</span> / {totalPages || 1}
                     </span>
                     <ChevronDown className="w-3 h-3 text-slate-400" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 p-1 bg-popover dark:bg-slate-800 border-border z-[99999] shadow-xl">
-                  <DropdownMenuLabel className="text-[9px] font-black uppercase tracking-wider text-muted-foreground px-2 py-1">
+                  <DropdownMenuLabel className="text-[12px] font-black uppercase tracking-wider text-muted-foreground px-2 py-1">
                     Chuyển đến trang
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -3447,7 +3447,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                             setCurrentPage(pNum);
                             scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
                           }}
-                          className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md cursor-pointer flex items-center justify-between ${
+                          className={`text-[12px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md cursor-pointer flex items-center justify-between ${
                             currentPage === pNum ? "bg-primary/10 text-primary" : "hover:bg-slate-100 dark:hover:bg-slate-700"
                           }`}
                         >

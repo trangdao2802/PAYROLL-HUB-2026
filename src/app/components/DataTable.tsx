@@ -4089,7 +4089,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           >
             <div className="flex items-center gap-3 px-3" style={{ paddingLeft: "12px" }}>
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-medium text-slate-600 whitespace-nowrap ml-2">
+                <span className="text-[12px] font-medium text-slate-600 whitespace-nowrap ml-2">
                   Hiển thị:
                 </span>
                 <Select
@@ -4100,15 +4100,15 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     scrollContainerRef.current?.scrollTo({ top: 0 });
                   }}
                 >
-                  <SelectTrigger className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0" style={{ height: "20px", width: "96.9912px", fontSize: "10px", lineHeight: "14px" }}>
-                    <SelectValue placeholder="Chọn..." className="font-sans normal-case" />
+                  <SelectTrigger className="rounded-full px-2.5 text-[12px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[22px] py-0" style={{ height: "22px", width: "96.9912px", fontSize: "12px", lineHeight: "16px" }}>
+                    <SelectValue placeholder="Chọn..." className="font-sans normal-case text-[12px]" />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--popover)] border-[#e7dbdc] z-[99999] opacity-100 font-sans">
-                    <SelectItem value="10" className="text-[11px] font-medium font-sans normal-case">10 dòng</SelectItem>
-                    <SelectItem value="20" className="text-[11px] font-medium font-sans normal-case">20 dòng</SelectItem>
-                    <SelectItem value="50" className="text-[11px] font-medium font-sans normal-case">50 dòng</SelectItem>
-                    <SelectItem value="100" className="text-[11px] font-medium font-sans normal-case">100 dòng</SelectItem>
-                    <SelectItem value="all" className="text-[11px] font-medium font-sans normal-case">Tất cả</SelectItem>
+                    <SelectItem value="10" className="text-[12px] font-medium font-sans normal-case">10 dòng</SelectItem>
+                    <SelectItem value="20" className="text-[12px] font-medium font-sans normal-case">20 dòng</SelectItem>
+                    <SelectItem value="50" className="text-[12px] font-medium font-sans normal-case">50 dòng</SelectItem>
+                    <SelectItem value="100" className="text-[12px] font-medium font-sans normal-case">100 dòng</SelectItem>
+                    <SelectItem value="all" className="text-[12px] font-medium font-sans normal-case">Tất cả</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -4126,7 +4126,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" className="w-60 max-h-[350px] overflow-y-auto bg-popover dark:bg-[var(--card)] opacity-100 z-[99999] border-[#e7dbdc] shadow-2xl p-1 rounded-xl">
-                  <DropdownMenuLabel className="text-xs font-bold text-foreground/70 uppercase px-2 py-1.5">
+                  <DropdownMenuLabel className="text-[12px] font-bold text-foreground/70 uppercase px-2 py-1.5">
                     Cột hiển thị ({visibleColumns.length + (isRowNumberVisible ? 1 : 0)}/${allDropdownColumns.length})
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -4142,7 +4142,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                         setShownAutoHiddenColumns(new Set(autoHiddenColumns));
                       }
                     }}
-                    className="flex items-center justify-between text-xs font-bold cursor-pointer text-primary py-1.5 px-2 rounded-lg hover:bg-primary/5"
+                    className="flex items-center justify-between text-[12px] font-bold cursor-pointer text-primary py-1.5 px-2 rounded-lg hover:bg-primary/5"
                   >
                     <span>{allDropdownColumns.every((c) => !effectiveHiddenColumns.has(c.key)) ? "Ẩn tất cả" : "Hiển thị tất cả"}</span>
                     {allDropdownColumns.every((c) => !effectiveHiddenColumns.has(c.key)) ? (
@@ -4159,12 +4159,12 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                         e.preventDefault();
                         toggleColumn(col.key);
                       }}
-                      className="flex items-center justify-between text-xs cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="flex items-center justify-between text-[12px] cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <span className="flex min-w-0 items-center gap-2 pr-2">
-                        <span className="truncate font-medium">{col.label}</span>
+                        <span className="truncate font-medium text-[12px]">{col.label}</span>
                         {autoHiddenColumns.has(col.key) && (
-                          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                             Tổng = 0
                           </span>
                         )}
@@ -4222,12 +4222,12 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                         textStyle={{
                           fontFamily: "inherit",
                           fontWeight: "600",
-                          fontSize: "10px",
+                          fontSize: "12px",
                           color: "#475569",
                         }}
                         iconStyle={{
-                          width: "11px",
-                          height: "11px",
+                          width: "12px",
+                          height: "12px",
                           color: "#475569",
                         }}
                       />
@@ -4266,7 +4266,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               
               <span 
                 className="px-3 font-display uppercase tracking-widest whitespace-nowrap text-center min-w-[90px] text-slate-700/80"
-                style={{ fontWeight: "normal", fontSize: "10px", lineHeight: "16px" }}
+                style={{ fontWeight: "normal", fontSize: "12px", lineHeight: "16px" }}
               >
                 TRANG {currentPage} / {totalPages || 1}
               </span>

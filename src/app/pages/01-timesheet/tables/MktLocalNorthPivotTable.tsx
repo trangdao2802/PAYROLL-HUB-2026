@@ -384,7 +384,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
+            <span className="text-[12px] font-medium text-muted-foreground whitespace-nowrap">
               Show:
             </span>
             <Select
@@ -395,21 +395,22 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               }}
             >
               <SelectTrigger 
-                className="h-5 w-[90px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
+                className="h-[22px] w-[90px] rounded-full border-border bg-card px-2.5 py-0 text-[12px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
+                style={{ height: "22px", fontSize: "12px" }}
               >
-                <SelectValue placeholder="Chọn..." />
+                <SelectValue placeholder="Chọn..." className="text-[12px]" />
               </SelectTrigger>
               <SelectContent className="z-[99999] rounded-xl border-border bg-popover opacity-100 shadow-xl">
-                <SelectItem value="10" className="cursor-pointer text-[11px] font-medium normal-case">10 dòng</SelectItem>
-                <SelectItem value="20" className="cursor-pointer text-[11px] font-medium normal-case">20 dòng</SelectItem>
-                <SelectItem value="50" className="cursor-pointer text-[11px] font-medium normal-case">50 dòng</SelectItem>
-                <SelectItem value="100" className="cursor-pointer text-[11px] font-medium normal-case">100 dòng</SelectItem>
-                <SelectItem value="all" className="cursor-pointer text-[11px] font-medium normal-case">Tất cả</SelectItem>
+                <SelectItem value="10" className="cursor-pointer text-[12px] font-medium normal-case">10 dòng</SelectItem>
+                <SelectItem value="20" className="cursor-pointer text-[12px] font-medium normal-case">20 dòng</SelectItem>
+                <SelectItem value="50" className="cursor-pointer text-[12px] font-medium normal-case">50 dòng</SelectItem>
+                <SelectItem value="100" className="cursor-pointer text-[12px] font-medium normal-case">100 dòng</SelectItem>
+                <SelectItem value="all" className="cursor-pointer text-[12px] font-medium normal-case">Tất cả</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <span className="text-[11px] font-medium text-muted-foreground border-l border-border pl-3">
+          <span className="text-[12px] font-medium text-muted-foreground border-l border-border pl-3">
             {itemsPerPage === Infinity
               ? `Tổng ${rows.length} dòng`
               : rows.length === 0
@@ -438,7 +439,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <span className="min-w-[90px] whitespace-nowrap px-3 text-center text-[10px] font-normal uppercase tracking-widest text-foreground/70">
+            <span className="min-w-[90px] whitespace-nowrap px-3 text-center text-[12px] font-normal uppercase tracking-widest text-foreground/70">
               TRANG {validCurrentPage} / {totalPages}
             </span>
 
