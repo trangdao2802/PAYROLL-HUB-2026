@@ -6,7 +6,9 @@
  */
 .app-table-initial-mark {
   position: relative;
-  top: -2px;
+  top: 0;
+  vertical-align: baseline !important;
+  align-self: baseline !important;
 }
 
 /* Hover animation may scale the decorative initial, but must never move its
@@ -21,8 +23,6 @@
   transform: scale(1.025) !important;
 }
 
-/* Page sub-title in the navbar uses sentence case: only the first character
- * is capitalized, e.g. “Bulk payment” instead of “Bulk Payment”. */
 .navbar-current-label {
   display: inline-block;
   text-transform: lowercase !important;

@@ -15,8 +15,9 @@ import {
   Eye,
   ExternalLink,
   FileSpreadsheet,
+  Filter,
 } from "lucide-react";
-import { DataTable, type Column } from "../../../components/DataTable";
+import { DataTable, type Column, isAhpBuValue } from "../../../components/DataTable";
 import {
   TableInitialMark,
   TableTitleRemainder,
@@ -76,13 +77,13 @@ const MOVEMENT_GROUP = "III. PHÁT SINH TẠI KỲ BÁO CÁO";
 const RESULT_GROUP = "IV. KẾT QUẢ ĐẾN CUỐI KỲ";
 
 const CONTEXT_GROUP_STYLE =
-  "!bg-primary/[0.04] !text-primary border-primary/15 tracking-[0.12em]";
+  "!bg-primary/[0.04] !text-primary border-primary/15 tracking-[0.08em] py-2 leading-normal";
 const ORIGIN_GROUP_STYLE =
-  "!bg-primary/[0.07] !text-primary border-primary/20 tracking-[0.12em]";
+  "!bg-primary/[0.07] !text-primary border-primary/20 tracking-[0.08em] py-2 leading-normal";
 const MOVEMENT_GROUP_STYLE =
-  "!bg-primary/[0.10] !text-primary border-primary/25 tracking-[0.12em]";
+  "!bg-primary/[0.10] !text-primary border-primary/25 tracking-[0.08em] py-2 leading-normal";
 const RESULT_GROUP_STYLE =
-  "!bg-primary/[0.12] !text-primary border-primary/30 tracking-[0.12em]";
+  "!bg-primary/[0.12] !text-primary border-primary/30 tracking-[0.08em] py-2 leading-normal";
 
 const formatAmount = (value: number) => {
   const rounded = Math.round(value);
@@ -126,7 +127,7 @@ export interface ModalDetailRecord {
  * - Thuộc Tháng phát sinh được chọn
  * - Là khoản HOLD / ADD / CANCEL hợp lệ
  */
-export function getModalDetailData(
+function getModalDetailData(
   holdList: any[],
   targetBu: string,
   targetMonthStr: string,
@@ -289,11 +290,15 @@ export function BulkPaymentAnalytics({
 
   const effectiveSelectedBusiness =
     selectedBusiness === allBusinessUnitsValue ||
+    selectedBusiness === "EXCLUDE_AHP" ||
     analytics.businessUnits.includes(selectedBusiness)
       ? selectedBusiness
       : allBusinessUnitsValue;
 
   const baseRows = useMemo(() => {
+    if (effectiveSelectedBusiness === "EXCLUDE_AHP") {
+      return analytics.summaryRows.filter((row) => !isAhpBuValue(row.BU));
+    }
     return effectiveSelectedBusiness === allBusinessUnitsValue
       ? analytics.summaryRows
       : analytics.summaryRows.filter(
@@ -1158,29 +1163,27 @@ export function BulkPaymentAnalytics({
                 }
                 aria-expanded={isBulkPaymentCardVisible}
               >
-                <TableInitialMark label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE" />
+                <TableInitialMark label="ACCOUNTS PAYABLE AGING" />
               </button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
+                  className="inline-flex items-baseline bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
                   title="Chuyển bảng"
                 >
-                  <span className="text-[12px] font-bold uppercase tracking-[0.16em] leading-tight flex items-center gap-1">
-                    <TableTitleRemainder
-                      label="ANALYSIS HOLD, ADD & CUMULATIVE BALANCE LIFECYCLE"
-                      className="app-table-title-remainder--expanded"
-                    />
-                  </span>
+                  <TableTitleRemainder
+                    label="ACCOUNTS PAYABLE AGING"
+                    className="app-table-title-remainder--expanded"
+                  />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
                 sideOffset={8}
                 collisionPadding={8}
-                className="table-switch-menu w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1"
+                className="table-switch-menu w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl p-1 z-[99999]"
               >
                 <DropdownMenuLabel className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   CHUYỂN BẢNG
@@ -1204,14 +1207,15 @@ export function BulkPaymentAnalytics({
                   className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold bg-primary/10 text-primary rounded-lg cursor-pointer"
                 >
                   <BarChart2 className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>Analysis</span>
+                  <span>Accounts Payable Aging</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
             </div>
             <p
               className="app-table-title-meta truncate text-[9.5px] font-medium leading-tight text-muted-foreground"
-              title="Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ"
+              title={`Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: ${analytics.currentPeriod})`}
             >
               Tổng hợp vòng đời các khoản HOLD, ADD & Số dư lũy kế qua các kỳ (Kỳ báo cáo: {analytics.currentPeriod})
             </p>
@@ -1244,36 +1248,48 @@ export function BulkPaymentAnalytics({
             </div>
           )}
 
-          <div className="relative py-0 flex items-center">
-            <select
-              id="analys-business-filter"
-              value={effectiveSelectedBusiness}
-              onChange={(event) => onSelectedBusinessChange(event.target.value)}
-              className="h-[26px] w-auto min-w-[70px] max-w-[170px] appearance-none rounded-none border-0 bg-transparent pl-1 pr-4 text-[10px] font-normal uppercase leading-[20px] text-[var(--card-foreground)] outline-none transition-colors hover:text-primary cursor-pointer shadow-none font-sans"
-              style={{
-                fontSize: "10px",
-                backgroundColor: "transparent",
-                fontFamily: "var(--font-table, var(--font-main))",
-                textAlign: "right",
-              }}
-              title="Chọn BU trên bảng ANALYSIS"
+          {/* BU Filter Bar thay thế ở phần Tất cả BU */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-0.5">
+              <Filter className="w-3 h-3 text-primary" />
+              <span className="hidden sm:inline">Lọc BU:</span>
+            </span>
+            {/* Nút Tất cả */}
+            <button
+              type="button"
+              onClick={() => onSelectedBusinessChange(allBusinessUnitsValue)}
+              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                effectiveSelectedBusiness === allBusinessUnitsValue
+                  ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                  : "bg-background hover:bg-muted text-foreground border border-border/80"
+              }`}
             >
-              <option
-                value={allBusinessUnitsValue}
-                className="bg-[var(--card,#fff)] text-[var(--card-foreground,#000)] text-[12px]"
-              >
-                Tất cả BU
-              </option>
-              {analytics.businessUnits.map((business) => (
-                <option
-                  key={business}
-                  value={business}
-                  className="bg-[var(--card,#fff)] text-[var(--card-foreground,#000)] text-[12px]"
-                >
-                  {business}
-                </option>
-              ))}
-            </select>
+              Tất cả
+            </button>
+            {/* Nút Trừ AHP */}
+            <button
+              type="button"
+              onClick={() =>
+                onSelectedBusinessChange(
+                  effectiveSelectedBusiness === "EXCLUDE_AHP"
+                    ? allBusinessUnitsValue
+                    : "EXCLUDE_AHP"
+                )
+              }
+              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] flex items-center gap-1 ${
+                effectiveSelectedBusiness === "EXCLUDE_AHP"
+                  ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                  : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+              }`}
+              title="Lọc bảng trừ BU AHP (Hải Phòng)"
+            >
+              <span>Trừ AHP</span>
+              {effectiveSelectedBusiness === "EXCLUDE_AHP" && (
+                <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">
+                  Đang lọc
+                </span>
+              )}
+            </button>
           </div>
 
           <DropdownMenu>
@@ -1475,6 +1491,8 @@ export function BulkPaymentAnalytics({
           tableStyle={{ backgroundColor: "var(--card)" }}
           ignoreSavedHiddenColumns={true}
           ignoreSavedPagination={true}
+          hideBuFilter={true}
+          hideSaveStatus={true}
           headerClassName="bg-primary/[0.055] text-primary border-[#e7dbdc] font-bold text-[9px] uppercase tracking-[0.08em] text-center"
           footerClassName="bg-primary/[0.085] text-primary border-t border-[#e7dbdc] font-black text-[12.5px] md:text-[13px]"
         />
@@ -1803,37 +1821,37 @@ export function BulkPaymentAnalytics({
                       </div>
                     ) : (
                       <table className="w-full text-left text-xs border-separate border-spacing-0 border-0">
-                        <thead className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800">
+                        <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] text-[var(--table-column-header-text-color,#881337)]">
                           <tr>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               No.
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               ID NUMBER
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               FULL NAME
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[100px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[100px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               L07
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               TỔNG HOLD GỐC
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               {drilldownCategory === "opening"
                                 ? "SỐ DƯ TRƯỚC KỲ"
                                 : drilldownCategory === "paid_in_period"
                                 ? "THANH TOÁN TẠI KỲ"
                                 : "ĐÃ THANH TOÁN"}
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               ĐÃ CANCEL
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               SỐ DƯ CÒN LẠI
                             </th>
-                            <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[140px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                            <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[140px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                               GHI CHÚ
                             </th>
                           </tr>
@@ -1945,30 +1963,30 @@ export function BulkPaymentAnalytics({
                     </div>
                   ) : (
                     <table className="w-full text-left text-xs border-separate border-spacing-0 border-0">
-                      <thead className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800">
+                      <thead className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] text-[var(--table-column-header-text-color,#881337)]">
                         <tr>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 text-center w-12 border-b border-primary/20 font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             No.
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             ID NUMBER
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             FULL NAME
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[110px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             L07
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             NGHIỆP VỤ
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[120px] text-right font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             BASE AMOUNT
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[90px] text-center font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             KỲ BC
                           </th>
-                          <th className="sticky top-0 z-20 bg-[#FAF3E8] dark:bg-slate-800 p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[#881337] dark:text-rose-300 uppercase tracking-wider">
+                          <th className="sticky top-0 z-20 bg-[var(--table-column-header-bg,#FAF3E8)] p-2 border-b border-primary/20 min-w-[160px] font-bold text-[11px] text-[var(--table-column-header-text-color,#881337)] uppercase tracking-wider">
                             GHI CHÚ
                           </th>
                         </tr>

@@ -72,7 +72,7 @@ test("rows needing a source-month Note are stably pinned to the top", () => {
 
 test("Deductions import and table rendering apply the source-note exception", () => {
   const importSource = readFileSync(
-    new URL("../src/app/pages/03-master/AEDataConfig.tsx", import.meta.url),
+    new URL("../src/app/lib/utils/master-ae-processing.ts", import.meta.url),
     "utf8",
   );
   const tableSource = readFileSync(

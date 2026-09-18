@@ -1,4 +1,4 @@
-export function parseMoneyToNumber(val: any): number {
+export function parseMoneyToNumber(val: unknown): number {
   if (typeof val === "number") return Number.isFinite(val) ? val : 0;
   if (typeof val === "bigint") return Number(val);
   if (val instanceof Date) {
@@ -73,7 +73,7 @@ export function parseMoneyToNumber(val: any): number {
   return isNegative ? -Math.abs(parsedValue) : parsedValue;
 }
 export function formatNumber(
-  val: any,
+  val: unknown,
   type: "string" | "number" | "money" | "date" = "number",
 ): string {
   if (val === null || val === undefined || val === "") return "";
@@ -95,7 +95,7 @@ export function formatNumber(
     maximumFractionDigits: 0,
   }).format(rounded);
 }
-export function formatMoneyVND(val: any): string {
+export function formatMoneyVND(val: unknown): string {
   const n = parseMoneyToNumber(val);
   const rounded = Math.round(n);
   return rounded.toLocaleString("vi-VN", {
@@ -178,7 +178,7 @@ export function formatIdNumber(id: unknown): string {
     ? normalized.padStart(12, "0")
     : normalized;
 }
-export function prepareDataForExport(data: any[]): any[] {
+export function prepareDataForExport<T>(data: T[]): T[] {
   return data;
 }
 export function parseAnyDate(value: unknown, preferredYear?: number): Date | null {
@@ -311,15 +311,15 @@ function normalizeLookupKey(value: unknown): string {
  * header while processing large workbooks.
  */
 export function getVal(
-  row: any,
+  row: Record<string, unknown> | null | undefined,
   keyOrAliases: string | readonly string[],
-): any {
+): unknown {
   if (!row || typeof row !== "object") return null;
 
   const aliases = Array.isArray(keyOrAliases)
     ? keyOrAliases
     : [keyOrAliases];
-  let firstDefinedValue: any = null;
+  let firstDefinedValue: unknown = null;
 
   for (const alias of aliases) {
     if (Object.prototype.hasOwnProperty.call(row, alias)) {
@@ -452,18 +452,15 @@ export async function getExcelFileBuffer(
 
     let source = "";
     if (pointerText.startsWith("{")) {
-      let pointer: {
-        url?: unknown;
-        doc_id?: unknown;
-        resource_id?: unknown;
-      } | null = null;
+      let parsedPointer: unknown;
       try {
-        pointer = JSON.parse(pointerText) as typeof pointer;
+        parsedPointer = JSON.parse(pointerText);
       } catch {
         throw new Error(`File liên kết Google Sheet không hợp lệ (${file.name}).`);
       }
 
-      if (pointer) {
+      if (parsedPointer && typeof parsedPointer === "object" && !Array.isArray(parsedPointer)) {
+        const pointer = parsedPointer as Record<string, unknown>;
         const url = String(pointer.url || "").trim();
         const documentId = String(pointer.doc_id || "").trim();
         const resourceId = String(pointer.resource_id || "")
@@ -524,7 +521,7 @@ export function looksLikeHtmlPayload(value: string): boolean {
     preview,
   );
 }
-export function formatTime12Hour(timeStr: string): string {
+export function formatTime12Hour(timeStr: unknown): string {
   return String(timeStr);
 }
 export const COMMON_FIELD_ALIASES: Record<string, string[]> = {
@@ -738,7 +735,7 @@ export function scoreMatch(
   const bestTokenScore = Math.max(...candidateScores);
   return bestTokenScore >= 60 ? Math.min(79, bestTokenScore) : 0;
 }
-export function normalizeId(id: any): string { return String(id); }
+export function normalizeId(id: unknown): string { return String(id); }
 export function toVietnamDateString(date: Date): string {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
 
@@ -937,7 +934,7 @@ export async function fetchWithBackoff(
   }
 }
 
-export function getHoldRowAmount(r: any): number {
+export function getHoldRowAmount(r: Record<string, unknown> | null | undefined): number {
   if (!r || typeof r !== "object") return 0;
 
   const remainingKeys = [

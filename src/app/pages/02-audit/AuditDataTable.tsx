@@ -50,6 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { isBuColumnKeyOrLabel, isAhpBuValue } from "../../components/DataTable";
 import {
   parseMoneyToNumber,
   formatNumber,
@@ -60,6 +61,7 @@ import {
 } from "../../lib/utils/data-utils";
 import { formatVNRobust } from "../../lib/utils/format-utils";
 import { ColumnFormatDialog } from "../../components/ColumnFormatDialog";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import {
   Select,
@@ -71,7 +73,6 @@ import {
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
-import { SaveStatusCard } from "../../components/shared/SaveStatusCard";
 import {
   applyContiguousRowSpans,
   sortRowsPreservingGroupBlocks,
@@ -759,7 +760,21 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const [columnFilters, setColumnFilters] = useState<
       Record<string, Set<any> | undefined>
     >({});
+    const [buFilterMode, setBuFilterMode] = useState<string>("ALL");
+
+    // Detect if this table has a BU or Business column
+    const buColumn = useMemo(() => {
+      return columns.find((c) => isBuColumnKeyOrLabel(c.key, c.label));
+    }, [columns]);
+
     const [internalSearchTerm, setInternalSearchTerm] = useState("");
+    const [deleteConfirmState, setDeleteConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      description: string;
+      confirmText?: string;
+      onConfirm: () => void;
+    } | null>(null);
     const [supabaseData, setSupabaseData] = useState<any[]>([]);
     const [isLoadingSupabase, setIsLoadingSupabase] = useState(false);
 
@@ -1211,6 +1226,20 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         }
       });
 
+      // Apply BU quick filter
+      if (buColumn && buFilterMode !== "ALL") {
+        result = result.filter((row) => {
+          if (row._isNew === true || row._isTotalRow) return true;
+          const rawVal = row[buColumn.key] ?? row._subtotalGroup;
+          if (rawVal == null) return false;
+          if (buFilterMode === "EXCLUDE_AHP") {
+            return !isAhpBuValue(rawVal);
+          }
+          const strVal = String(rawVal).trim().toUpperCase();
+          return strVal === buFilterMode;
+        });
+      }
+
       // Apply sorting
       if (sortConfig) {
         const col = columns.find((c) => c.key === sortConfig.key);
@@ -1257,7 +1286,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       }
 
       return result;
-    }, [data, sortConfig, columnFilters, debouncedSearchTerm, supabaseTableName, supabaseData, columns, debouncedColumnFilters]);
+    }, [data, sortConfig, columnFilters, debouncedSearchTerm, supabaseTableName, supabaseData, columns, debouncedColumnFilters, buColumn, buFilterMode]);
 
     const footerTotals = useMemo(() => {
       const totals: Record<string, number | null> = {};
@@ -1326,7 +1355,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     ]);
 
     const activeFilters = useMemo(() => {
-      return Object.entries(columnFilters)
+      const filters = Object.entries(columnFilters)
         .filter(([_, value]) => value instanceof Set && value.size > 0)
         .map(([key]) => {
           const col = columns.find((c) => c.key === key);
@@ -1335,7 +1364,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             label: col ? col.label : key,
           };
         });
-    }, [columnFilters, columns]);
+      if (buColumn && buFilterMode !== "ALL") {
+        filters.push({
+          key: buColumn.key,
+          label: buFilterMode === "EXCLUDE_AHP" ? "BU: Trừ AHP" : `BU: ${buFilterMode}`,
+        });
+      }
+      return filters;
+    }, [columnFilters, columns, buColumn, buFilterMode]);
 
     const hasActiveFilters = activeFilters.length > 0;
 
@@ -1695,18 +1731,92 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       });
     };
 
-    const handleFilterChange = (key: string, values: Set<any> | undefined) => {
+    const handleSetBuFilterMode = useCallback((mode: string) => {
+      setBuFilterMode(mode);
+      if (!buColumn) return;
+
+      const currentRows = supabaseTableName ? supabaseData : data;
+
+      if (mode === "ALL") {
+        setColumnFilters((prev) => {
+          const next = { ...prev };
+          delete next[buColumn.key];
+          return next;
+        });
+      } else if (mode === "EXCLUDE_AHP") {
+        const allowed = new Set<any>();
+        currentRows.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim()) {
+            const cleanStr = String(val).trim();
+            if (!isAhpBuValue(cleanStr)) {
+              allowed.add(cleanStr);
+              allowed.add(String(val));
+            }
+          }
+        });
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      } else {
+        const allowed = new Set<any>();
+        currentRows.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim().toUpperCase() === mode) {
+            allowed.add(String(val).trim());
+            allowed.add(String(val));
+          }
+        });
+        if (allowed.size === 0) {
+          allowed.add(mode);
+        }
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      }
+    }, [buColumn, data, supabaseData, supabaseTableName]);
+
+    const handleFilterChange = useCallback((key: string, values: Set<any> | undefined) => {
       setColumnFilters((prev) => ({ ...prev, [key]: values }));
-    };
+
+      if (buColumn && key === buColumn.key) {
+        if (!values || values.size === 0) {
+          setBuFilterMode("ALL");
+        } else {
+          let hasAhp = false;
+          let nonAhpCount = 0;
+          const nonAhpVals = new Set<string>();
+
+          values.forEach((v) => {
+            if (isAhpBuValue(v)) {
+              hasAhp = true;
+            } else {
+              nonAhpCount += 1;
+              nonAhpVals.add(String(v).trim().toUpperCase());
+            }
+          });
+
+          if (!hasAhp && nonAhpCount > 0) {
+            if (nonAhpVals.size === 1) {
+              setBuFilterMode(Array.from(nonAhpVals)[0]);
+            } else {
+              setBuFilterMode("EXCLUDE_AHP");
+            }
+          } else if (hasAhp && nonAhpCount > 0) {
+            setBuFilterMode("ALL");
+          } else {
+            setBuFilterMode("CUSTOM");
+          }
+        }
+      }
+    }, [buColumn]);
 
     const clearAllFilters = () => {
       setColumnFilters({});
+      setBuFilterMode("ALL");
       setInternalSearchTerm("");
       if (onExternalSearchChange) onExternalSearchChange("");
       toast.success("Đã xóa tất cả bộ lọc");
     };
 
     const resetTableConfig = () => {
+      setBuFilterMode("ALL");
       if (storageKey) {
         localStorage.removeItem(`dt_hidden_${storageKey}`);
         localStorage.removeItem(`dt_widths_${storageKey}`);
@@ -2597,9 +2707,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase`}
+          className={`relative z-[60] whitespace-normal cursor-pointer select-none group border-b border-r border-[var(--grid-line-color,#CBD5E1)] text-center ${filteredHeaderClass} ${col.headerClassName || ""} text-[var(--header-font-size,0.6875rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)]`}
           style={{
             padding: "var(--table-padding, 0.25rem 0.4rem)",
+            color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))",
             width: widthStyle,
             minWidth: widthStyle,
             maxWidth: widthStyle,
@@ -2731,6 +2842,80 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } as any
           }
         >
+          {/* BU Filter Bar */}
+          {buColumn && (
+            <div
+              className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
+              style={{
+                backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
+                borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
+              }}
+            >
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+                  <Filter className="w-3 h-3 text-primary" />
+                  <span>Lọc BU:</span>
+                </span>
+
+                {/* Nút Tất cả */}
+                <button
+                  type="button"
+                  onClick={() => handleSetBuFilterMode("ALL")}
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                    buFilterMode === "ALL"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                      : "bg-background hover:bg-muted text-foreground border border-border/80"
+                  }`}
+                >
+                  Tất cả
+                </button>
+
+                {/* Nút Trừ AHP */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSetBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+                  }
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+                    buFilterMode === "EXCLUDE_AHP"
+                      ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                      : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+                  }`}
+                  title="Lọc toàn bộ bảng trừ BU AHP (Hải Phòng)"
+                >
+                  <span>Trừ AHP</span>
+                  {buFilterMode === "EXCLUDE_AHP" && (
+                    <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+                  )}
+                </button>
+              </div>
+
+              {/* Counter & quick reset */}
+              <div className="flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground ml-auto shrink-0 whitespace-nowrap">
+                <span className="tabular-nums">
+                  {buFilterMode !== "ALL" ? (
+                    <span>
+                      Đang lọc BU: <strong className="text-primary font-bold">{filteredAndSortedData.length}</strong> / {(supabaseTableName ? supabaseData : data).length} dòng
+                    </span>
+                  ) : (
+                    <span>{filteredAndSortedData.length} dòng</span>
+                  )}
+                </span>
+                {buFilterMode !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => handleSetBuFilterMode("ALL")}
+                    className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5 ml-1"
+                    title="Bỏ lọc BU (Hiện tất cả)"
+                  >
+                    <X className="w-3 h-3" />
+                    Bỏ lọc
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Table Scroll Container — virtual scrolling host */}
           <div
             ref={scrollContainerRef}
@@ -3039,7 +3224,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 >
                   {/* Grand Total Row */}
                   <tr
-                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold border-t border-[var(--table-border-color,#e7dbdc)] total-row`}
+                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} font-bold border-t border-[var(--table-border-color,#e7dbdc)] total-row`}
                   >
                     {selectable && (
                       <td
@@ -3070,7 +3255,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       return (
                         <td
                           key={`footer-grand-${col.key}`}
-                          className={`whitespace-nowrap font-bold border-b border-t border-[var(--table-border-color,#e7dbdc)] border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[0.75rem] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} ${col.footerClassName || ""}`}
+                          className={`whitespace-nowrap font-bold border-b border-t border-[var(--table-border-color,#e7dbdc)] border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[0.75rem] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"} ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} ${col.footerClassName || ""}`}
                           style={{
                             padding: "var(--table-padding, 0.4rem 0.6rem)",
                             paddingTop: "5px",
@@ -3201,21 +3386,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <SaveStatusCard 
-                  className="!px-2 !py-0.5 !rounded-full bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-3xs gap-1 w-[130px] justify-center"
-                  textStyle={{
-                    fontFamily: "inherit",
-                    fontWeight: "600",
-                    fontSize: "9px",
-                    color: "#475569",
-                  }}
-                  iconStyle={{
-                    width: "11px",
-                    height: "11px",
-                    color: "#475569",
-                  }}
-                />
               </div>
             </div>
 
@@ -3388,29 +3558,61 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 <button
                   onClick={() => {
                     if (onDeleteSelection && selectionRange && (Math.abs(selectionRange.endR - selectionRange.startR) > 0 || Math.abs(selectionRange.endC - selectionRange.startC) > 0)) {
-                       onDeleteSelection({
-                         startR: Math.min(selectionRange.startR, selectionRange.endR),
-                         endR: Math.max(selectionRange.startR, selectionRange.endR),
-                         startC: Math.min(selectionRange.startC, selectionRange.endC),
-                         endC: Math.max(selectionRange.startC, selectionRange.endC),
+                       const startR = Math.min(selectionRange.startR, selectionRange.endR);
+                       const endR = Math.max(selectionRange.startR, selectionRange.endR);
+                       const startC = Math.min(selectionRange.startC, selectionRange.endC);
+                       const endC = Math.max(selectionRange.startC, selectionRange.endC);
+                       const rowCount = endR - startR + 1;
+                       setDeleteConfirmState({
+                         isOpen: true,
+                         title: `Xác nhận xóa vùng chọn (${rowCount} dòng)?`,
+                         description: `Bạn có chắc chắn muốn xóa dữ liệu các dòng trong vùng chọn (${rowCount} dòng)? Thao tác này sẽ cập nhật lại số liệu bảng Audit.`,
+                         confirmText: `XÓA ${rowCount} DÒNG`,
+                         onConfirm: () => {
+                           onDeleteSelection({
+                             startR,
+                             endR,
+                             startC,
+                             endC,
+                           });
+                           setSelectionRange(null);
+                           setDeleteConfirmState(null);
+                         },
                        });
-                       setSelectionRange(null);
                     } else if (onDeleteRows && selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                         const minR = Math.min(selectionRange.startR, selectionRange.endR);
                         const maxR = Math.max(selectionRange.startR, selectionRange.endR);
-                        const rowsToDelete = [];
+                        const rowsToDelete: any[] = [];
                         for (let r = minR; r <= maxR; r++) {
                             rowsToDelete.push(filteredAndSortedData[r]);
                         }
-                        onDeleteRows(rowsToDelete);
-                        setSelectionRange(null);
-                        toast.success(`Đã xóa ${rowsToDelete.length} dòng`);
+                        setDeleteConfirmState({
+                          isOpen: true,
+                          title: `Xác nhận xóa ${rowsToDelete.length} dòng đã chọn?`,
+                          description: `Bạn có chắc chắn muốn xóa ${rowsToDelete.length} dòng dữ liệu này khỏi bảng Audit?`,
+                          confirmText: `XÓA ${rowsToDelete.length} DÒNG`,
+                          onConfirm: () => {
+                            onDeleteRows(rowsToDelete);
+                            setSelectionRange(null);
+                            toast.success(`Đã xóa ${rowsToDelete.length} dòng`);
+                            setDeleteConfirmState(null);
+                          },
+                        });
                     } else if (onDeleteRow) {
                       if (selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                          toast.error("Tính năng xóa nhiều dòng không khả dụng (thiếu onDeleteRows/onDeleteSelection)");
                       } else {
                          const row = filteredAndSortedData[contextMenu.r];
-                         onDeleteRow(row, contextMenu.r);
+                         setDeleteConfirmState({
+                           isOpen: true,
+                           title: "Xác nhận xóa dòng này?",
+                           description: "Bạn có chắc chắn muốn xóa dòng dữ liệu này khỏi bảng Audit?",
+                           confirmText: "XÓA DÒNG NÀY",
+                           onConfirm: () => {
+                             onDeleteRow(row, contextMenu.r);
+                             setDeleteConfirmState(null);
+                           },
+                         });
                       }
                     } else {
                       toast.error("Tính năng xóa dòng không khả dụng cho bảng này");
@@ -3564,6 +3766,19 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             }}
           />
         )}
+        <ConfirmDialog
+          isOpen={!!deleteConfirmState?.isOpen}
+          onClose={() => setDeleteConfirmState(null)}
+          onConfirm={() => {
+            if (deleteConfirmState?.onConfirm) {
+              deleteConfirmState.onConfirm();
+            }
+          }}
+          title={deleteConfirmState?.title || "Xác nhận xóa dữ liệu?"}
+          description={deleteConfirmState?.description || "Bạn có chắc chắn muốn thực hiện thao tác xóa này?"}
+          confirmText={deleteConfirmState?.confirmText || "XÓA"}
+          variant="destructive"
+        />
       </>
     );
   },

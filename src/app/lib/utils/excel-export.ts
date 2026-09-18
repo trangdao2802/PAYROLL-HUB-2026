@@ -3,7 +3,6 @@ import * as XLSX from "xlsx";
 
 export const BANK_TRANSACTION_EXPORT_HEADERS = [
   "Payment Serial Number",
-  "Tháng báo cáo",
   "Transaction Type Code",
   "Payment Type",
   "Customer Reference No",
@@ -461,11 +460,16 @@ const appendNodeWorksheets = (
 
 export function prepareTransactionBankExportRows(
   rows: Array<Record<string, unknown>>,
+  headers?: readonly string[] | string[],
 ): Array<Record<string, unknown>> {
+  const exportHeaders = (headers && headers.length > 0)
+    ? headers.filter(h => !/tháng\s*báo\s*cáo/i.test(h) && !h.startsWith("_") && !/^(id|uuid|rowid|recordid)$/i.test(h))
+    : [...BANK_TRANSACTION_EXPORT_HEADERS];
+
   return rows.map((row) => {
     const exportRow: Record<string, unknown> = {};
-    BANK_TRANSACTION_EXPORT_HEADERS.forEach((header) => {
-      exportRow[header] = header === "Document ID" ? "" : (row?.[header] ?? "");
+    exportHeaders.forEach((header) => {
+      exportRow[header] = header === "Document ID" ? (row?.["Document ID"] ?? "") : (row?.[header] ?? "");
     });
     return exportRow;
   });
@@ -474,10 +478,15 @@ export function prepareTransactionBankExportRows(
 export function downloadTransactionBankExport(
   rows: Array<Record<string, unknown>>,
   fileName = `Bank_Export_${new Date().toISOString().split("T")[0]}.xlsx`,
+  headers?: readonly string[] | string[],
 ): void {
+  const exportHeaders = (headers && headers.length > 0)
+    ? headers.filter(h => !/tháng\s*báo\s*cáo/i.test(h) && !h.startsWith("_") && !/^(id|uuid|rowid|recordid)$/i.test(h))
+    : [...BANK_TRANSACTION_EXPORT_HEADERS];
+
   const worksheet = XLSX.utils.json_to_sheet(
-    prepareTransactionBankExportRows(rows),
-    { header: [...BANK_TRANSACTION_EXPORT_HEADERS] },
+    prepareTransactionBankExportRows(rows, exportHeaders),
+    { header: [...exportHeaders] },
   );
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Export");

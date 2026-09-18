@@ -1,13 +1,12 @@
 import { useTableRestore } from '../../../hooks/useTableRestore';
 import { deductionsNote, prioritizeMatchingDeductions } from "../../../lib/utils/deductions-display";
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
+import { ConfirmDialog } from "../../../components/shared/ConfirmDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useCallback, forwardRef } from "react";
 import { useAppData } from "../../../lib/contexts/AppDataContext";
-import {
-  DataTable,
-  OPERATION_KEY_SHORTCUTS,
-} from "../../../components/DataTable";
+import { DataTable } from "../../../components/DataTable";
+import { OPERATION_KEY_SHORTCUTS } from "../../../constants/operation-shortcuts";
 import { Trash2, Settings, Download, RefreshCw, Search, X, ArrowLeft, ChevronDown, Save, AlertTriangle, Lock, Zap } from "lucide-react";
 import {
   TableInitialMark,
@@ -109,6 +108,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
     const [showSearch, setShowSearch] = React.useState(false);
     const [showClearConfirm, setShowClearConfirm] = React.useState(false);
     const [showDeleteSnapshotConfirm, setShowDeleteSnapshotConfirm] = React.useState(false);
+    const [rowsPendingDelete, setRowsPendingDelete] = React.useState<any[] | null>(null);
     const hasActiveSearch = searchTerm.trim().length > 0;
     const isSearchVisible = showSearch || hasActiveSearch;
     const currentReportMonth =
@@ -1033,7 +1033,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl border-slate-100 z-[99999]">
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-slate-100 z-[99999]">
                 <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">
                   Action Center
                 </DropdownMenuLabel>
@@ -1043,8 +1043,8 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={handleToggleSearch}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Search className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-bold text-slate-700">
+                  <Search className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">
                     {isSearchVisible ? "Ẩn công cụ tìm kiếm" : "Tìm kiếm..."}
                   </span>
                 </DropdownMenuItem>
@@ -1053,16 +1053,16 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={handleRefresh}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-bold text-slate-700">Làm mới dữ liệu</span>
+                  <RefreshCw className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Làm mới dữ liệu</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleBulkSyncFromReconcile}
                   disabled={!pendingSync || isCurrentMonthLocked}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors data-[disabled]:bg-muted data-[disabled]:text-muted-foreground"
                 >
-                  <Zap className={`w-4 h-4 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
-                  <span className="text-xs font-bold text-slate-700">
+                  <Zap className={`w-4 h-4 shrink-0 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">
                     Đồng bộ từ Reconcile
                   </span>
                 </DropdownMenuItem>
@@ -1071,24 +1071,24 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Settings className="w-4 h-4 text-slate-500" />
-                  <span className="text-xs font-bold text-slate-700">Cài đặt Giao diện</span>
+                  <Settings className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Cài đặt Giao diện</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
                   onClick={handleExportExcel}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  <Download className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-700">Xuất Excel</span>
+                  <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Xuất Excel</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-slate-50" />
                 <DropdownMenuItem
                   onClick={handleClearAll}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-rose-50 text-rose-600 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="text-xs font-bold">Xóa dữ liệu bảng Deductions</span>
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-bold truncate flex-1">Xóa dữ liệu bảng Deductions</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1097,7 +1097,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
           <DataTable
             className="flex-1 !overflow-visible"
-            hideColumnVisibilityToggle={false}
+            hideColumnVisibilityToggle={true}
             scrollContainerStyle={{ borderRadius: "0", border: "none" }}
             stickyFirstColumn={false}
             showPagination={true}
@@ -1121,26 +1121,8 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 icon: <Trash2 className="w-3 h-3" />,
                 variant: "destructive",
                 onClick: (selectedRows) => {
-                  updateAppData((prev: any) => {
-                    const targetTab = prev.Hold_AE;
-                    if (!targetTab || !targetTab.data) return prev;
-
-                    const deletion = removeSelectedHoldSourceRows(
-                      targetTab.data,
-                      selectedRows,
-                    );
-                    if (deletion.removedCount === 0) return prev;
-
-                    return {
-                      ...prev,
-                      Hold_AE: { ...targetTab, data: deletion.rows },
-                    };
-                  });
-                  const currentRef = ref as any;
-                  if (currentRef?.current?.clearSelection) {
-                    currentRef.current.clearSelection();
-                  }
-                  toast.success(`Đã xóa ${selectedRows.length} dòng`);
+                  if (!selectedRows || selectedRows.length === 0) return;
+                  setRowsPendingDelete(selectedRows);
                 },
               },
             ]}
@@ -1297,6 +1279,40 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <ConfirmDialog
+          isOpen={!!rowsPendingDelete}
+          onClose={() => setRowsPendingDelete(null)}
+          onConfirm={() => {
+            if (!rowsPendingDelete) return;
+            const selectedRows = rowsPendingDelete;
+            updateAppData((prev: any) => {
+              const targetTab = prev.Hold_AE;
+              if (!targetTab || !targetTab.data) return prev;
+
+              const deletion = removeSelectedHoldSourceRows(
+                targetTab.data,
+                selectedRows,
+              );
+              if (deletion.removedCount === 0) return prev;
+
+              return {
+                ...prev,
+                Hold_AE: { ...targetTab, data: deletion.rows },
+              };
+            });
+            const currentRef = ref as any;
+            if (currentRef?.current?.clearSelection) {
+              currentRef.current.clearSelection();
+            }
+            toast.success(`Đã xóa ${selectedRows.length} dòng`);
+            setRowsPendingDelete(null);
+          }}
+          title={`Xác nhận xóa ${rowsPendingDelete?.length || 0} dòng đã chọn?`}
+          description={`Bạn có chắc chắn muốn xóa ${rowsPendingDelete?.length || 0} dòng dữ liệu Deductions (Hold/Add/Cancel)? Thao tác này sẽ tính toán lại số dư và khấu trừ.`}
+          confirmText={`XÓA ${rowsPendingDelete?.length || 0} DÒNG`}
+          variant="destructive"
+        />
       </div>
     );
   },

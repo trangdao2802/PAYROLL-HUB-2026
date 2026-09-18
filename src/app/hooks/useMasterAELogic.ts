@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { sourceRowIndex } from '../lib/utils/table-originals';
 import { useState, useCallback } from "react";
 import { useAppData } from "../lib/contexts/AppDataContext";
 import { toast } from "sonner";
-import { getCenterInfoByAECode, resolveMktAndCenterL07 } from "../lib/utils/center-utils";
+import { resolveMultiOrSingleAE, resolveMktAndCenterL07 } from "../lib/utils/center-utils";
 import { formatIdNumber, parseMoneyToNumber, removeVietnameseTones } from "../lib/utils/data-utils";
 import { clearMasterTableData } from "../lib/utils/data-clear-scopes";
 
@@ -40,24 +41,21 @@ export function useMasterAELogic() {
   const reMapAECodes = useCallback(() => {
     updateAppData((prev) => {
       const aeMap = prev.AE_Map;
-      const newData = prev.Sheet1_AE.data.map((row) => {
-        // Try using _rawAE (original center string) or fallback to L07
-        const rawCenterVal = String(row["_rawAE"] || row["L07"] || "").trim();
-        const rawCenterKey = rawCenterVal.toUpperCase();
 
-        let l07 = row["L07"];
-        let business = row["Business"];
+      const remapRow = (row: any) => {
+        const rawCenterVal = String(
+          row["_rawAE"] ||
+          row["Mã ae"] ||
+          row["Mã AE"] ||
+          row["CENTER"] ||
+          row["Center"] ||
+          row["L07"] ||
+          ""
+        ).trim();
 
-        if (aeMap[rawCenterKey]) {
-          l07 = aeMap[rawCenterKey].name;
-          business = aeMap[rawCenterKey].bus;
-        } else {
-          const info = getCenterInfoByAECode(rawCenterVal);
-          if (info) {
-            l07 = info.l07;
-            business = info.bus;
-          }
-        }
+        const resolved = resolveMultiOrSingleAE(rawCenterVal, aeMap);
+        let l07 = resolved.l07 || row["L07"] || rawCenterVal;
+        let business = resolved.bus || row["Business"] || row["BU"] || "";
 
         // Apply MKT Override logic for consistency
         const mktRes = resolveMktAndCenterL07(rawCenterVal, "", "", l07);
@@ -70,11 +68,19 @@ export function useMasterAELogic() {
           ...row,
           L07: l07,
           Business: business,
+          ...(row["BU"] !== undefined ? { BU: business } : {}),
         };
-      });
+      };
+
+      const newSheet1Data = (prev.Sheet1_AE?.data || []).map(remapRow);
+      const newBankData = (prev.Bank_North_AE?.data || []).map(remapRow);
+      const newHoldData = (prev.Hold_AE?.data || []).map(remapRow);
+
       return {
         ...prev,
-        Sheet1_AE: { ...prev.Sheet1_AE, data: newData },
+        Sheet1_AE: { ...prev.Sheet1_AE, data: newSheet1Data },
+        Bank_North_AE: { ...prev.Bank_North_AE, data: newBankData },
+        Hold_AE: { ...prev.Hold_AE, data: newHoldData },
       };
     });
     toast.success("Đã cập nhật lại mã AE dựa trên bảng Map");

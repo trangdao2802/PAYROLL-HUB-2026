@@ -669,11 +669,6 @@ export function buildBulkPaymentAnalytics({
         "Trạng thái HOLD": status,
       };
     })
-    .filter(
-      (row) =>
-        // Hiển thị tất cả các tháng chứa khoản HOLD (kể cả đã được thanh toán hoặc hủy về 0)
-        true,
-    )
     .sort((left, right) => {
       const businessCompare = left.BU.localeCompare(right.BU, "vi");
       if (businessCompare !== 0) return businessCompare;

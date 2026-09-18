@@ -1,6 +1,9 @@
 import { TableRestoreButton } from '../../components/TableRestoreButton';
+import { resolveMasterSpecialCenter } from "../../lib/utils/master-special-centers";
 import { registerTableExport } from "../../lib/utils/table-excel";
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
+import { isAhpBuValue } from "../../components/DataTable";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import * as XLSX from "xlsx";
@@ -25,6 +28,7 @@ import {
   X,
   Settings,
   Maximize2,
+  Filter,
 } from "lucide-react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
 import {
@@ -57,14 +61,14 @@ import {
 } from "../../components/TableInitialMark";
 
 // ==========================================
-// HELPER UTILITIES EXPORTS FOR COMPATIBILITY
+// LOCAL HELPER UTILITIES
 // ==========================================
 
-export function parseMoneyToNumber(val: any): number {
+function parseMoneyToNumber(val: any): number {
   return parseExcelMoney(val);
 }
 
-export function formatNumber(val: any): string {
+function formatNumber(val: any): string {
   const n = parseMoneyToNumber(val);
   const rounded = Math.round(n);
   return rounded.toLocaleString('vi-VN', {
@@ -73,7 +77,7 @@ export function formatNumber(val: any): string {
   });
 }
 
-export function formatMoneyVND(val: any): string {
+function formatMoneyVND(val: any): string {
   const n = parseMoneyToNumber(val);
   const rounded = Math.round(n);
   return rounded.toLocaleString('vi-VN', {
@@ -82,36 +86,36 @@ export function formatMoneyVND(val: any): string {
   });
 }
 
-export function removeVietnameseTones(str: string): string {
+function removeVietnameseTones(str: string): string {
   if (!str) return '';
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 }
 
-export function formatIdNumber(id: any): string {
+function formatIdNumber(id: any): string {
   return String(id || '').trim();
 }
 
-export function prepareDataForExport(data: any[]): any[] {
+function prepareDataForExport(data: any[]): any[] {
   return data;
 }
 
-export function parseAnyDate(dateStr: string): Date | null {
+function parseAnyDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function getVal(row: any, key: string): any {
+function getVal(row: any, key: string): any {
   return row ? row[key] : null;
 }
 
-export function parseTimeStrToHours(timeStr: string): number {
+function parseTimeStrToHours(timeStr: string): number {
   if (!timeStr) return 0;
   const [h, m] = String(timeStr).split(':').map(Number);
   return (h || 0) + (m || 0) / 60;
 }
 
-export async function getExcelFileBuffer(
+async function getExcelFileBuffer(
   file: File,
 ): Promise<{ buffer: ArrayBuffer; name: string }> {
   if (!file) {
@@ -123,18 +127,18 @@ export async function getExcelFileBuffer(
   };
 }
 
-export function formatTime12Hour(timeStr: string): string {
+function formatTime12Hour(timeStr: string): string {
   return String(timeStr);
 }
 
-export const COMMON_FIELD_ALIASES: Record<string, string[]> = {};
-export function scoreMatch(a: string, b: string): number { return a === b ? 1 : 0; }
-export function normalizeId(id: any): string { return String(id || ''); }
-export function toVietnamDateString(date: Date): string { return String(date); }
-export function generateUUID(): string { return Math.random().toString(36).substring(2, 9); }
-export async function fetchGoogleSheetAsFile(url: string, name: string): Promise<File> { return new File([], name); }
-export function isMoneyColumn(col: string): boolean { return Boolean(col && col.toLowerCase().includes('money')); }
-export async function fetchWithBackoff(fn: any): Promise<any> { return await fn(); }
+const COMMON_FIELD_ALIASES: Record<string, string[]> = {};
+function scoreMatch(a: string, b: string): number { return a === b ? 1 : 0; }
+function normalizeId(id: any): string { return String(id || ''); }
+function toVietnamDateString(date: Date): string { return String(date); }
+function generateUUID(): string { return Math.random().toString(36).substring(2, 9); }
+async function fetchGoogleSheetAsFile(url: string, name: string): Promise<File> { return new File([], name); }
+function isMoneyColumn(col: string): boolean { return Boolean(col && col.toLowerCase().includes('money')); }
+async function fetchWithBackoff(fn: any): Promise<any> { return await fn(); }
 
 function mergePivotTypeColumns(
   currentColumns: string[],
@@ -203,7 +207,9 @@ const rawCenterToMktMap: Record<string, string> = {
 
 const aeCodeToL07Map: Record<string, string> = {
   "Ngo Si Lien": "BN0001.LTT",
+  "BN01.LTT": "BN0001.LTT",
   "Tu Son": "BN0002.TSN",
+  "BN02.TUS": "BN0002.TSN",
   "Pho Hue Junior": "HN0001.PHY",
   "Pho Hue": "HN0001.PHY",
   "Thai Ha": "HN0002.THA",
@@ -246,11 +252,14 @@ const aeCodeToL07Map: Record<string, string> = {
   "Ecopark": "HY0001.ECP",
   "Hai Phong": "Hai Phong",
   "Hai Phong 1": "HP0001.LHP",
+  "HP1.LHP": "HP0001.LHP",
   "Hai Phong 2": "HP0002.HBT",
   "Hai Phong 3": "HP0003.VIN",
   "Ha Long": "QN0001.HLG",
   "Quang Ninh": "QN0001.HLG",
+  "QN01.HL": "QN0001.HLG",
   "Vinh": "VIN001.CTG",
+  "VIN01.CT": "VIN001.CTG",
   "Vinh Phuc": "VP0001.PCT",
   "TH01.TPU": "TH0001.TPU",
   "Thanh Hoa": "TH0001.TPU",
@@ -261,13 +270,14 @@ const aeCodeToL07Map: Record<string, string> = {
   "Apollo Advance -South": "AA",
   "ASP - HN": "HN0200.ASP",
   "MKT LOCAL NORTH": "MKT LOCAL NORTH",
-  "Cambridge": "ZHN0000.GY",
+  "Cambridge": "CAMBRIDGE",
   "MKT HP": "MKT LOCAL NORTH_HP",
   "MKT TN01.LNQ": "MKT LOCAL NORTH_TN",
   "MKT PT01.HVG": "MKT LOCAL NORTH_PT",
   "MKT TH01.TPU": "MKT LOCAL NORTH_TH",
   "NTW": "NTW",
-  "Contest": "ZHN0000.GY"
+  "Contest": "CONTEST",
+  "Job Fair": "JOB FAIR"
 };
 
 function extractBankName(fileName: string, bankLabel?: string) {
@@ -289,6 +299,8 @@ function extractBankName(fileName: string, bankLabel?: string) {
 }
 
 function processNorthLogic(rawCenter: string) {
+  const specialCenter = resolveMasterSpecialCenter(rawCenter);
+  if (specialCenter) return { chargeToCenterMkt: "", l07: specialCenter.l07, bu: specialCenter.business };
   const cleaned = rawCenter ? String(rawCenter).trim() : "";
   let l07 = cleaned;
 
@@ -362,7 +374,7 @@ function parseMonthFromFileName(fileName: string, globalMonth?: string): string 
 // ==========================================
 
 export function PivotSheet() {
-  const { appData } = useAppData();
+  const { appData, isLoading: isAppDataLoading } = useAppData();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>(() => {
     try {
@@ -373,6 +385,14 @@ export function PivotSheet() {
     }
     return "ALL";
   });
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [buFilterMode, setBuFilterMode] = useState<string>("ALL");
+
+  const handleSetBuFilterMode = useCallback((mode: string) => {
+    setBuFilterMode(mode);
+    setCurrentPage(1);
+  }, []);
 
   const [groupedData, setGroupedData] = useState<Record<string, Record<string, Record<string, Record<string, number>>>>>(() => {
     try {
@@ -446,7 +466,6 @@ export function PivotSheet() {
       return 50;
     }
   });
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({ month: true });
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -656,20 +675,27 @@ export function PivotSheet() {
     toast.success(`Đã thêm cột mới: ${trimmed}`);
   };
 
+  const [deleteRowTarget, setDeleteRowTarget] = useState<{ bu: string; l07: string; month: string } | null>(null);
+
   const handleDeleteRow = (bu: string, l07: string, month: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa dòng ${bu} - ${l07} (Tháng ${month})?`)) {
-      setGroupedData(prev => {
-        const nextData = JSON.parse(JSON.stringify(prev));
-        if (nextData[bu] && nextData[bu][l07] && nextData[bu][l07][month]) {
-          delete nextData[bu][l07][month];
-          if (Object.keys(nextData[bu][l07]).length === 0) delete nextData[bu][l07];
-          if (Object.keys(nextData[bu]).length === 0) delete nextData[bu];
-        }
-        saveToCache(nextData);
-        return nextData;
-      });
-      toast.success(`Đã xóa dòng ${bu} - ${l07}`);
-    }
+    setDeleteRowTarget({ bu, l07, month });
+  };
+
+  const confirmDeleteRow = () => {
+    if (!deleteRowTarget) return;
+    const { bu, l07, month } = deleteRowTarget;
+    setGroupedData(prev => {
+      const nextData = JSON.parse(JSON.stringify(prev));
+      if (nextData[bu] && nextData[bu][l07] && nextData[bu][l07][month]) {
+        delete nextData[bu][l07][month];
+        if (Object.keys(nextData[bu][l07]).length === 0) delete nextData[bu][l07];
+        if (Object.keys(nextData[bu]).length === 0) delete nextData[bu];
+      }
+      saveToCache(nextData);
+      return nextData;
+    });
+    toast.success(`Đã xóa dòng ${bu} - ${l07}`);
+    setDeleteRowTarget(null);
   };
   
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -1162,13 +1188,14 @@ export function PivotSheet() {
 
       let resGrouped: Record<string, Record<string, Record<string, Record<string, number>>>> = {};
       let resTypes: string[] = [];
+      let restoredLogs: typeof diagnosticLogs = [];
       let infoStr = "";
 
       if (fileBuffers.length > 0) {
         const res = await processFileBuffers(fileBuffers);
         resGrouped = res?.groupedData || {};
         resTypes = res?.typeColumns || [];
-        setDiagnosticLogs(res?.logs || []);
+        restoredLogs = res?.logs || [];
         infoStr = `Đồng bộ từ ${fileBuffers.length} file Master`;
 
         if ((res?.processedMktFiles || 0) > 0) {
@@ -1185,6 +1212,8 @@ export function PivotSheet() {
           writePivotMktTypeCache(nextMktTypeCache);
         }
       }
+
+      setDiagnosticLogs(restoredLogs);
 
       if (Object.keys(resGrouped).length === 0 && appData.Sheet1_AE?.data && appData.Sheet1_AE.data.length > 0) {
         const filteredSheet1 = appData.Sheet1_AE.data || [];
@@ -1242,7 +1271,7 @@ export function PivotSheet() {
             cacheVersion: PIVOT_CACHE_VERSION,
             groupedData: restoredGroupedData,
             typeColumns: restoredTypeColumns,
-            diagnosticLogs: res?.logs || [],
+            diagnosticLogs: restoredLogs,
             sourceInfo: infoStr,
             filter: selectedMonthFilter,
             reportingMonth: appData.globalMonth || "03.2026",
@@ -1277,12 +1306,12 @@ export function PivotSheet() {
     appData.Sheet1_AE?.data,
     appData.Master_Roster,
     processFileBuffers,
+    selectedMonthFilter,
   ]);
 
   useEffect(() => {
-    loadMasterData(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!isAppDataLoading) void loadMasterData(false);
+  }, [isAppDataLoading, loadMasterData]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1424,7 +1453,13 @@ export function PivotSheet() {
     let rowId = 1;
     const excelGrandTotals = new Array(visibleTypes.length).fill(0);
     let superGrandTotal = 0;
-    const sortedBUs = Object.keys(safeGroupedData).sort();
+    const sortedBUs = Object.keys(safeGroupedData)
+      .filter((bu) => {
+        if (buFilterMode === "ALL") return true;
+        if (buFilterMode === "EXCLUDE_AHP") return !isAhpBuValue(bu);
+        return bu === buFilterMode;
+      })
+      .sort();
 
     sortedBUs.forEach(bu => {
       const buTotals = new Array(visibleTypes.length).fill(0);
@@ -1511,11 +1546,6 @@ export function PivotSheet() {
     toast.success("Đã xuất báo cáo Excel thành công!");
   };
 
-  let totalCenters = 0;
-  let totalSalarySum = 0;
-  const grandTotals = new Array(safeTypeColumns.length).fill(0);
-  let superGrandTotal = 0;
-
   const availableMonths = useMemo(() => {
     const monthsSet = new Set<string>();
     Object.values(safeGroupedData).forEach((l07Map) => {
@@ -1528,73 +1558,87 @@ export function PivotSheet() {
     return Array.from(monthsSet).sort();
   }, [safeGroupedData]);
 
-  const allFlatRows: Array<{
-    globalRowId: number;
-    month: string;
-    bu: string;
-    l07: string;
-    values: number[];
-    rowTotal: number;
-    sourceLabels: string[];
-  }> = [];
+  const { allFlatRows, totalCenters, totalSalarySum, grandTotals, superGrandTotal } = useMemo(() => {
+    let totalCenters = 0;
+    let totalSalarySum = 0;
+    const grandTotals = new Array(safeTypeColumns.length).fill(0);
+    let superGrandTotal = 0;
 
-  let rIdx = 1;
-  const currentSortedBUs = Object.keys(safeGroupedData).sort();
-  currentSortedBUs.forEach(bu => {
-    const l07s = Object.keys(safeGroupedData[bu] || {}).sort();
-    l07s.forEach(l07 => {
-      const uL07 = l07.toUpperCase().trim();
-      if (
-        uL07.includes("MKT LOCAL NORTH") ||
-        uL07.startsWith("MKT LOCAL") ||
-        uL07.includes("MKT_LOCAL") ||
-        uL07 === "MKT"
-      ) {
-        return;
-      }
-      const months = Object.keys(safeGroupedData[bu][l07] || {}).sort();
-      months.forEach(month => {
-        if (selectedMonthFilter !== "ALL") {
-          const normM = month.match(/(?:THÁNG|THANG|T)?\s*(\d{1,2})[./\- ]\s*(\d{4})/i);
-          const mNorm = normM ? `${normM[1].padStart(2, "0")}.${normM[2]}` : month;
-          if (mNorm !== selectedMonthFilter && month !== selectedMonthFilter) return;
-        }
-        
-        let rowTotal = 0;
-        const values = safeTypeColumns.map((type, idx) => {
-          const val = safeGroupedData[bu][l07][month][type] || 0;
-          grandTotals[idx] += val;
-          rowTotal += val;
-          return val;
-        });
+    const allFlatRows: Array<{
+      globalRowId: number;
+      month: string;
+      bu: string;
+      l07: string;
+      values: number[];
+      rowTotal: number;
+      sourceLabels: string[];
+    }> = [];
 
-        if (rowTotal === 0 && bu === "OTHER" && (l07 === "UNKNOWN" || !l07)) {
+    let rIdx = 1;
+    const currentSortedBUs = Object.keys(safeGroupedData)
+      .filter((bu) => {
+        if (buFilterMode === "ALL") return true;
+        if (buFilterMode === "EXCLUDE_AHP") return !isAhpBuValue(bu);
+        return String(bu).trim().toUpperCase() === buFilterMode.trim().toUpperCase();
+      })
+      .sort();
+    currentSortedBUs.forEach(bu => {
+      const l07s = Object.keys(safeGroupedData[bu] || {}).sort();
+      l07s.forEach(l07 => {
+        const uL07 = l07.toUpperCase().trim();
+        if (
+          uL07.includes("MKT LOCAL NORTH") ||
+          uL07.startsWith("MKT LOCAL") ||
+          uL07.includes("MKT_LOCAL") ||
+          uL07 === "MKT"
+        ) {
           return;
         }
+        const months = Object.keys(safeGroupedData[bu][l07] || {}).sort();
+        months.forEach(month => {
+          if (selectedMonthFilter !== "ALL") {
+            const normM = month.match(/(?:THÁNG|THANG|T)?\s*(\d{1,2})[./\- ]\s*(\d{4})/i);
+            const mNorm = normM ? `${normM[1].padStart(2, "0")}.${normM[2]}` : month;
+            if (mNorm !== selectedMonthFilter && month !== selectedMonthFilter) return;
+          }
 
-        totalCenters++;
-        superGrandTotal += rowTotal;
-        totalSalarySum += rowTotal;
+          let rowTotal = 0;
+          const values = safeTypeColumns.map((type, idx) => {
+            const val = safeGroupedData[bu][l07][month][type] || 0;
+            grandTotals[idx] += val;
+            rowTotal += val;
+            return val;
+          });
 
-        allFlatRows.push({
-          globalRowId: rIdx++,
-          month,
-          bu,
-          l07,
-          values,
-          rowTotal,
-          sourceLabels: getPivotSourceLabels(safeGroupedData[bu][l07][month]),
+          if (rowTotal === 0 && bu === "OTHER" && (l07 === "UNKNOWN" || !l07)) {
+            return;
+          }
+
+          totalCenters++;
+          superGrandTotal += rowTotal;
+          totalSalarySum += rowTotal;
+
+          allFlatRows.push({
+            globalRowId: rIdx++,
+            month,
+            bu,
+            l07,
+            values,
+            rowTotal,
+            sourceLabels: getPivotSourceLabels(safeGroupedData[bu][l07][month]),
+          });
         });
       });
     });
-  });
+    return { allFlatRows, totalCenters, totalSalarySum, grandTotals, superGrandTotal };
+  }, [safeGroupedData, safeTypeColumns, selectedMonthFilter, buFilterMode]);
 
-  const isTypeColHidden = (type: string, idx: number) => {
+  const isTypeColHidden = useCallback((type: string, idx: number) => {
     if (hiddenColumns[`type_${type}`] !== undefined) {
       return hiddenColumns[`type_${type}`];
     }
     return (grandTotals[idx] || 0) === 0;
-  };
+  }, [grandTotals, hiddenColumns]);
 
   const sortedFlatRows = useMemo(() => {
     if (!sortField) return allFlatRows;
@@ -1707,7 +1751,7 @@ export function PivotSheet() {
       // Ignore local storage quota/privacy errors.
     }
     toast.success("Đã tự động căn chỉnh độ rộng cột Pivot Master theo dữ liệu!");
-  }, [safeTypeColumns, sortedFlatRows]);
+  }, [safeTypeColumns, sortedFlatRows, isTypeColHidden]);
 
   const visibleTableWidth = useMemo(() => {
     let total = 0;
@@ -1722,7 +1766,7 @@ export function PivotSheet() {
     });
     if (!hiddenColumns.grandTotal) total += columnWidths.grandTotal || 140;
     return Math.max(total, 640);
-  }, [columnWidths, hiddenColumns, safeTypeColumns, grandTotals]);
+  }, [columnWidths, hiddenColumns, safeTypeColumns, isTypeColHidden]);
 
   const totalRowsCount = sortedFlatRows.length;
   const totalPages =
@@ -1986,7 +2030,7 @@ export function PivotSheet() {
     if (sortField !== field) return null;
     return (
       <div className="inline-flex items-center gap-0.5 ml-1 shrink-0">
-        <span className="text-primary font-bold">
+        <span className="text-current font-bold">
           {sortDirection === "asc" ? (
             <ChevronUp className="w-3 h-3 stroke-[2.5]" />
           ) : (
@@ -2002,7 +2046,7 @@ export function PivotSheet() {
             setSortDirection("asc");
             toast.success("Đã xóa sắp xếp cột");
           }}
-          className="p-0.5 rounded hover:bg-rose-100 dark:hover:bg-rose-900/40 text-muted-foreground hover:text-rose-600 transition-colors cursor-pointer"
+          className="p-0.5 rounded hover:bg-white/20 text-current/80 hover:text-white transition-colors cursor-pointer"
           title="Xóa sắp xếp cột này"
           aria-label="Xóa sắp xếp cột này"
         >
@@ -2016,18 +2060,22 @@ export function PivotSheet() {
     <div className="pivot-master-frame unified-table-frame relative flex h-full w-full flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground">
       {/* HEADER SECTION */}
       <div 
-        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
+        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 pb-2 pt-6"
+        style={{ paddingTop: "12px", height: "62px" }}
       >
         <div className="flex w-full min-w-0 items-center">
           <div className="app-table-title-lockup min-w-0">
             <div className="app-table-title-line">
-              <TableInitialMark label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE" className="shrink-0 text-primary" />
-            <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
-              <TableTitleRemainder
+              <TableInitialMark
                 label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
-                className="app-table-title-remainder--expanded"
+                className="shrink-0 text-primary"
               />
-            </h3>
+              <h3 className="truncate text-[15px] font-bold leading-[22px] tracking-tight text-foreground">
+                <TableTitleRemainder
+                  label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
+                  className="app-table-title-remainder--expanded text-[15px]"
+                />
+              </h3>
             </div>
             <p className="app-table-title-meta truncate text-[10px] font-medium leading-[14px] text-muted-foreground">
               Tổng hợp chi phí theo BU, L07 và loại · {totalCenters} trung tâm
@@ -2039,11 +2087,11 @@ export function PivotSheet() {
           <div className="ml-auto grid shrink-0 grid-cols-[minmax(108px,auto)_108px_28px] items-end gap-1.5">
             {/* TỔNG TIỀN */}
             <div className="flex min-w-[108px] flex-col items-stretch border-l border-border/60 pl-2">
-              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+              <span className="whitespace-nowrap text-right pr-[5px] text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 TỔNG TIỀN
               </span>
               <div className="mt-0.5 flex h-7 min-w-[100px] items-center justify-center rounded-md border border-border/70 bg-card px-3 shadow-2xs">
-                <span className="whitespace-nowrap text-[11px] font-black tracking-tight text-primary tabular-nums">
+                <span className="whitespace-nowrap text-[13px] px-1 font-black tracking-tight text-primary tabular-nums">
                   {formatNumber(superGrandTotal)}
                 </span>
               </div>
@@ -2051,7 +2099,7 @@ export function PivotSheet() {
 
             {/* Month Filter Selector */}
             <div className="flex w-[108px] min-w-0 flex-col items-stretch">
-              <span className="whitespace-nowrap text-center text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
+              <span className="whitespace-nowrap text-right pl-0.5 pr-1.5 text-[9px] font-bold uppercase tracking-tighter text-foreground/60">
                 THÁNG
               </span>
               <div className="relative mt-0.5 flex h-7 min-w-0 items-center rounded-full border border-border bg-card px-2 shadow-2xs">
@@ -2066,7 +2114,7 @@ export function PivotSheet() {
                       // ignore
                     }
                   }}
-                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0.5 pl-1 pr-4 text-center text-[10px] font-bold text-foreground focus:outline-none"
+                  className="w-full min-w-0 cursor-pointer appearance-none bg-transparent py-0 pl-0 pr-[6px] leading-[18.5px] text-center text-[10px] font-bold text-foreground focus:outline-none"
                   aria-label="Chọn tháng Pivot Master"
                 >
                   <option value="ALL">Tất cả</option>
@@ -2266,6 +2314,77 @@ export function PivotSheet() {
         </div>
       </div>
 
+      {/* BU Filter Bar */}
+      <div
+        className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b border-[var(--border)] flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
+        style={{
+          backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
+          height: "36px",
+          minHeight: "36px",
+          maxHeight: "36px",
+          flex: "0 0 36px"
+        }}
+      >
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+            <Filter className="w-3 h-3 text-primary" />
+            <span>Lọc BU:</span>
+          </span>
+          {/* Nút Tất cả */}
+          <button
+            type="button"
+            onClick={() => handleSetBuFilterMode("ALL")}
+            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+              buFilterMode === "ALL"
+                ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                : "bg-background hover:bg-muted text-foreground border border-border/80"
+            }`}
+          >
+            Tất cả
+          </button>
+          {/* Nút Trừ AHP */}
+          <button
+            type="button"
+            onClick={() =>
+              handleSetBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+            }
+            className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+              buFilterMode === "EXCLUDE_AHP"
+                ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+            }`}
+            title="Lọc toàn bộ bảng trừ BU AHP (Hải Phòng)"
+          >
+            <span>Trừ AHP</span>
+            {buFilterMode === "EXCLUDE_AHP" && (
+              <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+            )}
+          </button>
+        </div>
+        
+        {/* Counter & quick reset */}
+        <div className="flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground ml-auto shrink-0 whitespace-nowrap">
+          <span className="tabular-nums">
+            {buFilterMode !== "ALL" ? (
+              <span>
+                Đang lọc BU: <strong className="text-primary font-bold">{sortedFlatRows.length}</strong> dòng
+              </span>
+            ) : (
+              <span>{sortedFlatRows.length} dòng</span>
+            )}
+          </span>
+          {buFilterMode !== "ALL" && (
+            <button
+              type="button"
+              onClick={() => handleSetBuFilterMode("ALL")}
+              className="text-primary hover:text-primary/80 font-bold underline ml-2 transition-colors cursor-pointer"
+            >
+              Bỏ lọc
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* MAIN DATA TABLE */}
       <div 
         className="table-body-region flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--table-data-bg,var(--card,#fff))]"
@@ -2292,12 +2411,12 @@ export function PivotSheet() {
               )}
               {!hiddenColumns.grandTotal && <col style={{ width: `${columnWidths.grandTotal || 140}px` }} />}
             </colgroup>
-            <thead className="sticky top-0 z-20 border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-bold text-primary shadow-2xs">
+            <thead className="sticky top-0 z-20 border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-bold text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] shadow-2xs">
               <tr>
                 {!hiddenColumns.no && (
                   <th 
                     onClick={() => toggleSort("no")}
-                    className="group relative cursor-pointer align-middle border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    className="group relative cursor-pointer align-middle border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2 py-2.5 text-center text-[10px] font-semibold tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     style={{ width: columnWidths["no"] || 60, minWidth: columnWidths["no"] || 60, maxWidth: columnWidths["no"] || 60, textTransform: "none" }}
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
@@ -2311,11 +2430,11 @@ export function PivotSheet() {
                           autoFitAllColumns();
                         }}
                         onMouseDown={(event) => event.stopPropagation()}
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-current opacity-70 group-hover:opacity-100 hover:bg-white/20 transition-all cursor-pointer"
                         title="Căn độ rộng tất cả cột theo dữ liệu"
                         aria-label="Căn độ rộng tất cả cột theo dữ liệu"
                       >
-                        <Maximize2 className="w-3 h-3 text-primary" />
+                        <Maximize2 className="w-3 h-3 text-current" />
                       </button>
                     </div>
                     <div
@@ -2329,7 +2448,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["business"] || 90, minWidth: columnWidths["business"] || 90, maxWidth: columnWidths["business"] || 90 }}
                     onClick={() => toggleSort("bu")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
@@ -2347,7 +2466,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["charge"] || 220, minWidth: columnWidths["charge"] || 220, maxWidth: columnWidths["charge"] || 220 }}
                     onClick={() => toggleSort("l07")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center gap-1">
@@ -2365,7 +2484,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["month"] || 90, minWidth: columnWidths["month"] || 90, maxWidth: columnWidths["month"] || 90 }}
                     onClick={() => toggleSort("month")}
-                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                    className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-center gap-1">
@@ -2388,7 +2507,7 @@ export function PivotSheet() {
                       key={type}
                       style={{ width: w, minWidth: w, maxWidth: w }}
                       onClick={() => toggleSort(colKey)}
-                      className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.06]"
+                      className="relative cursor-pointer border-r border-[var(--grid-line-color,rgba(0,0,0,0.035))] bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/10"
                       title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                     >
                       <div className="flex w-full min-w-0 items-center justify-end gap-1">
@@ -2407,7 +2526,7 @@ export function PivotSheet() {
                   <th 
                     style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
                     onClick={() => toggleSort("rowTotal")}
-                    className="relative cursor-pointer bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-primary transition-colors hover:bg-primary/[0.14]"
+                    className="relative cursor-pointer bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-[10px] font-extrabold uppercase tracking-wider text-[var(--table-column-header-text-color,var(--table-column-header-text,#1e293b))] transition-colors hover:bg-white/15"
                     title="Nhấp để sắp xếp (Tăng dần → Giảm dần → Hủy sắp xếp)"
                   >
                     <div className="inline-flex items-center justify-end gap-1 w-full">
@@ -2428,12 +2547,12 @@ export function PivotSheet() {
 
             {/* GRAND TOTAL FOOTER ROW */}
             {paginatedRows.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-black text-primary shadow-sm">
+              <tfoot className="sticky bottom-0 z-10 border-t border-border bg-[var(--table-column-header-bg,#F4ECD8)] font-black text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))] shadow-sm">
                 <tr className="total-row">
                   {pivotLabelColumnSpan > 0 && (
                     <td
                       colSpan={pivotLabelColumnSpan}
-                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left font-black text-primary"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-left font-black text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                     >
                       TỔNG CỘNG TẤT CẢ
                     </td>
@@ -2447,7 +2566,7 @@ export function PivotSheet() {
                       <td 
                         key={idx} 
                         style={{ width: w, minWidth: w, maxWidth: w }}
-                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-xs font-black tabular-nums text-primary"
+                        className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-2.5 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                       >
                         {v ? formatNumber(v) : "0"}
                       </td>
@@ -2456,7 +2575,7 @@ export function PivotSheet() {
                   {!hiddenColumns.grandTotal && (
                     <td 
                       style={{ width: columnWidths["grandTotal"] || 140, minWidth: columnWidths["grandTotal"] || 140, maxWidth: columnWidths["grandTotal"] || 140 }}
-                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-xs font-black tabular-nums text-primary"
+                      className="border-r-0 border-l-0 bg-[var(--table-column-header-bg,#F4ECD8)] px-3 py-2.5 text-right text-xs font-black tabular-nums text-[var(--table-column-header-text-color,var(--table-column-header-text,inherit))]"
                     >
                       {superGrandTotal ? formatNumber(superGrandTotal) : "0"}
                     </td>
@@ -2486,7 +2605,8 @@ export function PivotSheet() {
                 }}
               >
                 <SelectTrigger
-                  className="h-5 w-[90px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
+                  className="h-5 w-[100px] rounded-full border-border bg-card px-2.5 py-0 text-[10px] font-bold normal-case text-foreground shadow-2xs transition-colors hover:bg-muted/60"
+                  style={{ width: "100px", height: "23.5312px" }}
                 >
                   <SelectValue placeholder="Chọn..." />
                 </SelectTrigger>
@@ -2558,6 +2678,15 @@ export function PivotSheet() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={!!deleteRowTarget}
+        onClose={() => setDeleteRowTarget(null)}
+        onConfirm={confirmDeleteRow}
+        title="Xác nhận xóa dòng Pivot"
+        description={`Bạn có chắc chắn muốn xóa dòng ${deleteRowTarget?.bu} - ${deleteRowTarget?.l07} (Tháng ${deleteRowTarget?.month}) khỏi bảng Pivot? Thao tác này không thể hoàn tác.`}
+        confirmText="XÓA DÒNG"
+        variant="destructive"
+      />
     </div>
   );
 }

@@ -56,6 +56,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
+import { ConfirmDialog } from "../../components/shared/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -163,6 +164,9 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
     total: number;
   } | null>(null);
   const [, setRefreshKey] = useState(0);
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+  const [showClearEmptyL07Dialog, setShowClearEmptyL07Dialog] = useState(false);
+  const [clearRowTargetId, setClearRowTargetId] = useState<string | null>(null);
 
   const handleUrlInput = async (id: string, url: string) => {
     if (!url.trim()) return;
@@ -485,7 +489,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       false,
     );
   };
-  const handleClearRow = (id: string) => {
+  const executeClearRow = (id: string) => {
     updateAppData((prev) => {
       const targetRow = (prev.Timesheet_InputList || []).find((r) => r.id === id);
       const ownedRowIds = new Set([id, ...(targetRow?.legacyRowIds || [])]);
@@ -526,13 +530,14 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
         ),
       };
     });
+    toast.success("Đã xóa dữ liệu dòng");
   };
-  const handleClearAll = async () => {
-    const confirmed = window.confirm(
-      "Xóa dữ liệu trang Timesheet? Dữ liệu Roster đã lưu trên Supabase cũng sẽ được xóa để không tự tải ngược trở lại. Audit, Balance và Master được giữ nguyên.",
-    );
-    if (!confirmed) return;
 
+  const handleClearRow = (id: string) => {
+    setClearRowTargetId(id);
+  };
+
+  const executeClearAll = async () => {
     updateAppData((prev) => ({
       ...prev,
       Timesheet_InputList: (prev.Timesheet_InputList || []).map((r) => ({
@@ -573,7 +578,11 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
     }
   };
 
-  const handleClearEmptyL07 = () => {
+  const handleClearAll = () => {
+    setShowClearAllDialog(true);
+  };
+
+  const executeClearEmptyL07 = () => {
     updateAppData((prev) => ({
       ...prev,
       Timesheet_InputList: (prev.Timesheet_InputList || []).filter(
@@ -581,6 +590,10 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       ),
     }));
     toast?.success("Đã xóa các dòng chưa có mã L07.");
+  };
+
+  const handleClearEmptyL07 = () => {
+    setShowClearEmptyL07Dialog(true);
   };
 
   const handleRecalculate = () => {
@@ -1422,6 +1435,47 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        isOpen={showClearAllDialog}
+        onClose={() => setShowClearAllDialog(false)}
+        onConfirm={() => {
+          setShowClearAllDialog(false);
+          executeClearAll();
+        }}
+        title="Xóa dữ liệu trang Timesheet?"
+        description="Toàn bộ dữ liệu nhập file, ca làm Roster và bảng tổng hợp sẽ bị xóa. Dữ liệu Roster trên Supabase cũng sẽ được dọn sạch để tránh tự động tải lại. Dữ liệu Audit, Balance và Master được giữ nguyên."
+        confirmText="XÓA TRANG TIMESHEET"
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        isOpen={showClearEmptyL07Dialog}
+        onClose={() => setShowClearEmptyL07Dialog(false)}
+        onConfirm={() => {
+          setShowClearEmptyL07Dialog(false);
+          executeClearEmptyL07();
+        }}
+        title="Xóa các dòng chưa có mã L07?"
+        description="Tất cả các dòng cấu hình file chưa được gán mã cơ sở L07 sẽ bị xóa khỏi danh sách nhập liệu."
+        confirmText="XÓA DÒNG TRỐNG"
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        isOpen={!!clearRowTargetId}
+        onClose={() => setClearRowTargetId(null)}
+        onConfirm={() => {
+          if (clearRowTargetId) {
+            executeClearRow(clearRowTargetId);
+            setClearRowTargetId(null);
+          }
+        }}
+        title="Xác nhận xóa dòng này?"
+        description={`Bạn có chắc chắn muốn xóa file và dữ liệu ca làm của dòng "${(appData.Timesheet_InputList || []).find((r) => r.id === clearRowTargetId)?.l07 || (appData.Timesheet_InputList || []).find((r) => r.id === clearRowTargetId)?.center || "đã chọn"}" khỏi Timesheet?`}
+        confirmText="XÓA DÒNG NÀY"
+        variant="destructive"
+      />
     </div>
   );
 }

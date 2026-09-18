@@ -169,7 +169,7 @@ export function calculateTimesheet(params: any) {
       const sMatch = staffLookup.get(empId) || staffLookup.get(String(rawName || "").toLowerCase());
       if (sMatch) {
         if (!empId) empId = normalizeId(getVal(sMatch, ["id", "id number"]));
-        if (!effName) effName = getVal(sMatch, ["full name", "name"]);
+        if (!effName) effName = String(getVal(sMatch, ["full name", "name"]) || "");
       }
       if (!empId) empId = rawName;
       if (!effName) effName = empId;

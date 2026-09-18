@@ -5,8 +5,9 @@ import {
   resolveSummerBonusCenterL07,
 } from "./center-utils";
 import { parseDurationToHours } from "../schemas/excel-schema";
+import { normalizeGrossPaySpecialCenter, resolveMasterSpecialCenter } from "./master-special-centers";
 
-export const PIVOT_CACHE_VERSION = 12;
+export const PIVOT_CACHE_VERSION = 13;
 export const PIVOT_MKT_TYPE_CACHE_KEY = "pivot_master_mkt_type_data";
 export const PIVOT_MKT_TYPE_CACHE_VERSION = 2;
 export const PIVOT_SOURCE_MARKER_PREFIX = "__PIVOT_SOURCE__";
@@ -27,9 +28,7 @@ export interface PivotMktTypeCache {
 
 export function normalizePivotL07(l07Raw: string): string {
   const l07 = String(l07Raw || "").trim();
-  const upper = l07.toUpperCase();
-  if (upper === "CAMBRIDGE" || upper === "CONTEST") return ZHN_SHARED_L07;
-  return l07;
+  return resolveMasterSpecialCenter(l07)?.l07 || l07;
 }
 
 export function getPivotZhnSourceLabel(...sourceValues: unknown[]): string {
@@ -522,7 +521,9 @@ export function buildPivotFromAppData(
       bu = "OTHER";
     }
 
-    const l07 = normalizePivotL07((l07Raw || "UNKNOWN").trim());
+    const specialCenter = resolveMasterSpecialCenter(l07Raw, bu);
+    const l07 = specialCenter?.l07 || normalizePivotL07((l07Raw || "UNKNOWN").trim());
+    if (specialCenter) bu = specialCenter.business;
     const type = formatPivotTypeHeader(typeRaw);
 
     if (type === "EXCLUDE" || type === "ADD" || type === "CANCEL") return;
@@ -537,8 +538,9 @@ export function buildPivotFromAppData(
     newGroupedData[bu][l07][month][type] += amount;
   };
 
-  sheet1Rows.forEach((row) => {
-    if (!row) return;
+  sheet1Rows.forEach((sourceRow) => {
+    if (!sourceRow) return;
+    const row = normalizeGrossPaySpecialCenter(sourceRow);
     const rawL07 = row["L07"] || row["Center"] || row["CHARGE TO CENTER"] || "";
     const isSummerBonusRow = [
       "Extra Summer Instructors",
@@ -549,7 +551,7 @@ export function buildPivotFromAppData(
       "BONUS",
     ].some((key) => parseMoney(row[key]) !== 0) ||
       String(row["Note"] || row["Sheet Source"] || "").toUpperCase().includes("SUMMER BONUS");
-    const summerCenter = isSummerBonusRow
+    const summerCenter = isSummerBonusRow && !resolveMasterSpecialCenter(rawL07)
       ? resolveSummerBonusCenterL07(rawL07)
       : null;
     const l07 = summerCenter?.l07 || normalizePivotL07(rawL07);

@@ -1,3 +1,4 @@
+import { OPERATION_KEY_SHORTCUTS } from "../constants/operation-shortcuts";
 import { registerTableExport, downloadTableExcel } from "../lib/utils/table-excel";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, @typescript-eslint/no-unused-vars, react-hooks/incompatible-library */
 import React, {
@@ -64,6 +65,7 @@ import {
 } from "../lib/utils/data-utils";
 import { formatVNRobust } from "../lib/utils/format-utils";
 import { ColumnFormatDialog } from "./ColumnFormatDialog";
+import { ConfirmDialog } from "./shared/ConfirmDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Select,
@@ -82,6 +84,29 @@ const AUTO_FIT_SAMPLE_LIMIT = 320;
 const COLUMN_FILTER_SCAN_CHUNK_SIZE = 2_000;
 const COLUMN_FILTER_RENDER_LIMIT = 250;
 const COLUMN_FILTER_SORT_LIMIT = 5_000;
+
+export function isBuColumnKeyOrLabel(key?: string, label?: string): boolean {
+  const k = String(key || "").trim().toLowerCase();
+  const l = String(label || "").trim().toLowerCase();
+  if (k === "bu" || k === "business" || k === "business_unit" || k === "bus" || k === "buses") return true;
+  if (l === "bu" || l === "business" || l === "business unit" || l === "bus" || l === "buses") return true;
+  if (/^bu\b/i.test(l) || /\bbu$/i.test(l)) return true;
+  if (k === "chi_nhanh" || l.includes("chi nhánh")) return true;
+  return false;
+}
+
+export function isAhpBuValue(val: unknown): boolean {
+  if (val == null) return false;
+  const str = String(val).trim().toUpperCase();
+  return (
+    str === "AHP" ||
+    str === "AHN_HP" ||
+    str.startsWith("AHP-") ||
+    str.startsWith("AHP_") ||
+    str.includes("HAI PHONG") ||
+    str.includes("HAIPHONG")
+  );
+}
 
 function getAutoFitSample<T>(rows: T[]): T[] {
   if (rows.length <= AUTO_FIT_SAMPLE_LIMIT) return rows;
@@ -115,11 +140,6 @@ export interface Column {
   showGrandTotal?: boolean;
 }
 
-export const OPERATION_KEY_SHORTCUTS: Record<string, string> = {
-  A: "Add",
-  H: "Hold",
-  C: "Cancel",
-};
 
 const isOperationColumn = (column?: Column): boolean => {
   if (!column) return false;
@@ -305,10 +325,14 @@ interface DataTableProps {
   onResetFilters?: () => void;
   hideColumnVisibilityToggle?: boolean;
   defaultItemsPerPage?: number | typeof Infinity;
+  /** When true, suppresses the built-in BU quick filter bar above the table header. */
+  hideBuFilter?: boolean;
   /** Optional compact action rendered beside the table save status. */
   footerActionContent?: React.ReactNode;
   /** Replaces the generic saved-time badge in the table footer. */
   footerStatusContent?: React.ReactNode;
+  /** When true, hides the SAVED status card in the table footer. */
+  hideSaveStatus?: boolean;
 }
 
 const ColumnFilter = ({
@@ -1055,16 +1079,25 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       ignoreSavedHiddenColumns = false,
       ignoreSavedPagination = false,
       onResetFilters,
-      hideColumnVisibilityToggle = false,
+      hideColumnVisibilityToggle = true,
       defaultItemsPerPage,
+      hideBuFilter = false,
       footerActionContent,
       footerStatusContent,
+      hideSaveStatus = false,
     },
     ref,
   ) => {
     // Horizontal scrolling is authoritative: no data/select/row-number column
     // is pinned, even if an older saved component still requests it.
     const stickyFirstColumn = false;
+    const [deleteConfirmState, setDeleteConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      description: string;
+      confirmText?: string;
+      onConfirm: () => void;
+    } | null>(null);
     const [operationStatus, setOperationStatus] = useState<string | null>(null);
     const statusTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -1080,15 +1113,21 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const [columnFilters, setColumnFilters] = useState<
       Record<string, Set<any> | undefined>
     >({});
+    const [buFilterMode, setBuFilterMode] = useState<string>("ALL");
+
+    // Detect if this table has a BU or Business column
+    const buColumn = useMemo(() => {
+      return columns.find((c) => isBuColumnKeyOrLabel(c.key, c.label));
+    }, [columns]);
 
     React.useEffect(() => {
       if (onColumnFiltersChange) {
         const hasActiveFilters = Object.values(columnFilters).some(
           (value) => value instanceof Set,
-        );
+        ) || buFilterMode !== "ALL";
         onColumnFiltersChange(hasActiveFilters);
       }
-    }, [columnFilters, onColumnFiltersChange]);
+    }, [columnFilters, buFilterMode, onColumnFiltersChange]);
 
     const [internalSearchTerm, setInternalSearchTerm] = useState("");
 
@@ -1626,14 +1665,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
     const groupColorMap = useMemo(() => {
       const map = new Map<string, string>();
       const colors = [
-        "bg-blue-50 text-blue-900",
-        "bg-emerald-50 text-emerald-900",
-        "bg-amber-50 text-amber-900",
-        "bg-purple-50 text-purple-900",
-        "bg-pink-50 text-pink-900",
-        "bg-indigo-50 text-indigo-900",
-        "bg-cyan-50 text-cyan-900",
-        "bg-rose-50 text-rose-900",
+        "bg-[#F0F5FA] text-[#1E2C35]", // Breeze Blue
+        "bg-[#FDF7EA] text-[#574116]", // Butter Yellow
+        "bg-[#FAF2F3] text-[#4A2630]", // Blush Pink
+        "bg-[#FBF1EF] text-[#59261D]", // Coral Clay
+        "bg-[#F0FAF8] text-[#1D4039]", // Mint Fountain
+        "bg-[#F4F6FC] text-[#283144]", // Lavender Dream
+        "bg-[#FAF7F7] text-[#3D2A2A]", // Espresso Neutral
       ];
       let colorIdx = 0;
       columns.forEach((c) => {
@@ -1743,6 +1781,20 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         }
       });
 
+      // Apply BU quick filter
+      if (buColumn && buFilterMode !== "ALL") {
+        result = result.filter((row) => {
+          if (row._isNew === true || row._isTotalRow) return true;
+          const rawVal = row[buColumn.key] ?? row._subtotalGroup;
+          if (rawVal == null) return false;
+          if (buFilterMode === "EXCLUDE_AHP") {
+            return !isAhpBuValue(rawVal);
+          }
+          const strVal = String(rawVal).trim().toUpperCase();
+          return strVal === buFilterMode;
+        });
+      }
+
       // Apply Excel-style multi-level sorting. Earlier rules always have
       // higher priority; empty values stay at the bottom at every level.
       if (sortConfig.length > 0 || containsSubtotalRows) {
@@ -1802,10 +1854,10 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       }
 
       return result;
-    }, [data, sortConfig, columnFilters, debouncedSearchTerm, debouncedColumnFilters, containsSubtotalRows]);
+    }, [data, sortConfig, columnFilters, debouncedSearchTerm, debouncedColumnFilters, containsSubtotalRows, buColumn, buFilterMode]);
 
     const activeFilters = useMemo(() => {
-      return Object.entries(columnFilters)
+      const filters = Object.entries(columnFilters)
         .filter(([_, value]) => value instanceof Set)
         .map(([key]) => {
           const col = columns.find((c) => c.key === key);
@@ -1814,7 +1866,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             label: col ? col.label : key,
           };
         });
-    }, [columnFilters, columns]);
+      if (buColumn && buFilterMode !== "ALL") {
+        filters.push({
+          key: buColumn.key,
+          label: buFilterMode === "EXCLUDE_AHP" ? "BU: Trừ AHP" : `BU: ${buFilterMode}`,
+        });
+      }
+      return filters;
+    }, [columnFilters, columns, buColumn, buFilterMode]);
 
     const hasActiveFilters = activeFilters.length > 0;
 
@@ -2306,18 +2365,90 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       });
     };
 
-    const handleFilterChange = (key: string, values: Set<any> | undefined) => {
+    const handleSetBuFilterMode = useCallback((mode: string) => {
+      setBuFilterMode(mode);
+      if (!buColumn) return;
+
+      if (mode === "ALL") {
+        setColumnFilters((prev) => {
+          const next = { ...prev };
+          delete next[buColumn.key];
+          return next;
+        });
+      } else if (mode === "EXCLUDE_AHP") {
+        const allowed = new Set<any>();
+        data.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim()) {
+            const cleanStr = String(val).trim();
+            if (!isAhpBuValue(cleanStr)) {
+              allowed.add(cleanStr);
+              allowed.add(String(val));
+            }
+          }
+        });
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      } else {
+        const allowed = new Set<any>();
+        data.forEach((row: any) => {
+          const val = row[buColumn.key] ?? row._subtotalGroup;
+          if (val != null && String(val).trim().toUpperCase() === mode) {
+            allowed.add(String(val).trim());
+            allowed.add(String(val));
+          }
+        });
+        if (allowed.size === 0) {
+          allowed.add(mode);
+        }
+        setColumnFilters((prev) => ({ ...prev, [buColumn.key]: allowed }));
+      }
+    }, [buColumn, data]);
+
+    const handleFilterChange = useCallback((key: string, values: Set<any> | undefined) => {
       setColumnFilters((prev) => ({ ...prev, [key]: values }));
-    };
+
+      if (buColumn && key === buColumn.key) {
+        if (!values || values.size === 0) {
+          setBuFilterMode("ALL");
+        } else {
+          let hasAhp = false;
+          let nonAhpCount = 0;
+          const nonAhpVals = new Set<string>();
+
+          values.forEach((v) => {
+            if (isAhpBuValue(v)) {
+              hasAhp = true;
+            } else {
+              nonAhpCount += 1;
+              nonAhpVals.add(String(v).trim().toUpperCase());
+            }
+          });
+
+          if (!hasAhp && nonAhpCount > 0) {
+            if (nonAhpVals.size === 1) {
+              setBuFilterMode(Array.from(nonAhpVals)[0]);
+            } else {
+              setBuFilterMode("EXCLUDE_AHP");
+            }
+          } else if (hasAhp && nonAhpCount > 0) {
+            setBuFilterMode("ALL");
+          } else {
+            setBuFilterMode("CUSTOM");
+          }
+        }
+      }
+    }, [buColumn]);
 
     const clearAllFilters = () => {
       setColumnFilters({});
+      setBuFilterMode("ALL");
       setInternalSearchTerm("");
       if (onExternalSearchChange) onExternalSearchChange("");
       showStatus("Đã xóa tất cả bộ lọc");
     };
 
     const resetTableConfig = () => {
+      setBuFilterMode("ALL");
       if (storageKey) {
         localStorage.removeItem(`dt_hidden_${storageKey}`);
         localStorage.removeItem(`dt_widths_${storageKey}`);
@@ -3146,7 +3277,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
       const filteredHeaderBgColor = isColFiltered
         ? "#FEF3C7"
-        : "var(--table-column-header-bg, #F4ECD8)";
+        : (col.group ? undefined : "var(--table-column-header-bg, #F4ECD8)");
 
       // Since the parent thead is sticky, individual cells only need horizontal sticky positioning
       const stickyClass = [
@@ -3167,12 +3298,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           onMouseDown={(e) => handleHeaderMouseDown(e, cIdx)}
           onMouseEnter={(e) => handleHeaderMouseEnter(e, cIdx)}
           onContextMenu={(e) => handleContextMenu(e, -1, cIdx)}
-          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"} ${col.group ? "" : "text-slate-800"}`}
+          className={`relative ${stickyClass} ${col.group ? "has-group" : ""} whitespace-normal align-middle cursor-pointer select-none group border-r ${borderClass} text-center ${filteredHeaderClass} ${col.headerClassName || ""} border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold ${isNoHeader ? "normal-case" : "uppercase"} text-[var(--table-column-header-text-color,#1e293b)]`}
           style={{
-            padding: "var(--table-padding, 0.15rem 0.4rem)",
-            paddingTop: "1px",
-            paddingBottom: "1px",
+            padding: "var(--table-padding, 0.25rem 0.4rem)",
+            paddingTop: "5px",
+            paddingBottom: "4px",
             backgroundColor: filteredHeaderBgColor,
+            color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))",
             width: widthStyle,
             minWidth: widthStyle,
             maxWidth: widthStyle,
@@ -3183,9 +3315,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             } : {})
           }}
         >
-          <div className={`flex items-center gap-1.5 ${headerFlexJustify} h-full px-1 min-w-0 w-full overflow-hidden`}>
+          <div className={`flex items-center gap-1.5 ${headerFlexJustify} min-h-full px-1 min-w-0 w-full overflow-visible text-inherit`}>
             <span
-              className={`transition-colors flex-1 min-w-0 flex flex-wrap items-center ${headerFlexJustify} gap-1 ${col.sortable !== false ? "hover:text-accent active:scale-[0.98] cursor-pointer" : ""} ${col.headerSpanClassName || ""}`}
+              className={`transition-colors flex-1 min-w-0 flex flex-wrap items-center ${headerFlexJustify} gap-1 text-inherit ${col.sortable !== false ? "hover:text-accent active:scale-[0.98] cursor-pointer" : ""} ${col.headerSpanClassName || ""}`}
               onClick={(e) => {
                 if (col.sortable !== false) {
                   e.stopPropagation();
@@ -3194,7 +3326,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               }}
               title={col.sortable !== false ? "Nhấp để thêm cấp sort (Tăng dần → Giảm dần → Hủy); cột bấm trước được ưu tiên trước" : undefined}
             >
-              <span className={`whitespace-normal break-words leading-tight ${headerTextAlign} max-w-full min-w-0 block font-bold`}>
+              <span className={`whitespace-normal break-words leading-normal pt-0.5 ${headerTextAlign} max-w-full min-w-0 block font-bold text-inherit`}>
                 {col.label}
               </span>
               {col.sortable !== false && activeSort && (
@@ -3312,7 +3444,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs ${
                       action.variant === "destructive"
                         ? "bg-rose-600 hover:bg-rose-700 text-white"
-                        : "bg-white hover:bg-slate-100 text-slate-800 border border-slate-300"
+                        : "bg-white hover:bg-slate-100 text-[var(--table-column-header-text-color,#1e293b)] border border-slate-300"
                     }`}
                   >
                     {action.icon}
@@ -3326,12 +3458,22 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                       const selectedRows = filteredAndSortedData.filter((row, idx) =>
                         selectedRowIds.has(row.id || idx)
                       );
-                      if (onDeleteRows) {
-                        onDeleteRows(selectedRows);
-                      } else if (onDeleteRow) {
-                        selectedRows.forEach((row, idx) => onDeleteRow(row, idx));
-                      }
-                      setSelectedRowIds(new Set());
+                      if (selectedRows.length === 0) return;
+                      setDeleteConfirmState({
+                        isOpen: true,
+                        title: `Xác nhận xóa ${selectedRows.length} dòng đã chọn?`,
+                        description: `Bạn có chắc chắn muốn xóa ${selectedRows.length} dòng dữ liệu này khỏi bảng? Dữ liệu và các số liệu liên quan sẽ được cập nhật lại.`,
+                        confirmText: `XÓA ${selectedRows.length} DÒNG`,
+                        onConfirm: () => {
+                          if (onDeleteRows) {
+                            onDeleteRows(selectedRows);
+                          } else if (onDeleteRow) {
+                            selectedRows.forEach((row, idx) => onDeleteRow(row, idx));
+                          }
+                          setSelectedRowIds(new Set());
+                          setDeleteConfirmState(null);
+                        },
+                      });
                     }}
                     className="flex items-center gap-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
                   >
@@ -3346,6 +3488,84 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 >
                   Bỏ chọn
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* BU Filter Bar */}
+          {buColumn && !hideBuFilter && (
+            <div
+              className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
+              style={{
+                backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
+                borderColor: borderColorHex,
+                height: "36px",
+                minHeight: "36px",
+                maxHeight: "36px",
+                flex: "0 0 36px"
+              }}
+            >
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
+                  <Filter className="w-3 h-3 text-primary" />
+                  <span>Lọc BU:</span>
+                </span>
+
+                {/* Nút Tất cả */}
+                <button
+                  type="button"
+                  onClick={() => handleSetBuFilterMode("ALL")}
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 whitespace-nowrap ${
+                    buFilterMode === "ALL"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                      : "bg-background hover:bg-muted text-foreground border border-border/80"
+                  }`}
+                >
+                  Tất cả
+                </button>
+
+                {/* Nút Trừ AHP */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleSetBuFilterMode(buFilterMode === "EXCLUDE_AHP" ? "ALL" : "EXCLUDE_AHP")
+                  }
+                  className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 whitespace-nowrap ${
+                    buFilterMode === "EXCLUDE_AHP"
+                      ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                      : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+                  }`}
+                  title="Lọc toàn bộ bảng trừ BU AHP (Hải Phòng)"
+                >
+                  <span>Trừ AHP</span>
+                  {buFilterMode === "EXCLUDE_AHP" && (
+                    <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">Đang lọc</span>
+                  )}
+                </button>
+              </div>
+
+              {/* Counter & quick reset */}
+              <div className="flex items-center gap-2 text-[10.5px] font-medium text-muted-foreground ml-auto shrink-0 whitespace-nowrap">
+                <span className="tabular-nums">
+                  {buFilterMode !== "ALL" ? (
+                    <span>
+                      Đang lọc BU: <strong className="text-primary font-bold">{filteredAndSortedData.length}</strong> / {data.length} dòng
+                    </span>
+                  ) : (
+                    <span>{filteredAndSortedData.length} dòng</span>
+                  )}
+                </span>
+                {buFilterMode !== "ALL" && (
+                  <button
+                    type="button"
+                    onClick={() => handleSetBuFilterMode("ALL")}
+                    className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5 ml-1"
+                    title="Bỏ lọc BU (Hiện tất cả)"
+                  >
+                    <X className="w-3 h-3" />
+                    Bỏ lọc
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -3405,18 +3625,18 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   );
                 })}
               </colgroup>
-              <thead className={stickyHeader ? "sticky top-0 z-[120] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]" : ""}>
+              <thead className={stickyHeader ? "sticky top-0 z-[120] bg-[var(--table-column-header-bg,#F4ECD8)]" : ""}>
                 {/* Grouped Headers Row if any column has a group defined */}
                 {columns.some(c => c.group) && (
                   <tr className="bg-[var(--table-column-header-bg,#F4ECD8)]">
                     {selectable && (
                       <th
                         rowSpan={2}
-                        className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                        className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                         style={{ 
                           padding: "var(--table-padding, 0.25rem 0.4rem)", 
-                          paddingTop: "1px", 
-                          paddingBottom: "1px", 
+                          paddingTop: "5px", 
+                          paddingBottom: "4px", 
                           backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
                           ...(stickyFirstColumn ? { left: 0 } : {})
                         }}
@@ -3452,11 +3672,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     {isRowNumberVisible && (
                       <th
                         rowSpan={2}
-                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
+                        className={`${stickyFirstColumn ? "sticky-col-row-number" : ""} sticky-header-col w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                         style={{ 
                           padding: "var(--table-padding, 0.25rem 0.4rem)", 
-                          paddingTop: "1px", 
-                          paddingBottom: "1px", 
+                          paddingTop: "5px", 
+                          paddingBottom: "4px", 
                         backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
                         textTransform: "none",
                           ...(stickyFirstColumn ? { left: selectable ? 40 : 0 } : {})
@@ -3492,7 +3712,8 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                             <th 
                               key={idx} 
                               colSpan={g.count}
-                              className={`has-group ${groupBg} border-r ${borderClass} py-1 text-[var(--header-font-size,0.65rem)] font-bold uppercase text-center shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] whitespace-normal align-middle`}
+                              className={`has-group ${groupBg} border-r ${borderClass} py-2 leading-normal text-[var(--header-font-size,0.65rem)] font-bold uppercase text-center border-b border-[var(--table-border-color,#e7dbdc)] whitespace-normal align-middle text-[var(--table-column-header-text-color,#1e293b)]`}
+                              style={{ color: "var(--table-column-header-text-color, var(--table-column-header-text, #1e293b))" }}
                             >
                               {g.group}
                             </th>
@@ -3505,14 +3726,14 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     })()}
                   </tr>
                 )}
-                <tr className={headerClassName ? "" : "bg-[var(--table-column-header-bg,#F4ECD8)] text-foreground"}>
+                <tr className={headerClassName ? "" : "bg-[var(--table-column-header-bg,#F4ECD8)] text-[var(--table-column-header-text-color,#1e293b)]"}>
                   {selectable && !columns.some(c => c.group) && (
                     <th
-                      className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-slate-800 whitespace-normal align-middle`}
+                      className={`${stickyFirstColumn ? "sticky-col-selectable sticky-header-col" : ""} w-10 border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold uppercase text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                       style={{ 
                         padding: "var(--table-padding, 0.25rem 0.4rem)", 
-                        paddingTop: "1px", 
-                        paddingBottom: "1px", 
+                        paddingTop: "5px", 
+                        paddingBottom: "4px", 
                         backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
                         ...(stickyFirstColumn ? { left: 0 } : {})
                       }}
@@ -3547,11 +3768,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   )}
                   {isRowNumberVisible && !columns.some(c => c.group) && (
                     <th
-                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` shadow-[0_1px_0_var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-slate-800 whitespace-normal align-middle`}
+                      className={`${stickyFirstColumn ? "sticky-col-row-number sticky-header-col" : ""} w-[50px] border-r ${borderClass} text-center ${headerClassName ? headerClassName : "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` border-b border-[var(--table-border-color,#e7dbdc)] text-[var(--header-font-size,0.65rem)] font-bold text-[var(--table-column-header-text-color,#1e293b)] whitespace-normal align-middle`}
                       style={{ 
                         padding: "var(--table-padding, 0.25rem 0.4rem)", 
-                        paddingTop: "1px", 
-                        paddingBottom: "1px", 
+                        paddingTop: "5px", 
+                        paddingBottom: "4px", 
                           backgroundColor: "var(--table-column-header-bg, #F4ECD8)",
                           textTransform: "none",
                         ...(stickyFirstColumn ? { left: selectable ? 40 : 0 } : {})
@@ -3693,11 +3914,11 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                   }}
                 >
                   <tr
-                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold total-row`}
+                    className={`${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold total-row`}
                   >
                     {selectable && (
                       <td
-                        className={`border-b border-r-0 border-l-0 border-t ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold ${stickyFirstColumn ? "sticky-col-selectable sticky-footer-col" : "sticky-footer-col"} total-row`}
+                        className={`border-b border-r-0 border-l-0 ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold ${stickyFirstColumn ? "sticky-col-selectable sticky-footer-col" : "sticky-footer-col"} total-row`}
                         style={{
                           position: "sticky",
                           bottom: 0,
@@ -3712,7 +3933,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     )}
                     {isRowNumberVisible && (
                       <td
-                        className={`border-b border-r-0 border-l-0 border-t ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} font-bold ${stickyFirstColumn ? "sticky-col-row-number sticky-footer-col" : "sticky-footer-col"} total-row`}
+                        className={`border-b border-r-0 border-l-0 ${borderClass} ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,#1e293b)]"} font-bold ${stickyFirstColumn ? "sticky-col-row-number sticky-footer-col" : "sticky-footer-col"} total-row`}
                         style={{
                           position: "sticky",
                           bottom: 0,
@@ -3806,7 +4027,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                           <td
                             key={`footer-grand-${col.key}`}
                             colSpan={shouldMergeFirstTwo && cIdx === 0 ? 2 : 1}
-                            className={`whitespace-nowrap font-extrabold border-b border-t border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-slate-800"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
+                            className={`whitespace-nowrap font-extrabold border-b border-r-0 border-l-0 ${getAlignment(col)} uppercase text-[12.5px] md:text-[13px] ${footerClassName || "bg-[var(--table-column-header-bg,#F4ECD8)]"}` + ` ${(footerClassName || "").includes("text-") ? "" : "text-[var(--table-column-header-text-color,inherit)]"} ${col.footerClassName || ""} ${stickyFirstColumn && isFirstDataCol ? "sticky-col-first-data sticky-footer-col" : ""} total-row`}
                             style={{
                               padding: "var(--table-padding, 0.2rem 0.6rem)",
                               paddingTop: "3px",
@@ -3879,7 +4100,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     scrollContainerRef.current?.scrollTo({ top: 0 });
                   }}
                 >
-                  <SelectTrigger className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0" style={{ height: "20px", width: "90px", fontSize: "10px", lineHeight: "14px" }}>
+                  <SelectTrigger className="rounded-full px-2.5 text-[10px] font-bold font-sans normal-case text-slate-700 border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-2xs h-[20px] py-0" style={{ height: "20px", width: "96.9912px", fontSize: "10px", lineHeight: "14px" }}>
                     <SelectValue placeholder="Chọn..." className="font-sans normal-case" />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--popover)] border-[#e7dbdc] z-[99999] opacity-100 font-sans">
@@ -3961,38 +4182,59 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
               {footerActionContent}
 
-              <div 
-                className="flex items-center gap-1.5 hidden md:flex border-l border-slate-100 pl-3"
-                style={{
-                  marginRight: "0px",
-                  marginBottom: "0px",
-                  marginTop: "3px",
-                  height: "36.9953px"
-                }}
-              >
-                {footerStatusContent || (
-                  <SaveStatusCard
-                    scope={storageKey === "bulk_payment" ? "transaction" : "default"}
-                    className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
+              {(() => {
+                const shouldHide =
+                  hideSaveStatus ||
+                  storageKey === "analys_hold_lifecycle_v12" ||
+                  storageKey?.includes("analys") ||
+                  storageKey?.includes("timesheet") ||
+                  storageKey?.includes("roster") ||
+                  storageKey?.includes("center") ||
+                  storageKey?.includes("employee") ||
+                  (typeof window !== "undefined" &&
+                    (window.location.pathname.includes("audit") ||
+                      window.location.pathname.includes("centers") ||
+                      window.location.pathname.includes("timesheet")));
+
+                if (shouldHide && !footerStatusContent) {
+                  return null;
+                }
+
+                return (
+                  <div 
+                    className="flex items-center gap-1.5 hidden md:flex border-l border-slate-100 pl-3"
                     style={{
-                      paddingLeft: "0px",
-                      paddingRight: "0px",
-                      marginRight: "12px"
+                      marginRight: "0px",
+                      marginBottom: "0px",
+                      marginTop: "3px",
+                      height: "36.9953px"
                     }}
-                    textStyle={{
-                      fontFamily: "inherit",
-                      fontWeight: "600",
-                      fontSize: "9px",
-                      color: "#475569",
-                    }}
-                    iconStyle={{
-                      width: "11px",
-                      height: "11px",
-                      color: "#475569",
-                    }}
-                  />
-                )}
-              </div>
+                  >
+                    {footerStatusContent || (
+                      <SaveStatusCard
+                        scope={storageKey === "bulk_payment" ? "transaction" : "default"}
+                        className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
+                        style={{
+                          paddingLeft: "0px",
+                          paddingRight: "0px",
+                          marginRight: "12px"
+                        }}
+                        textStyle={{
+                          fontFamily: "inherit",
+                          fontWeight: "600",
+                          fontSize: "10px",
+                          color: "#475569",
+                        }}
+                        iconStyle={{
+                          width: "11px",
+                          height: "11px",
+                          color: "#475569",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Pagination Controls - Direct, high-fidelity tactile buttons */}
@@ -4125,29 +4367,61 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                 <button
                   onClick={() => {
                     if (onDeleteSelection && selectionRange && (Math.abs(selectionRange.endR - selectionRange.startR) > 0 || Math.abs(selectionRange.endC - selectionRange.startC) > 0)) {
-                       onDeleteSelection({
-                         startR: Math.min(selectionRange.startR, selectionRange.endR),
-                         endR: Math.max(selectionRange.startR, selectionRange.endR),
-                         startC: Math.min(selectionRange.startC, selectionRange.endC),
-                         endC: Math.max(selectionRange.startC, selectionRange.endC),
+                       const startR = Math.min(selectionRange.startR, selectionRange.endR);
+                       const endR = Math.max(selectionRange.startR, selectionRange.endR);
+                       const startC = Math.min(selectionRange.startC, selectionRange.endC);
+                       const endC = Math.max(selectionRange.startC, selectionRange.endC);
+                       const rowCount = endR - startR + 1;
+                       setDeleteConfirmState({
+                         isOpen: true,
+                         title: `Xác nhận xóa vùng chọn (${rowCount} dòng)?`,
+                         description: `Bạn có chắc chắn muốn xóa dữ liệu các dòng trong vùng chọn (${rowCount} dòng)? Thao tác này sẽ cập nhật lại số liệu bảng.`,
+                         confirmText: `XÓA ${rowCount} DÒNG`,
+                         onConfirm: () => {
+                           onDeleteSelection({
+                             startR,
+                             endR,
+                             startC,
+                             endC,
+                           });
+                           setSelectionRange(null);
+                           setDeleteConfirmState(null);
+                         },
                        });
-                       setSelectionRange(null);
                     } else if (onDeleteRows && selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                         const minR = Math.min(selectionRange.startR, selectionRange.endR);
                         const maxR = Math.max(selectionRange.startR, selectionRange.endR);
-                        const rowsToDelete = [];
+                        const rowsToDelete: any[] = [];
                         for (let r = minR; r <= maxR; r++) {
                             rowsToDelete.push(filteredAndSortedData[r]);
                         }
-                        onDeleteRows(rowsToDelete);
-                        setSelectionRange(null);
-                        showStatus(`Đã xóa ${rowsToDelete.length} dòng`);
+                        setDeleteConfirmState({
+                          isOpen: true,
+                          title: `Xác nhận xóa ${rowsToDelete.length} dòng đã chọn?`,
+                          description: `Bạn có chắc chắn muốn xóa ${rowsToDelete.length} dòng dữ liệu này khỏi bảng?`,
+                          confirmText: `XÓA ${rowsToDelete.length} DÒNG`,
+                          onConfirm: () => {
+                            onDeleteRows(rowsToDelete);
+                            setSelectionRange(null);
+                            showStatus(`Đã xóa ${rowsToDelete.length} dòng`);
+                            setDeleteConfirmState(null);
+                          },
+                        });
                     } else if (onDeleteRow) {
                       if (selectionRange && Math.abs(selectionRange.endR - selectionRange.startR) > 0) {
                          toast.error("Tính năng xóa nhiều dòng không khả dụng (thiếu onDeleteRows/onDeleteSelection)");
                       } else {
                          const row = filteredAndSortedData[contextMenu.r];
-                         onDeleteRow(row, contextMenu.r);
+                         setDeleteConfirmState({
+                           isOpen: true,
+                           title: "Xác nhận xóa dòng này?",
+                           description: "Bạn có chắc chắn muốn xóa dòng dữ liệu này khỏi bảng?",
+                           confirmText: "XÓA DÒNG NÀY",
+                           onConfirm: () => {
+                             onDeleteRow(row, contextMenu.r);
+                             setDeleteConfirmState(null);
+                           },
+                         });
                       }
                     } else {
                       toast.error("Tính năng xóa dòng không khả dụng cho bảng này");
@@ -4327,6 +4601,19 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             }}
           />
         )}
+        <ConfirmDialog
+          isOpen={!!deleteConfirmState?.isOpen}
+          onClose={() => setDeleteConfirmState(null)}
+          onConfirm={() => {
+            if (deleteConfirmState?.onConfirm) {
+              deleteConfirmState.onConfirm();
+            }
+          }}
+          title={deleteConfirmState?.title || "Xác nhận xóa dữ liệu?"}
+          description={deleteConfirmState?.description || "Bạn có chắc chắn muốn thực hiện thao tác xóa này?"}
+          confirmText={deleteConfirmState?.confirmText || "XÓA"}
+          variant="destructive"
+        />
       </>
     );
   },

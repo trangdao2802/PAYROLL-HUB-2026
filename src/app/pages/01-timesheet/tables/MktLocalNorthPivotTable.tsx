@@ -180,10 +180,10 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
             ) : (
               <TableInitialMark label="PIVOT TIMESHEET MKT LOCAL NORTH COST" className="shrink-0 text-primary" />
             )}
-            <h3 className="font-bold tracking-wider text-primary text-[12px] leading-snug">
+            <h3 className="font-bold tracking-wider text-primary text-[15px] leading-snug">
               <TableTitleRemainder
                 label="PIVOT TIMESHEET MKT LOCAL NORTH COST"
-                className="app-table-title-remainder--expanded"
+                className="app-table-title-remainder--expanded text-[15px]"
               />
             </h3>
           </div>
@@ -219,7 +219,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
             {types.map((type) => <col key={`col-${type}`} />)}
             <col style={{ width: 150 }} />
           </colgroup>
-          <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_1px_0_var(--table-border-color,#e7dbdc)]">
+          <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)]">
             <tr>
               <th
                 className="pivot-timesheet-no-header relative border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-1 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-primary"

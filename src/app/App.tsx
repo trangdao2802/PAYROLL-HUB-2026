@@ -6,6 +6,7 @@ import { AppDataProvider } from "./lib/contexts/AppDataContext";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { Toaster, toast } from "sonner";
 import { LoadingWrapper } from "./components/shared/LoadingWrapper";
+import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import localforage from "localforage";
 import {
   type UiSettings,
@@ -55,19 +56,47 @@ export default function App() {
 
     const loadAndApply = async () => {
       // 1. Try fast load from localStorage (small settings only)
-      const fastSaved = localStorage.getItem(UI_SETTINGS_KEY + "_small");
+      const fastSaved =
+        localStorage.getItem(UI_SETTINGS_KEY + "_small") ||
+        localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v10_small") ||
+        localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v9_small") ||
+        localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v8_small");
       if (fastSaved) {
         try {
-          applyUiSettings(JSON.parse(fastSaved));
+          const parsed = JSON.parse(fastSaved);
+          if (parsed && parsed.preset && TASTE_PRESETS[parsed.preset]) {
+            parsed.tableHeaderBg = TASTE_PRESETS[parsed.preset].tableHeaderBg;
+            parsed.tableSubHeaderBg = TASTE_PRESETS[parsed.preset].tableSubHeaderBg;
+            parsed.tableFooterBg = TASTE_PRESETS[parsed.preset].tableHeaderBg;
+            parsed.tableColumnHeaderBg = TASTE_PRESETS[parsed.preset].tableColumnHeaderBg;
+            parsed.tableColumnHeaderTextColor = TASTE_PRESETS[parsed.preset].tableColumnHeaderTextColor;
+          } else if (parsed && parsed.tableHeaderBg) {
+            parsed.tableFooterBg = parsed.tableHeaderBg;
+          }
+          applyUiSettings(parsed);
         } catch (e) {
           console.error("Failed to apply fastSaved settings from localStorage", e);
         }
       } else {
         // Fallback to legacy full settings in localStorage
-        const legacySaved = localStorage.getItem(UI_SETTINGS_KEY);
+        const legacySaved =
+          localStorage.getItem(UI_SETTINGS_KEY) ||
+          localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v10") ||
+          localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v9") ||
+          localStorage.getItem("PayrollApp_UiSettings_HushedElegance_v8");
         if (legacySaved) {
           try {
-            applyUiSettings(JSON.parse(legacySaved));
+            const parsed = JSON.parse(legacySaved);
+            if (parsed && parsed.preset && TASTE_PRESETS[parsed.preset]) {
+              parsed.tableHeaderBg = TASTE_PRESETS[parsed.preset].tableHeaderBg;
+              parsed.tableSubHeaderBg = TASTE_PRESETS[parsed.preset].tableSubHeaderBg;
+              parsed.tableFooterBg = TASTE_PRESETS[parsed.preset].tableHeaderBg;
+              parsed.tableColumnHeaderBg = TASTE_PRESETS[parsed.preset].tableColumnHeaderBg;
+              parsed.tableColumnHeaderTextColor = TASTE_PRESETS[parsed.preset].tableColumnHeaderTextColor;
+            } else if (parsed && parsed.tableHeaderBg) {
+              parsed.tableFooterBg = parsed.tableHeaderBg;
+            }
+            applyUiSettings(parsed);
           } catch (e) {
             console.error("Failed to apply legacySaved settings from localStorage", e);
           }
@@ -100,6 +129,7 @@ export default function App() {
         <LoadingWrapper>
           <RouterProvider router={router} />
         </LoadingWrapper>
+        <KeyboardShortcutsModal />
         <Toaster position="bottom-right" richColors visibleToasts={1} duration={2000} />
       </AppDataProvider>
     </ErrorBoundary>

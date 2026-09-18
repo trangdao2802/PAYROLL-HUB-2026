@@ -1,5 +1,6 @@
-import { trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
-import { hideInactivePastHold, isHoldDetail, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
+import { autoApproveTrialBalanceRow } from "../../../lib/utils/trial-balance-approval";
+import { trialBalancePeriod, trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
+import { hideInactivePastHold, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
 import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -334,6 +335,7 @@ export function HoldAddDashboard() {
   const [yearFilter, setYearFilter] = useState("all");
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">("all");
   const [showClearBalancePageDialog, setShowClearBalancePageDialog] = useState(false);
+  const [showDeletePeriodDialog, setShowDeletePeriodDialog] = useState(false);
   const currentPeriodVal = appData.globalMonth || "03.2026";
   const currentPeriodParts = currentPeriodVal.split(".");
   const currentPeriodMonthNum = parseInt(currentPeriodParts[0], 10) || 3;
@@ -349,11 +351,6 @@ export function HoldAddDashboard() {
       "Tháng 2/2026",
     ]),
   );
-
-  // Confirmed tracking state (simulating 'Lệnh' user action)
-  const confirmedIds = useMemo(() => {
-    return new Set<string>(appData.ConfirmedIds_HoldAdd || []);
-  }, [appData.ConfirmedIds_HoldAdd]);
 
   const getSavedDataForPeriod = useCallback((map: Record<string, any> | undefined, month: string) => {
     if (!map || !month) return undefined;
@@ -1174,39 +1171,7 @@ export function HoldAddDashboard() {
           0,
       );
 
-      // KHOẢN HOLD CÓ THÁNG PHÁT SINH = THÁNG BÁO CÁO THÌ GỘP VÀO DÒNG LƯƠNG TA (Lương Hold của tháng xếp cạnh Lương TA của tháng)
-      if (type === "hold" && isSameMonthForSumIf(displayMonth, month)) {
-        const baseKey = getBuKey(month, biz);
-        if (!buStats[baseKey]) {
-          buStats[baseKey] = {
-            id: baseKey,
-            month,
-            reportMonth: month,
-            displayMonth: month,
-            bu: biz,
-            rawThu: 0,
-            rawChi: 0,
-            thu: 0,
-            chi: 0,
-            add: 0,
-            hold: 0,
-            cancel: 0,
-            rawAdd: 0,
-            rawHold: 0,
-            rawCancel: 0,
-            bonus: 0,
-            rawBonus: 0,
-            rawHoldPending: 0,
-            ghiChu: "",
-            confirmed: false,
-            lenh: "",
-          };
-        }
-        buStats[baseKey].rawChi += tpRaw;
-        buStats[baseKey].chi = buStats[baseKey].rawChi;
-        return;
-      }
-
+      const isCurrentPeriodHold = type === "hold" && isSameMonthForSumIf(displayMonth, month);
       const isPastMonth = getMonthNum(displayMonth) < getMonthNum(month);
       // We don't dim past holds if they are processed in the current file month! They are legitimate transactions of the current month.
       const isDimmedHold = false;
@@ -1218,7 +1183,9 @@ export function HoldAddDashboard() {
       if (type === "add" || type === "hold" || type === "cancel") {
         mergeType = "adjustment";
       }
-      const key = `${groupMonth}_${biz}_${displayMonth}_${mergeType}_${month}`;
+      const key = isCurrentPeriodHold
+        ? `${month}_${biz}_${displayMonth}_hold_${month}`
+        : `${groupMonth}_${biz}_${displayMonth}_${mergeType}_${month}`;
       
       // Do not merge hold/add/cancel into base row.
       // If the user wants Bonus merged into the base row, we'll handle it below.
@@ -1368,12 +1335,14 @@ export function HoldAddDashboard() {
       const totalArising = Math.abs(s.rawHold || 0) + Math.abs(s.rawCancel || 0);
       const isAdjustmentType =
         String(s.id).includes("_adjustment_") ||
+        String(s.id).includes("_hold") ||
         (s.rawAdd !== undefined && s.rawAdd > 0) ||
         (s.rawHold !== undefined && s.rawHold > 0) ||
         (s.rawCancel !== undefined && s.rawCancel > 0);
 
       if (isAdjustmentType && (totalArising > 0 || isAddOnly)) {
-        if (!isAddOnly) {
+        const isCurrentMonthHold = s.displayMonth && s.reportMonth && isSameMonthForSumIf(s.displayMonth, s.reportMonth) && (s.rawHold || 0) > 0 && !s.rawAdd && !s.rawCancel;
+        if (!isAddOnly && !isCurrentMonthHold) {
           s.openHold = Math.max(s.rawOpenHold || 0, totalArising);
           s.rawOpenHold = s.openHold;
         } else {
@@ -1381,7 +1350,7 @@ export function HoldAddDashboard() {
           s.rawOpenHold = 0;
         }
         s.thu = 0;
-        s.chi = 0;
+        s.chi = isCurrentMonthHold ? Math.abs(s.rawHold || 0) : 0;
         s.add = Math.abs(s.rawAdd || 0);
         s.hold = Math.abs(s.rawHold || 0);
         s.cancel = Math.abs(s.rawCancel || 0);
@@ -1524,103 +1493,13 @@ export function HoldAddDashboard() {
       });
     });
 
-    const uniqueBUs = Array.from(new Set(baseRows.map((e) => e.bu)));
-    const uniqueMonths = Array.from(new Set(baseRows.map((e) => e.month))).sort(
-      (a, b) => getMonthNum(a) - getMonthNum(b),
-    );
-
-    // We process each month chronologically to compute carry-forward and confirmation logic
-    uniqueMonths.forEach((m) => {
-      uniqueBUs.forEach((bu) => {
-        // Find standard rows and hold/add/cancel rows in this month for this BU
-        const rowsInMonth = baseRows.filter(
-          (e) => e.month === m && e.bu === bu,
-        );
-
-        // Find specific adjustment rows
-        const adjustmentRows = rowsInMonth.filter((e) =>
-          String(e.id).includes("_adjustment_") ||
-          (e.rawAdd && e.rawAdd > 0) ||
-          (e.rawHold && e.rawHold > 0) ||
-          (e.rawCancel && e.rawCancel > 0)
-        );
-
-        adjustmentRows.forEach((row) => {
-          const totalArising = Math.abs(row.rawHold || 0) + Math.abs(row.rawAdd || 0) + Math.abs(row.rawCancel || 0);
-          if (totalArising > 0) {
-            row.openHold = Math.max(row.openHold || 0, totalArising);
-            row.rawOpenHold = row.openHold;
-          }
-
-          const isDefaultApproved = row.lenh === "OK" || row.isPaidStatus;
-          const isConf =
-            isPeriodSaved(row.month) ||
-            isPeriodSaved(currentPeriod) ||
-            (isDefaultApproved ? !confirmedIds.has(row.id) : confirmedIds.has(row.id));
-
-          if (isConf) {
-            // Khi ĐÃ DUYỆT (OK):
-            // Số ở cột Tạm tính nhảy sang cột Phát sinh trong kỳ
-            row.thu = Math.abs(row.rawAdd || 0);
-            row.chi = Math.abs(row.rawCancel || 0);
-            row.add = 0;
-            row.hold = 0;
-            row.cancel = 0;
-          } else {
-            // Khi CHƯA DUYỆT (Duyệt):
-            // Số ở cột Tạm tính giữ nguyên ở Tạm tính, chưa sang Phát sinh trong kỳ
-            row.thu = 0;
-            row.chi = 0;
-            row.add = Math.abs(row.rawAdd || 0);
-            row.hold = Math.abs(row.rawHoldPending || row.rawHold || 0);
-            row.cancel = Math.abs(row.rawCancel || 0);
-          }
-
-          if (row.month !== currentPeriod || getMonthNum(row.displayMonth || "") < getMonthNum(currentPeriod)) {
-            row._isPastHoldApprove = true;
-          }
-
-          if (row.lenh === "-" && !row.isPaidStatus && (row.rawAdd || 0) === 0 && (row.rawHold || 0) === 0 && (row.rawCancel || 0) === 0) {
-            row._excludeFromTotals = true;
-          }
-        });
-
-        const bonusRows = rowsInMonth.filter((e) =>
-          String(e.id).includes("_bonus"),
-        );
-        bonusRows.forEach((bonusRow) => {
-          const isOK = 
-            bonusRow.lenh === "OK" || 
-            bonusRow.isPaidStatus || 
-            isPeriodSaved(bonusRow.month) || 
-            isPeriodSaved(currentPeriod);
-          
-          const rawBonusVal = isNaN(bonusRow.rawBonus) ? 0 : bonusRow.rawBonus;
-
-          if (isOK) {
-            // After being moved to OK status, the amount jumps to the salary adjustment column (Thu/Ps trong kỳ)
-            bonusRow.add = 0;
-            bonusRow.hold = 0;
-            bonusRow.cancel = 0;
-            bonusRow.bonus = 0;
-            bonusRow.thu = Math.abs(rawBonusVal);
-            bonusRow.chi = 0;
-            if (bonusRow.month !== currentPeriod || getMonthNum(bonusRow.displayMonth || "") < getMonthNum(currentPeriod)) {
-              bonusRow._isPastHoldApprove = true;
-            }
-          } else {
-            // When in "Duyệt" status (or any non-OK status), the amount remains in the Tạm tính Bonus column
-            bonusRow.thu = 0;
-            bonusRow.chi = 0;
-            bonusRow.bonus = rawBonusVal;
-          }
-          
-          if (bonusRow.lenh === "-" && !bonusRow.isPaidStatus) {
-             bonusRow._excludeFromTotals = true;
-             bonusRow.bonus = 0;
-          }
-        });
-      });
+    // Preserve the opening detail allocation while approving all movements.
+    baseRows.forEach((row) => {
+      const totalArising = Math.abs(row.rawHold || 0) + Math.abs(row.rawAdd || 0) + Math.abs(row.rawCancel || 0);
+      if (totalArising > 0 && getMonthNum(row.displayMonth || row.month) < getMonthNum(row.reportMonth || row.month)) {
+        row.openHold = Math.max(row.openHold || 0, totalArising);
+        row.rawOpenHold = row.openHold;
+      }
     });
 
     let processedResult = [...baseRows, ...openingHoldRows, ...adjustmentRows].filter(r => {
@@ -1632,7 +1511,7 @@ export function HoldAddDashboard() {
       return true;
     });
 
-    // Snapshot substitution & Frozen approval logic
+    // Restore current monthly snapshots before applying automatic approval.
     const savedPeriods = appData.SavedPeriods_HoldAdd || {};
     const savedRowsMap = appData.SavedRows_HoldAdd || {};
     const savedRowsMeta = appData.SavedRows_HoldAdd_Meta || {};
@@ -1679,7 +1558,7 @@ export function HoldAddDashboard() {
     // CANCEL is a movement of one report period, not a carried balance item.
     // Snapshots from older periods may still be needed for HOLD opening balances,
     // retain CANCEL history for carry calculation; grouped hides it from later views.
-    processedResult = finalRows;
+    processedResult = finalRows.map(autoApproveTrialBalanceRow);
 
     return processedResult.sort((a, b) => {
       const mA = a.reportMonth === currentPeriod ? 99999999 : getMonthNum(a.month);
@@ -1710,35 +1589,20 @@ export function HoldAddDashboard() {
   }, [
     appData.Sheet1_AE?.data,
     appData.Hold_AE?.data,
-    appData.SavedBal_PayrollTrial,
+    appData.Bank_North_AE?.data,
     appData.SavedPeriods_HoldAdd,
     appData.SavedRows_HoldAdd,
     appData.SavedRows_HoldAdd_Meta,
     appData.TrialBalanceTransactionVersions,
     currentPeriod,
-    confirmedIds,
+    currentPeriodVal,
     currentPeriodNum,
     getMonthNum,
     extractMonth,
     getSavedDataForPeriod,
-    isPeriodSaved,
     currentPeriodMonthNum,
     currentPeriodYearNum,
   ]);
-
-  const toggleConfirm = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentSet = new Set<string>(appData.ConfirmedIds_HoldAdd || []);
-    if (currentSet.has(id)) {
-      currentSet.delete(id);
-    } else {
-      currentSet.add(id);
-    }
-    updateAppData((prevAppData: any) => ({
-      ...prevAppData,
-      ConfirmedIds_HoldAdd: Array.from(currentSet),
-    }));
-  };
 
   const handleSaveBalances = () => {
     updateAppData((prev: any) => {
@@ -1942,7 +1806,7 @@ export function HoldAddDashboard() {
         const rowsForBu = rows.filter((r) => r.bu === bu);
         rowsForBu.forEach((r) => {
           const isAddRow = ((r.rawAdd || 0) > 0 || (r.add || 0) > 0) && (r.rawHold || 0) === 0 && (r.rawCancel || 0) === 0 && !r._isOpeningHold;
-          if (!isAddRow && r.openHold && r.openHold > 0) {
+          if (!isAddRow && r.openHold && r.openHold > 0 && getMonthNum(r.displayMonth || r.month) < getMonthNum(mk)) {
             const dMonth = r.displayMonth || r.month;
             openBalByMonth[dMonth] = Math.max(openBalByMonth[dMonth] || 0, r.openHold);
           }
@@ -1975,15 +1839,20 @@ export function HoldAddDashboard() {
     return balances;
   }, [data, appData.SavedBal_PayrollTrial, getMonthNum]);
 
+  // The displayed remainder uses exactly the carry calculation used by Save.
   const remainingHoldByMonth = useMemo(() => {
-    const result: Record<string, { total: number; byBu: Record<string, { total: number }> }> = {};
+    const result: Record<string, { total: number; byBu: Record<string, number> }> = {};
     for (const mk of monthKeys) {
-      const byBu: Record<string, { total: number }> = {};
+      const byBu: Record<string, number> = {};
       for (const [bu, balance] of Object.entries(buBalancesByMonth[mk] || {})) {
-        const carry = nextTrialBalanceCarry(balance.openBalByMonth, data.filter(row => row.bu === bu && (row.reportMonth || row.month) === mk), mk);
-        byBu[bu] = { total: Object.values(carry).reduce((sum, amount) => sum + amount, 0) };
+        const carry = nextTrialBalanceCarry(
+          balance.openBalByMonth,
+          data.filter(row => row.bu === bu && (row.reportMonth || row.month) === mk),
+          mk,
+        );
+        byBu[bu] = Object.values(carry).reduce((sum, amount) => sum + amount, 0);
       }
-      result[mk] = { byBu, total: Object.values(byBu).reduce((sum, entry) => sum + entry.total, 0) };
+      result[mk] = { byBu, total: Object.values(byBu).reduce((sum, amount) => sum + amount, 0) };
     }
     return result;
   }, [monthKeys, buBalancesByMonth, data]);
@@ -2023,7 +1892,7 @@ export function HoldAddDashboard() {
 
       const psChi = rowsThisMonth
         .filter((e) => !e._excludeFromTotals)
-        .reduce((s, e) => s + (e.chi || 0), 0);
+        .reduce((s, e) => s + Math.abs(e.chi || 0), 0);
 
       const addAmt = rowsThisMonth
         .filter((e) => !e._excludeFromTotals)
@@ -2157,7 +2026,7 @@ export function HoldAddDashboard() {
       buCloseBalances,
       monthCloseBalances,
     };
-  }, [monthKeys, computedMonthTotals, data, grouped, buBalancesByMonth, getMonthNum, currentPeriod]);
+  }, [monthKeys, computedMonthTotals, data, grouped, currentPeriod, isPeriodSaved]);
 
   const normalizeMonthLabel = useCallback(
     (value?: string) => {
@@ -2202,21 +2071,47 @@ export function HoldAddDashboard() {
 
   const handleExportExcel = useCallback(() => {
     const exportRows = monthKeys.flatMap(mk => {
-      const rows = (grouped.get(mk) || []).filter(row => !hideInactivePastHold(row, mk));
+      const rows = grouped.get(mk) || [];
       return [...new Set(rows.map(row => row.bu))].flatMap((bu, buIndex) => {
         let detailIndex = 0;
-        return rows.filter(row => row.bu === bu).sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b)).map(row => {
-          const detail = !!row.customMonthDisplay;
+        const buRowsForExport = rows.filter(row => row.bu === bu && !hideInactivePastHold(row, mk))
+          .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
+        const hasDetailOpenHold = buRowsForExport.some(r => !!r.customMonthDisplay && (r.openHold || 0) > 0);
+        const hasDetailHoldOrOpen = buRowsForExport.some(r => !!r.customMonthDisplay);
+
+        return buRowsForExport.map(row => {
+          const isDetail = !!row.customMonthDisplay;
+          const buBalInfo = buBalancesByMonth[mk]?.[bu];
+          const rowOpenBal = isDetail ? (row.openHold || 0) : (hasDetailOpenHold ? 0 : (buBalInfo?.openBal || 0));
+
+          const origin = trialBalancePeriod(row.displayMonth || row.month);
+          const report = trialBalancePeriod(row.reportMonth || row.month || mk);
+          const isCancel =
+            /cancel/i.test(row.customMonthDisplay || "") ||
+            String(row.id).includes("_cancel") ||
+            /cancel/i.test(row.ghiChu || "") ||
+            !!(row.rawCancel || row.cancel);
+          const isCurrentHold =
+            !isCancel &&
+            origin === report &&
+            (!!(row.rawHold || row.hold) || /_hold\b/i.test(row.id) || /\bhold\b/i.test(row.customMonthDisplay || ""));
+          const rowRemainingHold = isCancel
+            ? 0
+            : isDetail
+              ? (isCurrentHold
+                  ? (Math.abs(row.chi || 0) || row.rawHold || row.hold || 0)
+                  : Math.max(0, (row.openHold || 0) - (row.thu || 0) - (row.rawCancel || row.cancel || 0)))
+              : (hasDetailHoldOrOpen ? 0 : (remainingHoldByMonth[mk]?.byBu[bu] || 0));
+
           return {
-            "#": detail ? String(buIndex + 1) + "." + String(++detailIndex) : String(buIndex + 1),
+            "#": isDetail ? `${buIndex + 1}.${++detailIndex}` : String(buIndex + 1),
             "Ngày / Tháng": trialBalanceRowLabel(row),
             "Business": bu,
-            "Số dư Hold ĐK": detail ? row.openHold || 0 : buBalancesByMonth[mk]?.[bu]?.openBal || 0,
+            "Số dư Hold ĐK": rowOpenBal,
             "Lương TA của tháng": row.thu || 0,
             "Lương Hold của tháng": Math.abs(row.chi || 0),
-            "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
-            "Số dư Hold còn lại": detail ? 0 : remainingHoldByMonth[mk]?.byBu[bu]?.total || 0,
-            "Lệnh": row.lenh || "",
+            "Tổng PS tại kỳ": isDetail ? (row.thu || 0) : (rowRCloseBalances[row.id] ?? 0),
+            "Số dư Hold còn lại": rowRemainingHold,
             "Note": row.ghiChu || "",
           };
         });
@@ -2358,9 +2253,9 @@ export function HoldAddDashboard() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-[240px] bg-white dark:bg-card border-[#e7dbdc] shadow-xl p-2 flex flex-col gap-2"
+                className="w-[290px] bg-white dark:bg-card border border-[#e7dbdc] dark:border-border shadow-2xl p-2.5 flex flex-col gap-2 rounded-xl overflow-hidden z-[99999]"
               >
-                <div className="h-8 flex items-center justify-center px-4 bg-primary/10 text-primary rounded-md font-nunito font-bold tracking-wider text-[11px]">
+                <div className="h-8 flex items-center justify-center px-4 bg-primary/10 text-primary rounded-lg font-bold tracking-wide text-xs">
                   Kỳ: {currentPeriod}
                 </div>
                 
@@ -2370,40 +2265,40 @@ export function HoldAddDashboard() {
                   size="sm"
                   onClick={handleSaveBalances}
                   disabled={isPeriodSaved(currentPeriod)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs border disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs border disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer px-3 overflow-hidden"
                   style={{
                     backgroundColor: isPeriodSaved(currentPeriod) ? "#9ca3af" : "#b183ad",
                     color: "#ffffff",
                     borderColor: "#e8eae9",
                   }}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {isPeriodSaved(currentPeriod) ? "Đã Lưu Dữ Liệu" : "Lưu Dữ Liệu"}
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">{isPeriodSaved(currentPeriod) ? "Đã lưu dữ liệu" : "Lưu dữ liệu"}</span>
                 </Button>
                 <Button
                   size="sm"
-                  onClick={handleDeleteSavedPeriod}
+                  onClick={() => setShowDeletePeriodDialog(true)}
                   disabled={!isPeriodSaved(currentPeriod)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-45 px-3 overflow-hidden"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dữ liệu kỳ hiện tại
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xóa dữ liệu kỳ hiện tại</span>
                 </Button>
 
                 <Button
                   size="sm"
                   onClick={() => setShowClearBalancePageDialog(true)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 rounded-md font-bold shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 rounded-lg font-bold shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer px-3 overflow-hidden"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa dữ liệu trang Balance
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xóa dữ liệu trang Balance</span>
                 </Button>
 
                 <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="h-8 text-[12px] w-full bg-background border-[#e7dbdc] text-foreground rounded-md">
+                  <SelectTrigger className="h-8 text-xs normal-case tracking-normal w-full bg-background border-[#e7dbdc] text-foreground rounded-lg px-3 font-medium">
                     <SelectValue placeholder="Năm" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-card border border-[#e7dbdc]">
+                  <SelectContent className="bg-white dark:bg-card border border-[#e7dbdc] z-[99999]">
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="2026">2026</SelectItem>
                   </SelectContent>
@@ -2412,19 +2307,19 @@ export function HoldAddDashboard() {
                   onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                   variant="outline"
                   size="sm"
-                  className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer px-3 font-semibold overflow-hidden"
                 >
-                  <Settings className="w-3.5 h-3.5 text-slate-500" />
-                  Cài đặt Giao diện
+                  <Settings className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="truncate flex-1 text-left">Cài đặt giao diện</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => chooseExcelExport(handleExportExcel, handleExportExcel)}
-                  className="h-8 text-[12px] w-full justify-start gap-2 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer"
+                  className="h-8 text-xs normal-case tracking-normal w-full justify-start gap-2.5 bg-background border-[#e7dbdc] text-foreground hover:bg-muted cursor-pointer px-3 font-semibold overflow-hidden"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  Xuất Excel Trial Balance
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate flex-1 text-left">Xuất Excel Trial Balance</span>
                 </Button>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2443,10 +2338,10 @@ export function HoldAddDashboard() {
               fontSize: uiSettings.fontSize || "13px",
             }}
           >
-            <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[#F4F2EE] dark:bg-slate-900">
+            <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)]">
               <tr>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   rowSpan={2}
                 >
                   <div className="flex items-center justify-center gap-2 w-full">
@@ -2465,44 +2360,37 @@ export function HoldAddDashboard() {
                   </div>
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   rowSpan={2}
                 >
                   Ngày / Tháng
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-4 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 min-w-[200px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-4 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] min-w-[200px]"
                   rowSpan={2}
                 >
                   Business
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                   rowSpan={2}
                 >
                   Số dư Hold ĐK
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"
                   colSpan={2}
                 >
                   Phát sinh trong kỳ
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                   colSpan={2}
                 >
                   Số dư CK
                 </th>
-                
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
-                  rowSpan={2}
-                >
-                  Lệnh
-                </th>
-                <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[200px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[200px]"
                   rowSpan={2}
                 >
                   Note
@@ -2510,26 +2398,25 @@ export function HoldAddDashboard() {
               </tr>
               <tr>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Lương TA của tháng
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Lương Hold của tháng
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Tổng PS tại kỳ
                 </th>
                 <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
+                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[100px]"
                 >
                   Số dư Hold còn lại
                 </th>
-                
               </tr>
             </thead>
 
@@ -2537,7 +2424,7 @@ export function HoldAddDashboard() {
               {monthKeys.length === 0 && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={9}
                     className="p-10 text-center text-muted-foreground italic font-medium bg-white dark:bg-card border-r border-b border-[#e7dbdc] dark:border-slate-800"
                   >
                     Không có dữ liệu phù hợp thỏa mãn điều kiện tìm kiếm.
@@ -2599,9 +2486,10 @@ export function HoldAddDashboard() {
                       <td className="trial-month-close-balance border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
                         {fmt(monthCloseBalances[mk] ?? 0)}
                       </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">{fmt(remainingHoldByMonth[mk]?.total || 0)}</td>
+                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
+                        {fmt(remainingHoldByMonth[mk]?.total || 0)}
+                      </td>
 
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 whitespace-nowrap !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                       <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 min-w-[200px] !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                     </tr>,
 
@@ -2611,42 +2499,45 @@ export function HoldAddDashboard() {
                           const uniqueBUs = Array.from(new Set(rows.map(r => r.bu)));
                           let businessIndex = 0;
                           return uniqueBUs.flatMap((bu) => {
-                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod))).sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
+                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)))
+                              .sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
                             const mainNumber = ++businessIndex;
-                            let subNumber = 0;
+                            let detailIndex = 0;
                             
                             const sumOpenBal = buBalancesByMonth[mk]?.[bu]?.openBal || 0;
                             let sumThu = 0;
                             let sumChi = 0;
                             
-                            const renderedBuRows = buRows.map((e, localRi) => {
+                            const hasDetailOpenHold = buRows.some(r => !!r.customMonthDisplay && (r.openHold || 0) > 0);
+                            const hasDetailHoldOrOpen = buRows.some(r => !!r.customMonthDisplay);
+
+                            const renderedBuRows = buRows.map((e) => {
                               const isDetail = !!e.customMonthDisplay;
-                              const rowNumber = isDetail ? `${mainNumber}.${++subNumber}` : String(mainNumber);
-                              const rowRemainingHold = isDetail ? 0 : (remainingHoldByMonth[mk]?.byBu[bu]?.total || 0);
-                              const isFirstRowOfBuInMonth = localRi === buRows.findIndex(r => !isHoldDetail(r));
+                              const rowNumber = isDetail ? `${mainNumber}.${++detailIndex}` : String(mainNumber);
                               const buBalInfo = buBalancesByMonth[mk]?.[e.bu];
-                              let rowOpenBal = 0;
-                              if (e._isOpeningHold || (e.openHold && e.openHold > 0)) {
-                                const dMonth = e.displayMonth || e.month;
-                                rowOpenBal =
-                                  e.openHold ||
-                                  buBalInfo?.openBalByMonth?.[dMonth] ||
-                                  0;
-                              } else if (isFirstRowOfBuInMonth) {
-                                rowOpenBal = buBalInfo?.openBal || 0;
-                              }
+                              const rowOpenBal = isDetail ? (e.openHold || 0) : (hasDetailOpenHold ? 0 : (buBalInfo?.openBal || 0));
+                              
+                              const origin = trialBalancePeriod(e.displayMonth || e.month);
+                              const report = trialBalancePeriod(e.reportMonth || e.month || mk);
+                              const isCancel =
+                                /cancel/i.test(e.customMonthDisplay || "") ||
+                                String(e.id).includes("_cancel") ||
+                                /cancel/i.test(e.ghiChu || "") ||
+                                !!(e.rawCancel || e.cancel);
+                              const isCurrentHold =
+                                !isCancel &&
+                                origin === report &&
+                                (!!(e.rawHold || e.hold) || /_hold\b/i.test(e.id) || /\bhold\b/i.test(e.customMonthDisplay || ""));
                               const displayedThu = e.thu;
                               const displayedChi = Math.abs(e.chi);
-                              const displayedCancel = isExactReportPeriod(e, mk)
-                                ? e.cancel || 0
-                                : 0;
+                              const rowRemainingHold = isCancel
+                                ? 0
+                                : isDetail
+                                  ? (isCurrentHold
+                                      ? (displayedChi || e.rawHold || e.hold || 0)
+                                      : Math.max(0, (e.openHold || 0) - displayedThu - (e.rawCancel || e.cancel || 0)))
+                                  : (hasDetailHoldOrOpen ? 0 : (remainingHoldByMonth[mk]?.byBu[bu] || 0));
                               const rClose = rowRCloseBalances[e.id] ?? 0;
-                              const isDefaultApproved = e.lenh === "OK" || e.isPaidStatus;
-                              const hasTamTinh = (e.add || 0) !== 0 || (e.hold || 0) !== 0 || displayedCancel !== 0 || (e.bonus || 0) !== 0 || (e.rawAdd || 0) !== 0 || (e.rawHold || 0) !== 0 || (isExactReportPeriod(e, mk) && (e.rawCancel || 0) !== 0) || (e.rawBonus || 0) !== 0;
-                              const isConf =
-                                isPeriodSaved(e.month) ||
-                                isPeriodSaved(currentPeriod) ||
-                                (isDefaultApproved ? !confirmedIds.has(e.id) : confirmedIds.has(e.id));
                               const isRowDimmed =
                                 !!e._dimmed && isPeriodSaved(e.month);
                               const displayedRCloseStr = rClose !== 0 ? fmt(rClose) : "0";
@@ -2657,143 +2548,133 @@ export function HoldAddDashboard() {
                               return (
                                 <tr
                                   key={e.id}
-                                  className={`group ${isRowDimmed ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through" : "bg-white dark:bg-card"} transition-colors`}
+                                  data-trial-detail={isDetail ? "true" : undefined}
+                                  className={`group ${
+                                    isRowDimmed
+                                      ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through"
+                                      : !isDetail
+                                        ? "bg-[#F8F9FA] dark:bg-slate-800/50 hover:bg-[#F1F3F5] dark:hover:bg-slate-800/70 font-medium"
+                                        : "bg-white dark:bg-card hover:bg-slate-50/70 dark:hover:bg-slate-800/30"
+                                  } transition-colors`}
                                 >
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[13px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 font-bold text-slate-800 dark:text-slate-100 text-[12px]" : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-400 dark:text-slate-500 text-[11px]"
+                                    } p-2 text-center whitespace-nowrap`}
+                                  >
                                     {rowNumber}
                                   </td>
                                   <td
-                                    className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[13px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
+                                    className={`border-r border-b ${
+                                      !isDetail
+                                        ? "border-[#ded2d3] dark:border-slate-700/80 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12.5px] font-bold text-slate-900 dark:text-slate-50 tracking-tight"
+                                        : "border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[12px] text-slate-600 dark:text-slate-300 font-normal pl-5"
+                                    }`}
                                     title={trialBalanceRowLabel(e)}
                                   >
-                                    {(() => {
-                                      const monthStr = trialBalanceRowLabel(e);
-                                      if (!monthStr) return monthStr;
-                                      if (e.customMonthDisplay) return monthStr;
-                                      
-                                      // Pattern 1: "Tháng M/YYYY" or "Tháng M-YYYY" or similar
-                                      let monthMatch = monthStr.match(/(?:Th[aá]ng\s+)?(\d{1,2})[/-]\s*(\d{4})/i);
-                                      
-                                      // Pattern 2: If above fails, try "M/YYYY YYYY" format (e.g., "11/2025" or "12/2025")
-                                      if (!monthMatch) {
-                                        monthMatch = monthStr.match(/^(\d{1,2})[/-]\s*(\d{4})$/);
-                                      }
-                                      
-                                      if (monthMatch) {
-                                        const month = monthMatch[1].padStart(2, "0");
-                                        const year = monthMatch[2];
-                                        return `Tháng ${month}.${year}`;
-                                      }
-                                      return monthStr;
-                                    })()}
+                                    {isDetail ? (
+                                      <span className="inline-flex items-center gap-1.5">
+                                        <span className="text-slate-400 dark:text-slate-500 text-[10px] font-mono select-none">↳</span>
+                                        <span>{trialBalanceRowLabel(e)}</span>
+                                      </span>
+                                    ) : (
+                                      trialBalanceRowLabel(e)
+                                    )}
                                   </td>
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-center text-slate-800 dark:text-slate-100 font-normal whitespace-nowrap text-[13px]"
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } px-3 py-2 text-center whitespace-nowrap text-[12px]`}
                                     title={e.bu}
                                   >
-                                    {e.bu}
+                                    {!isDetail ? (
+                                      <span className="font-bold text-slate-800 dark:text-slate-200 bg-slate-200/60 dark:bg-slate-700/60 px-1.5 py-0.5 rounded text-[11px] tracking-wide">
+                                        {e.bu}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 dark:text-slate-500 text-[11px] font-normal">
+                                        {e.bu}
+                                      </span>
+                                    )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right text-slate-700 dark:text-slate-300 tabular-nums text-xs whitespace-nowrap min-w-[75px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 font-semibold text-slate-900 dark:text-slate-100" : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-600 dark:text-slate-400"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[75px]`}
+                                  >
                                     {rowOpenBal !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal" style={isDetail ? { fontSize: "11px" } : undefined}>
+                                      <span
+                                        className={`trial-opening-amount ${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(rowOpenBal)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
                                     {!isRowDimmed && displayedThu !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span
+                                        className={`${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(displayedThu)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
                                     {!isRowDimmed && displayedChi !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span
+                                        className={`${
+                                          !isDetail ? "text-slate-900 dark:text-slate-100 font-semibold text-[12px]" : "text-slate-600 dark:text-slate-400 font-normal text-[12px]"
+                                        }`}
+                                      >
                                         {fmt(displayedChi)}
                                       </span>
                                     ) : (
                                       "0"
                                     )}
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                                      {displayedRCloseStr}
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80" : "border-[#e7dbdc] dark:border-slate-800"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
+                                    <span
+                                      className={`${
+                                        !isDetail ? "text-rose-600 dark:text-rose-400 font-bold text-[12px]" : "text-rose-600/80 dark:text-rose-400/80 font-medium text-[12px]"
+                                      }`}
+                                    >
+                                      {isDetail ? fmt(displayedThu) : displayedRCloseStr}
                                     </span>
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">{fmt(rowRemainingHold)}</td>
-
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-1.5 text-center whitespace-nowrap text-[13px]">
-                                    {(() => {
-                                      const isInteractive =
-                                        hasTamTinh ||
-                                        (e.rawAdd || 0) !== 0 ||
-                                        (e.rawHold || 0) !== 0 ||
-                                        (e.rawCancel || 0) !== 0 ||
-                                        (e.rawBonus || 0) !== 0 ||
-                                        (e.add || 0) !== 0 ||
-                                        (e.hold || 0) !== 0 ||
-                                        (e.cancel || 0) !== 0 ||
-                                        (e.bonus || 0) !== 0;
-                                      if (!isInteractive) {
-                                        return (
-                                          <span className="text-slate-400 dark:text-slate-500 font-medium">
-                                            0
-                                          </span>
-                                        );
-                                      }
-                                      // If pre-processed/canceled in the file and has NO Tam Tinh balance
-                                      if (e.lenh === "-" && !hasTamTinh) {
-                                        return (
-                                          <span className="text-slate-400 dark:text-slate-500 font-medium">
-                                            0
-                                          </span>
-                                        );
-                                      }
-                                      // If saved/locked rent/month and no Tam Tinh balance
-                                      if ((isPeriodSaved(e.month) || isPeriodSaved(currentPeriod)) && !hasTamTinh) {
-                                        return (
-                                          <span className="font-bold text-slate-800 dark:text-slate-100">
-                                            {isConf ? "OK" : "?"}
-                                          </span>
-                                        );
-                                      }
-                                      // Otherwise, it is interactive and user can toggle
-                                      if (isConf) {
-                                        return (
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.stopPropagation();
-                                              toggleConfirm(e.id, ev);
-                                            }}
-                                            className="px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 rounded border border-emerald-200 dark:border-emerald-900/60 cursor-pointer shadow-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all duration-150 active:scale-95 active:translate-y-[1px]"
-                                            title="Hủy duyệt"
-                                          >
-                                            OK
-                                          </button>
-                                        );
-                                      } else {
-                                        return (
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.stopPropagation();
-                                              toggleConfirm(e.id, ev);
-                                            }}
-                                            className="px-2.5 py-0.5 text-[11px] font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-900/40 cursor-pointer shadow-sm transition-all duration-150 active:scale-95 active:translate-y-[1px]"
-                                            title="Duyệt"
-                                          >
-                                            Duyệt
-                                          </button>
-                                        );
-                                      }
-                                    })()}
-                                  </td>
                                   <td
-                                    className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-left text-muted-foreground min-w-[200px] text-[13px]"
+                                    className={`border-r border-b ${
+                                      !isDetail
+                                        ? "border-[#ded2d3] dark:border-slate-700/80 font-semibold text-slate-900 dark:text-slate-100"
+                                        : "border-[#e7dbdc] dark:border-slate-800 font-normal text-slate-600 dark:text-slate-400"
+                                    } p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]`}
+                                  >
+                                    {fmt(rowRemainingHold)}
+                                  </td>
+
+                                  <td
+                                    className={`border-r border-b ${
+                                      !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[12px]" : "border-[#e7dbdc] dark:border-slate-800 text-muted-foreground/80 text-[11px] italic"
+                                    } p-2 text-left min-w-[200px]`}
                                     title={e.ghiChu}
                                   >
                                     {e.ghiChu || ""}
@@ -2802,18 +2683,11 @@ export function HoldAddDashboard() {
                               );
                             });
                             
-                            const finalCloseBal = (() => {
-                              let adjustedSumChi = 0;
-                              buRows.forEach(r => {
-                                if (r._isPastHoldApprove) {
-                                  // Do not subtract from closeBal
-                                } else {
-                                  adjustedSumChi += (r.chi || 0);
-                                }
-                              });
-                              return sumThu - adjustedSumChi;
-                            })();
-                            
+                            // Sum the displayed closing values, which already normalize HOLD signs.
+                            const finalCloseBal = buRows.reduce(
+                              (sum, row) => sum + (rowRCloseBalances[row.id] ?? 0), 0,
+                            );
+
                             const subtotalRow = (
                               <tr key={`subtotal-${mk}-${bu}`} className="!bg-[#F2EADB] dark:!bg-slate-800/90 font-bold border-y-2 border-[#d6c7b2] dark:border-slate-700">
                                 <td colSpan={3} className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-center text-slate-800 dark:text-slate-200 font-sans uppercase tracking-wider text-[11px] !bg-[#F2EADB] dark:!bg-slate-800/90">
@@ -2831,9 +2705,10 @@ export function HoldAddDashboard() {
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right tabular-nums text-xs whitespace-nowrap text-rose-600 dark:text-rose-400 font-bold !bg-[#F2EADB] dark:!bg-slate-800/90">
                                   {finalCloseBal !== 0 ? fmt(finalCloseBal) : "0"}
                                 </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">{fmt(remainingHoldByMonth[mk]?.byBu[bu]?.total || 0)}</td>
+                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
+                                  {fmt(remainingHoldByMonth[mk]?.byBu[bu] || 0)}
+                                </td>
 
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-1.5 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                               </tr>
                             );
@@ -2847,47 +2722,44 @@ export function HoldAddDashboard() {
               })()}
             </tbody>
 
-            <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
-              <tr className="border-t-2 border-b-2 border-[#bfae98] dark:border-slate-700 bg-[#E8DEC8] dark:bg-slate-800">
+            <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_10px_rgba(0,0,0,0.08)] bg-[var(--table-column-header-bg,#E8DEC8)] text-[var(--table-column-header-text-color,inherit)]">
+              <tr className="border-t-2 border-b-2 border-[#bfae98] dark:border-slate-700 bg-[var(--table-column-header-bg,#E8DEC8)] text-[var(--table-column-header-text-color,inherit)]">
                 <td
                   colSpan={3}
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 px-3 py-3 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-900 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 px-3 py-3 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   TỔNG CỘNG THÁNG {currentPeriodVal} —{" "}
-                  <span className="opacity-75 font-bold ml-1 tracking-normal tabular-nums text-xs text-slate-800 dark:text-slate-200">
+                  <span className="opacity-75 font-bold ml-1 tracking-normal tabular-nums text-xs text-[var(--table-column-header-text-color,inherit)]">
                     {countBusinesses(filteredData)} BU
                   </span>
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandOpenBal !== 0 ? fmt(grandOpenBal) : "0"}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-emerald-700 dark:text-emerald-300 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-emerald-400 whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandThu !== 0 ? fmt(grandThu) : "0"}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-rose-700 dark:text-rose-300 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-rose-400 whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
                   {grandChi !== 0 ? fmt(grandChi) : "0"}
                 </td>
                 <td
-                  className={`border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20 ${grandBal >= 0 ? "text-slate-900 dark:text-slate-50" : "text-rose-600 font-extrabold"}`}
+                  className={`border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20 ${grandBal >= 0 ? "text-[var(--table-column-header-text-color,inherit)]" : "text-rose-400 font-extrabold"}`}
                 >
                   {fmt(grandBal)}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
-                >{fmt(remainingHoldByMonth[currentPeriod]?.total || 0)}</td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-center font-sans font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-[var(--table-column-header-text-color,inherit)] whitespace-nowrap bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 >
-                  {confirmedIds.size} đã duyệt
+                  {fmt(monthKeys.reduce((sum, mk) => sum + (remainingHoldByMonth[mk]?.total || 0), 0))}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 />
               </tr>
             </tfoot>
@@ -2935,6 +2807,18 @@ export function HoldAddDashboard() {
         title="Xóa dữ liệu trang Balance?"
         description="Toàn bộ kỳ đã lưu, số dư chuyển kỳ và trạng thái xác nhận của Balance sẽ bị xóa. Dữ liệu Timesheet, Audit và Master được giữ nguyên."
         confirmText="XÓA TRANG BALANCE"
+        variant="destructive"
+      />
+      <ConfirmDialog
+        isOpen={showDeletePeriodDialog}
+        onClose={() => setShowDeletePeriodDialog(false)}
+        onConfirm={() => {
+          handleDeleteSavedPeriod();
+          setShowDeletePeriodDialog(false);
+        }}
+        title={`Xóa dữ liệu đã lưu ${currentPeriod}?`}
+        description={`Bạn có chắc chắn muốn xóa dữ liệu đã lưu của ${currentPeriod}? Số dư chuyển tiếp kỳ sau liên quan cũng sẽ được tính toán lại. Dữ liệu các kỳ khác được giữ nguyên.`}
+        confirmText="XÓA DỮ LIỆU KỲ NÀY"
         variant="destructive"
       />
     </div>

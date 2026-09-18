@@ -19,6 +19,7 @@ import { resolveL07BuFromAeCode } from "../utils/center-utils";
 import { fillMissingHoldBankAccounts } from "../utils/bank-account-resolver";
 import { dedupeTimesheetRosterRowsInChunks } from "../utils/timesheet-roster-utils";
 import { applyExtraSummerInstructorBonus } from "../utils/gross-pay";
+import { normalizeGrossPaySpecialCenters } from "../utils/master-special-centers";
 import { reconcileHoldTransactionRows } from "../utils/hold-carryover";
 import {
   hasRequiredDeductionsFields,
@@ -398,6 +399,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           if (saved.Hold_AE && Array.isArray(saved.Hold_AE.data) && saved.Hold_AE.data.length > 0) {
             const remainingHold: any[] = [];
             const sheet1Rows = saved.Sheet1_AE?.data ? [...saved.Sheet1_AE.data] : [];
+            const reportingMonth = saved.globalMonth || "03.2026";
 
             saved.Hold_AE.data.forEach((row: any) => {
               if (!row) return;
@@ -412,7 +414,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
                 if (bonusAmt > 0) {
                   const idVal = String(row["ID Number"] || "").trim();
                   const nameVal = String(row["Full name"] || "").trim();
-                  const mVal = String(row["Tháng báo cáo"] || row["_fileMonth"] || saved.globalMonth || "03.2026").trim();
+                  const mVal = String(row["Tháng báo cáo"] || row["_fileMonth"] || reportingMonth).trim();
                   const l07Val = String(row["L07"] || row["Mã ae"] || row["Center"] || "").trim();
                   const buVal = String(row["BU"] || row["Business"] || "").trim();
 
@@ -512,7 +514,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           setState((prev) => ({
             ...prev,
             present: {
-              ...(saved as AppData),
+              ...normalizeGrossPaySpecialCenters(saved as AppData),
             },
           }));
         } else {
@@ -642,7 +644,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       sourceFields: readonly OriginalField[] = [],
     ) => {
       setState((prev) => {
-        const nextPresent = trackTableOriginals(prev.present, updater(prev.present), saveToHistory, sourceFields);
+        const updated = updater(prev.present);
+        const normalized = updated.Sheet1_AE?.data !== prev.present.Sheet1_AE?.data
+          ? normalizeGrossPaySpecialCenters(updated) : updated;
+        const nextPresent = trackTableOriginals(prev.present, normalized, saveToHistory, sourceFields);
         if (nextPresent === prev.present) return prev;
         if (persistImmediately) immediatePersistRequestedRef.current = true;
         return {

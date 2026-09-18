@@ -31,3 +31,17 @@ test('merged payroll HOLD carries; Cancel expense is never mistaken for new HOLD
   assert.deepEqual(nextTrialBalanceCarry({},[payroll], '06/2026'), {'06/2026':438000});
   assert.deepEqual(nextTrialBalanceCarry({},[payroll,cancel], '06/2026'), {});
 });
+test('approved Cancel of previous hold resets carry to 0 and never doubles into 876.000', () => {
+  const cancelRow = {
+    ...hold,
+    id: 'ATH_opening_hold_04.2026',
+    customMonthDisplay: '+ Cancel lương tháng 04.2026',
+    displayMonth: '04/2026',
+    reportMonth: '04/2026',
+    chi: 438000,
+    rawHold: 0,
+    rawCancel: 0,
+  };
+  const result = nextTrialBalanceCarry({'04/2026': 438000}, [cancelRow], '04/2026');
+  assert.deepEqual(result, {});
+});

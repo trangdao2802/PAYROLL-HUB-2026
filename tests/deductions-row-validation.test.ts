@@ -74,7 +74,7 @@ test("Deductions keeps each valid row linked to its original storage index", () 
 
 test("Master import and hydration both enforce complete Deductions rows", () => {
   const importSource = readFileSync(
-    new URL("../src/app/pages/03-master/AEDataConfig.tsx", import.meta.url),
+    new URL("../src/app/lib/utils/master-ae-processing.ts", import.meta.url),
     "utf8",
   );
   const contextSource = readFileSync(
