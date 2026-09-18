@@ -49,3 +49,19 @@ test("Trial Balance header totals ignore rows excluded from totals", () => {
     cancel: 40,
   });
 });
+import { trialBalanceRowLabel } from '../src/app/lib/utils/trial-balance-presentation';
+
+test('header scopes HOLD, ADD and CANCEL to their requested occurrence periods', () => {
+  const rows = [
+    {month:'Tháng 2/2026',reportMonth:'02.2026',thu:10000,chi:500,rawHold:0},
+    {month:'01.2026',displayMonth:'01.2026',reportMonth:'02.2026',customMonthDisplay:'Hold',rawAdd:300,rawCancel:200,rawHold:999},
+    {month:'02.2026',reportMonth:'02.2026',customMonthDisplay:'Cancel',rawCancel:100,chi:100},
+    {month:'02.2026',reportMonth:'02.2026',customMonthDisplay:'Add',rawAdd:700},
+  ];
+  assert.deepEqual(calculateTrialBalanceHeaderTotals(rows,'02.2026'),{payrollCost:10000,hold:500,add:300,cancel:100});
+});
+test('approved ADD keeps its true label and child prefix after opening allocation', () => {
+  assert.equal(trialBalanceRowLabel({month:'02.2026',customMonthDisplay:'Hold lương tháng 01.2026',rawAdd:3575833,add:0}),'+ Add lương tháng 01.2026');
+  assert.equal(trialBalanceRowLabel({month:'02.2026',customMonthDisplay:'Cancel lương tháng 12.2025',rawCancel:542500}),'+ Cancel lương tháng 12.2025');
+  assert.equal(trialBalanceRowLabel({month:'02.2026'}),'02.2026');
+});

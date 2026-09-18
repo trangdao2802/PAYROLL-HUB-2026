@@ -140,7 +140,7 @@
   font-weight: 700 !important;
   letter-spacing: -0.025em;
   line-height: 1.35 !important;
-  padding-block: 0.12em 0.08em;
+  padding-block: 0;
   text-transform: lowercase !important;
   vertical-align: baseline;
   transform: translateY(2px);

@@ -1,3 +1,4 @@
+import { trialBalanceRowLabel, trialBalanceRowOrder } from "../../../lib/utils/trial-balance-presentation";
 import { hideInactivePastHold, isHoldDetail, nextTrialBalanceCarry } from "../../../lib/utils/trial-balance-carry";
 import { TableRestoreButton } from '../../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../../components/ExportScopeDialog";
@@ -1974,6 +1975,19 @@ export function HoldAddDashboard() {
     return balances;
   }, [data, appData.SavedBal_PayrollTrial, getMonthNum]);
 
+  const remainingHoldByMonth = useMemo(() => {
+    const result: Record<string, { total: number; byBu: Record<string, { total: number }> }> = {};
+    for (const mk of monthKeys) {
+      const byBu: Record<string, { total: number }> = {};
+      for (const [bu, balance] of Object.entries(buBalancesByMonth[mk] || {})) {
+        const carry = nextTrialBalanceCarry(balance.openBalByMonth, data.filter(row => row.bu === bu && (row.reportMonth || row.month) === mk), mk);
+        byBu[bu] = { total: Object.values(carry).reduce((sum, amount) => sum + amount, 0) };
+      }
+      result[mk] = { byBu, total: Object.values(byBu).reduce((sum, entry) => sum + entry.total, 0) };
+    }
+    return result;
+  }, [monthKeys, buBalancesByMonth, data]);
+
   const computedMonthTotals = useMemo(() => {
     const totals: Record<
       string,
@@ -2057,9 +2071,6 @@ export function HoldAddDashboard() {
     grandOpenBal,
     grandThu,
     grandChi,
-    grandAdd,
-    grandHold,
-    grandCancel,
     grandBal,
     filteredData,
     rowRCloseBalances,
@@ -2181,8 +2192,8 @@ export function HoldAddDashboard() {
   }, []);
 
   const trialBalanceHeaderTotals = useMemo(
-    () => calculateTrialBalanceHeaderTotals(currentPeriodRows),
-    [currentPeriodRows],
+    () => calculateTrialBalanceHeaderTotals(currentPeriodRows, currentPeriod),
+    [currentPeriodRows, currentPeriod],
   );
   const chiPhiLuongTaPillValue = trialBalanceHeaderTotals.payrollCost;
   const holdPillValue = trialBalanceHeaderTotals.hold;
@@ -2190,20 +2201,27 @@ export function HoldAddDashboard() {
   const cancelPillValue = trialBalanceHeaderTotals.cancel;
 
   const handleExportExcel = useCallback(() => {
-    const exportRows = (data || []).filter(row => !hideInactivePastHold(row, row.reportMonth || currentPeriod) && (!String(row.id).includes("_cancel") || isExactReportPeriod(row, currentPeriod))).map((row: any, idx: number) => ({
-      "STT": idx + 1,
-      "Tháng": row.month || "",
-      "Business": row.bu || "",
-      "Số dư đầu kỳ": row.open_bal || 0,
-      "Lương TA trong tháng": row.thu || 0,
-      "Lương Hold trong tháng": Math.abs(row.chi || 0),
-      "Số dư cuối kỳ": rowRCloseBalances[row.id] ?? 0,
-      "Số tiền Add": row.add || 0,
-      "Số tiền Hold": row.hold || 0,
-      "Số tiền Cancel": row.cancel || 0,
-      "Lệnh": row.command || "",
-      "Ghi chú": row.note || "",
-    }));
+    const exportRows = monthKeys.flatMap(mk => {
+      const rows = (grouped.get(mk) || []).filter(row => !hideInactivePastHold(row, mk));
+      return [...new Set(rows.map(row => row.bu))].flatMap((bu, buIndex) => {
+        let detailIndex = 0;
+        return rows.filter(row => row.bu === bu).sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b)).map(row => {
+          const detail = !!row.customMonthDisplay;
+          return {
+            "#": detail ? String(buIndex + 1) + "." + String(++detailIndex) : String(buIndex + 1),
+            "Ngày / Tháng": trialBalanceRowLabel(row),
+            "Business": bu,
+            "Số dư Hold ĐK": detail ? row.openHold || 0 : buBalancesByMonth[mk]?.[bu]?.openBal || 0,
+            "Lương TA của tháng": row.thu || 0,
+            "Lương Hold của tháng": Math.abs(row.chi || 0),
+            "Tổng PS tại kỳ": rowRCloseBalances[row.id] ?? 0,
+            "Số dư Hold còn lại": detail ? 0 : remainingHoldByMonth[mk]?.byBu[bu]?.total || 0,
+            "Lệnh": row.lenh || "",
+            "Note": row.ghiChu || "",
+          };
+        });
+      });
+    });
 
     void downloadHierarchicalWorkbook({
       title: `BALANCE · ${currentPeriodVal}`,
@@ -2242,13 +2260,15 @@ export function HoldAddDashboard() {
         toast.error("Không thể xuất workbook Trial Balance.");
       });
   }, [
+    monthKeys,
+    grouped,
+    buBalancesByMonth,
+    remainingHoldByMonth,
     cancelPillValue,
     chiPhiLuongTaPillValue,
     countBusinesses,
     currentPeriodRows,
-    currentPeriod,
     currentPeriodVal,
-    data,
     grandAddPillValue,
     holdPillValue,
     rowRCloseBalances,
@@ -2264,7 +2284,7 @@ export function HoldAddDashboard() {
         <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-2 h-full" style={{ borderRadius: "0px" }}>
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
           <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ borderRadius: "0px", minHeight: "38px" }}>
-            <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-1 inline-flex items-center gap-0.5">
+            <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-0 inline-flex items-center gap-0.5">
               <TableInitialMark label="TRIAL BALANCE" className="shrink-0 text-primary" />
               <TableTitleRemainder label="TRIAL BALANCE" />
             </span>
@@ -2460,7 +2480,7 @@ export function HoldAddDashboard() {
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                   rowSpan={2}
                 >
-                  Số dư ĐK
+                  Số dư Hold ĐK
                 </th>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
@@ -2470,16 +2490,11 @@ export function HoldAddDashboard() {
                 </th>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
-                  rowSpan={2}
+                  colSpan={2}
                 >
                   Số dư CK
                 </th>
-                <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
-                  colSpan={3}
-                >
-                  Tạm tính
-                </th>
+                
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap"
                   rowSpan={2}
@@ -2507,18 +2522,14 @@ export function HoldAddDashboard() {
                 <th 
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                 >
-                  Add
+                  Tổng PS tại kỳ
                 </th>
                 <th 
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
                 >
-                  Hold
+                  Số dư Hold còn lại
                 </th>
-                <th 
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-1.5 text-center font-sans font-bold text-[11px] uppercase tracking-wider text-slate-800 dark:text-slate-200 bg-[#F4F2EE] dark:bg-slate-900 whitespace-nowrap min-w-[100px]"
-                >
-                  Cancel
-                </th>
+                
               </tr>
             </thead>
 
@@ -2526,7 +2537,7 @@ export function HoldAddDashboard() {
               {monthKeys.length === 0 && (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={10}
                     className="p-10 text-center text-muted-foreground italic font-medium bg-white dark:bg-card border-r border-b border-[#e7dbdc] dark:border-slate-800"
                   >
                     Không có dữ liệu phù hợp thỏa mãn điều kiện tìm kiếm.
@@ -2542,9 +2553,6 @@ export function HoldAddDashboard() {
                       openBal,
                       psThu,
                       psChi,
-                      addAmt,
-                      holdAmt,
-                      cancelAmt,
                     } = computedMonthTotals[mk] || {
                       openBal: 0,
                       psThu: 0,
@@ -2591,15 +2599,7 @@ export function HoldAddDashboard() {
                       <td className="trial-month-close-balance border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
                         {fmt(monthCloseBalances[mk] ?? 0)}
                       </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {addAmt !== 0 ? fmt(addAmt) : "0"}
-                      </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {holdAmt !== 0 ? fmt(holdAmt) : "0"}
-                      </td>
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">
-                        {cancelAmt !== 0 ? fmt(cancelAmt) : "0"}
-                      </td>
+                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-3 text-right text-slate-800 dark:text-slate-200 font-bold tabular-nums text-xs !bg-[#FAF9F6]/80 dark:!bg-slate-800/60 whitespace-nowrap">{fmt(remainingHoldByMonth[mk]?.total || 0)}</td>
 
                       <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 whitespace-nowrap !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                       <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 min-w-[200px] !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
@@ -2609,19 +2609,20 @@ export function HoldAddDashboard() {
                     ...(isOpen
                       ? (() => {
                           const uniqueBUs = Array.from(new Set(rows.map(r => r.bu)));
-                          let globalRi = 0;
+                          let businessIndex = 0;
                           return uniqueBUs.flatMap((bu) => {
-                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod)));
+                            const buRows = rows.filter(r => r.bu === bu && !hideInactivePastHold(r, mk) && (!String(r.id).includes("_cancel") || isExactReportPeriod(r, currentPeriod))).sort((a, b) => trialBalanceRowOrder(a) - trialBalanceRowOrder(b));
+                            const mainNumber = ++businessIndex;
+                            let subNumber = 0;
                             
                             const sumOpenBal = buBalancesByMonth[mk]?.[bu]?.openBal || 0;
                             let sumThu = 0;
                             let sumChi = 0;
-                            let sumAdd = 0;
-                            let sumHold = 0;
-                            let sumCancel = 0;
                             
                             const renderedBuRows = buRows.map((e, localRi) => {
-                              const ri = globalRi++;
+                              const isDetail = !!e.customMonthDisplay;
+                              const rowNumber = isDetail ? `${mainNumber}.${++subNumber}` : String(mainNumber);
+                              const rowRemainingHold = isDetail ? 0 : (remainingHoldByMonth[mk]?.byBu[bu]?.total || 0);
                               const isFirstRowOfBuInMonth = localRi === buRows.findIndex(r => !isHoldDetail(r));
                               const buBalInfo = buBalancesByMonth[mk]?.[e.bu];
                               let rowOpenBal = 0;
@@ -2652,9 +2653,6 @@ export function HoldAddDashboard() {
                               
                               sumThu += isRowDimmed ? 0 : displayedThu;
                               sumChi += isRowDimmed ? 0 : displayedChi;
-                              sumAdd += isRowDimmed ? 0 : (e.add || 0);
-                              sumHold += isRowDimmed ? 0 : (e.hold || 0);
-                              sumCancel += isRowDimmed ? 0 : displayedCancel;
 
                               return (
                                 <tr
@@ -2662,16 +2660,16 @@ export function HoldAddDashboard() {
                                   className={`group ${isRowDimmed ? "opacity-35 select-none bg-slate-100/50 dark:bg-slate-800/10 italic text-muted-foreground/60 line-through" : "bg-white dark:bg-card"} transition-colors`}
                                 >
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-center text-slate-500 dark:text-muted-foreground/60 font-medium whitespace-nowrap text-[13px]">
-                                    {ri + 1}
+                                    {rowNumber}
                                   </td>
                                   <td
                                     className={`border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2 text-left whitespace-nowrap min-w-[120px] text-[13px] ${e.customMonthDisplay ? "text-slate-800 dark:text-slate-200 font-medium" : "text-slate-700 dark:text-slate-300 font-medium"}`}
-                                    title={e.customMonthDisplay || e.month}
+                                    title={trialBalanceRowLabel(e)}
                                   >
                                     {(() => {
-                                      const monthStr = e.customMonthDisplay || e.month;
+                                      const monthStr = trialBalanceRowLabel(e);
                                       if (!monthStr) return monthStr;
-                                      if (e.customMonthDisplay) return e.customMonthDisplay;
+                                      if (e.customMonthDisplay) return monthStr;
                                       
                                       // Pattern 1: "Tháng M/YYYY" or "Tháng M-YYYY" or similar
                                       let monthMatch = monthStr.match(/(?:Th[aá]ng\s+)?(\d{1,2})[/-]\s*(\d{4})/i);
@@ -2697,7 +2695,7 @@ export function HoldAddDashboard() {
                                   </td>
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right text-slate-700 dark:text-slate-300 tabular-nums text-xs whitespace-nowrap min-w-[75px]">
                                     {rowOpenBal !== 0 ? (
-                                      <span className="text-slate-800 dark:text-slate-100 font-normal">
+                                      <span className="text-slate-800 dark:text-slate-100 font-normal" style={isDetail ? { fontSize: "11px" } : undefined}>
                                         {fmt(rowOpenBal)}
                                       </span>
                                     ) : (
@@ -2727,33 +2725,7 @@ export function HoldAddDashboard() {
                                       {displayedRCloseStr}
                                     </span>
                                   </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {e.add !== 0 ? (
-                                      <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                        {fmt(e.add)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
-                                  </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {e.hold !== 0 ? (
-                                      <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                        {fmt(e.hold)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
-                                  </td>
-                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">
-                                    {displayedCancel !== 0 ? (
-                                      <span className="text-slate-500 dark:text-slate-400 font-medium">
-                                        {fmt(displayedCancel)}
-                                      </span>
-                                    ) : (
-                                      "0"
-                                    )}
-                                  </td>
+                                  <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-2 text-right tabular-nums text-xs whitespace-nowrap min-w-[80px]">{fmt(rowRemainingHold)}</td>
 
                                   <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 p-1.5 text-center whitespace-nowrap text-[13px]">
                                     {(() => {
@@ -2859,15 +2831,7 @@ export function HoldAddDashboard() {
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right tabular-nums text-xs whitespace-nowrap text-rose-600 dark:text-rose-400 font-bold !bg-[#F2EADB] dark:!bg-slate-800/90">
                                   {finalCloseBal !== 0 ? fmt(finalCloseBal) : "0"}
                                 </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumAdd !== 0 ? fmt(sumAdd) : "0"}
-                                </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumHold !== 0 ? fmt(sumHold) : "0"}
-                                </td>
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">
-                                  {sumCancel !== 0 ? fmt(sumCancel) : "0"}
-                                </td>
+                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 text-right text-slate-800 dark:text-slate-200 tabular-nums text-xs whitespace-nowrap !bg-[#F2EADB] dark:!bg-slate-800/90">{fmt(remainingHoldByMonth[mk]?.byBu[bu]?.total || 0)}</td>
 
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-1.5 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                                 <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
@@ -2915,20 +2879,8 @@ export function HoldAddDashboard() {
                   {fmt(grandBal)}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-blue-700 dark:text-blue-350 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
-                >
-                  {grandAdd !== 0 ? fmt(grandAdd) : "0"}
-                </td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-amber-800 dark:text-amber-300 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
-                >
-                  {grandHold !== 0 ? fmt(grandHold) : "0"}
-                </td>
-                <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-700 dark:text-slate-350 whitespace-nowrap bg-[#DCBFA0] dark:bg-amber-950/70 sticky bottom-0 z-20"
-                >
-                  {grandCancel !== 0 ? fmt(grandCancel) : "0"}
-                </td>
+                  className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-right tabular-nums text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
+                >{fmt(remainingHoldByMonth[currentPeriod]?.total || 0)}</td>
                 <td 
                   className="border-r border-b border-[#bfae98] dark:border-slate-700 p-3 text-center font-sans font-bold text-[11px] text-slate-800 dark:text-slate-200 whitespace-nowrap bg-[#E8DEC8] dark:bg-slate-800 sticky bottom-0 z-20"
                 >
