@@ -1,3 +1,4 @@
+import { getVisibleTastePresets } from "../lib/theme-preset-library";
 import { useState, useMemo, useEffect } from "react";
 import {
   Palette,
@@ -10,8 +11,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  TASTE_PRESETS,
-  ALL_TASTE_PRESETS,
   TastePreset,
   UiSettings,
   applyUiSettings,
@@ -94,18 +93,14 @@ export function ThemePreviewCard({
 
   const presetEntries = useMemo(() => {
     void presetVersion;
-    return ALL_TASTE_PRESETS.map((p) => ({
-      ...p,
-      ...(TASTE_PRESETS[p.id] || {}),
-    }));
+    return getVisibleTastePresets();
   }, [presetVersion]);
 
   const selectedPreset: TastePreset = useMemo(() => {
     void presetVersion;
     return (
-      TASTE_PRESETS[previewId] ||
-      TASTE_PRESETS[activeThemeId] ||
-      TASTE_PRESETS["dream-state"] ||
+      presetEntries.find(p => p.id === previewId) ||
+      presetEntries.find(p => p.id === activeThemeId) ||
       presetEntries[0]
     );
   }, [previewId, activeThemeId, presetVersion, presetEntries]);

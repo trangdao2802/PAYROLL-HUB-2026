@@ -122,7 +122,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#3D2A2A",
     tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   "dream-state": {
     id: "dream-state",
@@ -141,7 +141,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#243026",
     tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   "espresso-blush": {
     id: "espresso-blush",
@@ -160,7 +160,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#351B26",
     tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   systematic: {
     id: "systematic",
@@ -179,7 +179,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#34251B",
     tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   "lila-rose": {
     id: "lila-rose",
@@ -198,7 +198,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#2D2126",
     tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   ss26: {
     id: "ss26",
@@ -217,7 +217,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#394241",
     tableDataBg: "#F8F7F4",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
   flowbutter: {
     id: "flowbutter",
@@ -236,7 +236,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableColumnHeaderTextColor: "#231815",
     tableDataBg: "#FFF8D9",
     tableFont: "var(--font-main)",
-    tableRadius: "12px",
+    tableRadius: "0px",
   },
 };
 
@@ -278,7 +278,7 @@ export const defaultSettings: UiSettings = {
   tablePadding: "12px 16px",
   sidebarPos: "left",
   radius: "12px",
-  tableRadius: "12px",
+  tableRadius: "0px",
   customRules: defaultCustomRules,
   titleAlign: "center",
   tableFont: "var(--font-main)",
@@ -849,6 +849,7 @@ export function syncTableFooterBgFromHeader(rootElement?: HTMLElement | null): s
 export const applyTableFooterBgFromHeader = syncTableFooterBgFromHeader;
 
 export function applyUiSettings(settings: UiSettings, previewRule?: Partial<CustomRule>) {
+  settings = { ...settings, tableRadius: "0px" };
   const root = document.documentElement;
   applyHarmonyVariables(root, settings.accent || "#09090b");
 
@@ -1635,7 +1636,7 @@ export async function loadUiSettings(): Promise<UiSettings> {
       result.tableFooterBg = result.tableHeaderBg;
     }
 
-    return result;
+    return { ...result, tableRadius: "0px" };
   };
 
   try {
@@ -1672,7 +1673,7 @@ export async function loadUiSettings(): Promise<UiSettings> {
 }
 
 export async function saveUserDefaultUiSettings(settings: UiSettings): Promise<void> {
-  const settingsToSave = { ...settings };
+  const settingsToSave = { ...settings, tableRadius: "0px" };
   Object.assign(defaultSettings, settingsToSave);
 
   const updatedPresetFields = {
@@ -1770,6 +1771,7 @@ export async function getEffectiveDefaultUiSettings(): Promise<UiSettings> {
 }
 
 export async function saveUiSettings(nextSettings: UiSettings): Promise<void> {
+  nextSettings = { ...nextSettings, tableRadius: "0px" };
   await localforage.setItem(UI_SETTINGS_KEY, nextSettings);
   const smallSettings: Partial<UiSettings> = { ...nextSettings };
   delete smallSettings.bgImage;

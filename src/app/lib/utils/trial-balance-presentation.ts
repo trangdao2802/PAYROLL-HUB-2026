@@ -25,7 +25,7 @@ export function trialBalanceRowLabel(row: PresentationRow): string {
   const resolved = operations
     ? label.replace(/^(?:Hold|Add(?:\s*\/\s*Cancel)?|Cancel)\b/i, operations)
     : label;
-  return resolved;
+  return /^(Add|Cancel)\b/i.test(resolved) ? `+ ${resolved}` : resolved;
 }
 
 export function trialBalanceRowOrder(row: PresentationRow): number {
