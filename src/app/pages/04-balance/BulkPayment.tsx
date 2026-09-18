@@ -813,6 +813,7 @@ export function BulkPayment({
 
   const effectiveAnalysBusiness =
     analysSelectedBusiness === ALL_ANALYS_BUSINESS_UNITS ||
+    analysSelectedBusiness === "EXCLUDE_AHP" ||
     analysBusinessUnits.includes(analysSelectedBusiness)
       ? analysSelectedBusiness
       : ALL_ANALYS_BUSINESS_UNITS;
@@ -3220,7 +3221,7 @@ export function BulkPayment({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-baseline bg-transparent pb-0.5 pr-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-r-lg"
+                    className="inline-flex items-baseline bg-transparent pb-0 pr-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-r-lg"
                     title="Chuyển bảng"
                   >
                     <TableTitleRemainder
@@ -3375,6 +3376,28 @@ export function BulkPayment({
           </div>
 
           <div className="flex items-center gap-2 ml-auto shrink-0">
+            {(rightPanelTab === "table" || rightPanelTab === "reconcile") && (
+              <div className="flex items-center gap-1.5 mr-0.5">
+                <button
+                  type="button"
+                  id="btn-toolbar-transaction-save"
+                  onClick={() => window.dispatchEvent(new Event("trigger-transaction-save"))}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground transition-all cursor-pointer active:scale-[0.98] shadow-2xs whitespace-nowrap"
+                  title="Lưu Batch Payment đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn"
+                >
+                  Lưu tháng
+                </button>
+                <button
+                  type="button"
+                  id="btn-toolbar-transaction-check"
+                  onClick={() => window.dispatchEvent(new Event("trigger-transaction-check"))}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground transition-all cursor-pointer active:scale-[0.98] shadow-2xs whitespace-nowrap"
+                  title="Tải phiên bản mới nhất của tháng này và các tháng trước từ Supabase"
+                >
+                  Check STK & ID
+                </button>
+              </div>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

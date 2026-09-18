@@ -95,23 +95,89 @@ export interface TastePreset {
   tableRadius: string;
 }
 
+export const CURATED_PRESET_IDS = [
+  "breeze-blue",
+  "dream-state",
+  "espresso-blush",
+  "systematic",
+] as const;
+
+export type CuratedPresetId = (typeof CURATED_PRESET_IDS)[number];
+
 export const TASTE_PRESETS: Record<string, TastePreset> = {
+  "breeze-blue": {
+    id: "breeze-blue",
+    name: "Xanh Băng · Breeze & Butter (Bardak)",
+    bg: "#FAF7F2",
+    accent: "#CC7C6B",
+    text: "#3D2A2A",
+    border: "#BACDD8",
+    stripeColor1: "#FFFFFF",
+    stripeColor2: "#F0F5EC",
+    gridLineColor: "rgba(61, 42, 42, 0.10)",
+    tableHeaderBg: "#C6D6E7",
+    tableSubHeaderBg: "#FAF4E8",
+    tableFooterBg: "#C6D6E7",
+    tableColumnHeaderBg: "#FBE8B9",
+    tableColumnHeaderTextColor: "#3D2A2A",
+    tableDataBg: "#FFFFFF",
+    tableFont: "var(--font-main)",
+    tableRadius: "12px",
+  },
+  "dream-state": {
+    id: "dream-state",
+    name: "Dream State · Matcha & Blush (Soft Trio)",
+    bg: "#FAF8F5",
+    accent: "#456449",
+    text: "#243026",
+    border: "#C8D7C9",
+    stripeColor1: "#FFFFFF",
+    stripeColor2: "#F2F7FA",
+    gridLineColor: "rgba(69, 100, 73, 0.12)",
+    tableHeaderBg: "#CFDABD",
+    tableSubHeaderBg: "#FAF1F4",
+    tableFooterBg: "#CFDABD",
+    tableColumnHeaderBg: "#F0CCCE",
+    tableColumnHeaderTextColor: "#243026",
+    tableDataBg: "#FFFFFF",
+    tableFont: "var(--font-main)",
+    tableRadius: "12px",
+  },
+  "espresso-blush": {
+    id: "espresso-blush",
+    name: "Espresso Blush · Moonpetal & Velvet",
+    bg: "#FBF9F9",
+    accent: "#8E3A59",
+    text: "#2D1D24",
+    border: "#C2D3DF",
+    stripeColor1: "#FFFFFF",
+    stripeColor2: "#F7EEF2",
+    gridLineColor: "rgba(142, 58, 89, 0.12)",
+    tableHeaderBg: "#B5CEE4",
+    tableSubHeaderBg: "#FDF5F7",
+    tableFooterBg: "#B5CEE4",
+    tableColumnHeaderBg: "#F5AEC1",
+    tableColumnHeaderTextColor: "#351B26",
+    tableDataBg: "#FFFFFF",
+    tableFont: "var(--font-main)",
+    tableRadius: "12px",
+  },
   systematic: {
     id: "systematic",
-    name: "Autumn Palette (Mặc định)",
-    bg: "#F4EFEB",
-    accent: "#8B2635",
-    text: "#4A332D",
-    border: "#D8CCC0",
-    stripeColor1: "#F9F6F3",
-    stripeColor2: "#EFEBE7",
-    gridLineColor: "rgba(95, 72, 64, 0.15)",
-    tableHeaderBg: "#D8CCC0",
-    tableSubHeaderBg: "#EDE4DB",
-    tableFooterBg: "#D8CCC0",
-    tableColumnHeaderBg: "#B17259",
-    tableColumnHeaderTextColor: "#FFFFFF",
-    tableDataBg: "#F9F6F3",
+    name: "Autumn Palette · Sage & Dusty Petal (Secret Garden)",
+    bg: "#F7F4EF",
+    accent: "#543D2B",
+    text: "#34251B",
+    border: "#CDC3B8",
+    stripeColor1: "#FFFFFF",
+    stripeColor2: "#F1ECE4",
+    gridLineColor: "rgba(84, 61, 43, 0.14)",
+    tableHeaderBg: "#A9B6A2",
+    tableSubHeaderBg: "#F3EFE9",
+    tableFooterBg: "#A9B6A2",
+    tableColumnHeaderBg: "#D4BDB8",
+    tableColumnHeaderTextColor: "#34251B",
+    tableDataBg: "#FFFFFF",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
   },
@@ -134,105 +200,9 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableFont: "var(--font-main)",
     tableRadius: "12px",
   },
-  "breeze-blue": {
-    id: "breeze-blue",
-    name: "Breeze Blue · Xanh Băng (Palette Hàn Quốc: Ice, Butter & Petal)",
-    bg: "#F2F7FA",
-    accent: "#4E7A94",
-    text: "#1F2E38",
-    border: "#BACDD8",
-    stripeColor1: "#FFFFFF",
-    stripeColor2: "#EDF4F9",
-    gridLineColor: "rgba(78, 122, 148, 0.12)",
-    tableHeaderBg: "#C6D6E7",
-    tableSubHeaderBg: "#FAF4E8",
-    tableFooterBg: "#C6D6E7",
-    tableColumnHeaderBg: "#FBE8B9",
-    tableColumnHeaderTextColor: "#2E2210",
-    tableDataBg: "#FFFFFF",
-    tableFont: "var(--font-main)",
-    tableRadius: "12px",
-  },
-  "dream-state": {
-    id: "dream-state",
-    name: "Dream State · Bộ 3 Pastel (Editorial: Blush, Ice & Sage)",
-    bg: "#FAF8F5",
-    accent: "#5C7C60",
-    text: "#232B25",
-    border: "#C8D7C9",
-    stripeColor1: "#FFFFFF",
-    stripeColor2: "#FBF3F5",
-    gridLineColor: "rgba(92, 124, 96, 0.12)",
-    tableHeaderBg: "#CFDABD",
-    tableSubHeaderBg: "#FAF1F4",
-    tableFooterBg: "#CFDABD",
-    tableColumnHeaderBg: "#D8E5EE",
-    tableColumnHeaderTextColor: "#1E2B1F",
-    tableDataBg: "#FFFFFF",
-    tableFont: "var(--font-main)",
-    tableRadius: "12px",
-  },
-  "espresso-blush": {
-    id: "espresso-blush",
-    name: "Espresso Blush · Cà phê & san hô",
-    bg: "#FDF9F9",
-    accent: "#3D2A2A",
-    text: "#3D2A2A",
-    border: "#E8D5D5",
-    stripeColor1: "#FFFFFF",
-    stripeColor2: "#FDF9F9",
-    gridLineColor: "rgba(61, 42, 42, 0.08)",
-    tableHeaderBg: "#E8BEC1",
-    tableSubHeaderBg: "#FDF5F5",
-    tableFooterBg: "#E8BEC1",
-    tableColumnHeaderBg: "#C49797",
-    tableColumnHeaderTextColor: "#3D2A2A",
-    tableDataBg: "#FFFFFF",
-    tableFont: "var(--font-main)",
-    tableRadius: "12px",
-  },
-  "bardak-pastel": {
-    id: "bardak-pastel",
-    name: "Bardak Pastel · 5 Màu (Butter, Breeze, Blush, Matcha & Coral)",
-    bg: "#FAF7F3",
-    accent: "#CC7C6B",
-    text: "#3D2A2A",
-    border: "#CCD8DF",
-    stripeColor1: "#FFFFFF",
-    stripeColor2: "#F0F5EC",
-    gridLineColor: "rgba(61, 42, 42, 0.09)",
-    tableHeaderBg: "#F6DFD9",
-    tableSubHeaderBg: "#EFF5EC",
-    tableFooterBg: "#F6DFD9",
-    tableColumnHeaderBg: "#FBE8B9",
-    tableColumnHeaderTextColor: "#3D2A2A",
-    tableDataBg: "#FFFFFF",
-    tableFont: "var(--font-main)",
-    tableRadius: "12px",
-  },
-  "dido-dream": {
-    id: "dido-dream",
-    name: "Mộng Hạch · Dido Market (Lavender, Mint, Coral & Cocoa)",
-    bg: "#FAF5EB",
-    accent: "#523636",
-    text: "#352323",
-    border: "#CDCDE3",
-    stripeColor1: "#FFFDF9",
-    stripeColor2: "#F2F3FB",
-    gridLineColor: "rgba(82, 54, 54, 0.10)",
-    tableHeaderBg: "#C5CAEC",
-    tableSubHeaderBg: "#FAF0EB",
-    tableFooterBg: "#C5CAEC",
-    tableColumnHeaderBg: "#9EE3D7",
-    tableColumnHeaderTextColor: "#1C3A35",
-    tableDataBg: "#FFFFFF",
-    tableFont: "var(--font-main)",
-    tableRadius: "12px",
-  },
   ss26: {
     id: "ss26",
     name: "SS26 · Xuân Hè 2026",
-    // Sampled from the supplied SS26 palette; pale row tints keep dense tables readable.
     bg: "#F0EFEB",
     accent: "#6A243E",
     text: "#394241",
@@ -244,6 +214,7 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableSubHeaderBg: "#EBF0F6",
     tableFooterBg: "#E7C5D5",
     tableColumnHeaderBg: "#EFD67C",
+    tableColumnHeaderTextColor: "#394241",
     tableDataBg: "#F8F7F4",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
@@ -262,20 +233,47 @@ export const TASTE_PRESETS: Record<string, TastePreset> = {
     tableSubHeaderBg: "#EDF3F9",
     tableFooterBg: "#E8DDB3",
     tableColumnHeaderBg: "#D4E0EC",
+    tableColumnHeaderTextColor: "#231815",
     tableDataBg: "#FFF8D9",
     tableFont: "var(--font-main)",
     tableRadius: "12px",
-  }
+  },
 };
 
+// Aliases for backwards compatibility with merged IDs from the 6 requested themes
+TASTE_PRESETS["bardak-pastel"] = TASTE_PRESETS["breeze-blue"];
+TASTE_PRESETS["dido-dream"] = TASTE_PRESETS["dream-state"];
+
+export const USER_DEFAULT_UI_SETTINGS_KEY = "PayrollApp_UiSettings_UserDefault_v1";
+
+export function colorToHex7(color: string | undefined | null, fallback = "#000000"): string {
+  if (!color || typeof color !== "string") return fallback;
+  const s = color.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(s)) return s;
+  if (/^#[0-9A-Fa-f]{3}$/.test(s)) {
+    return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`;
+  }
+  if (/^#[0-9A-Fa-f]{8}$/.test(s)) {
+    return s.slice(0, 7);
+  }
+  const rgbaMatch = s.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbaMatch) {
+    const r = Math.min(255, parseInt(rgbaMatch[1], 10)).toString(16).padStart(2, "0");
+    const g = Math.min(255, parseInt(rgbaMatch[2], 10)).toString(16).padStart(2, "0");
+    const b = Math.min(255, parseInt(rgbaMatch[3], 10)).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
+  }
+  return fallback;
+}
+
 export const defaultSettings: UiSettings = {
-  bg: "#FAF8F7",
+  bg: "#FAF8F5",
   bgImage: "",
   bgImageStyle: "cover",
   bgImageOpacity: 100,
-  accent: "#7A9476",
-  text: "#2B362A",
-  border: "#CCD7C9",
+  accent: "#456449",
+  text: "#243026",
+  border: "#C8D7C9",
   fontSize: "13px",
   tablePadding: "12px 16px",
   sidebarPos: "left",
@@ -286,24 +284,105 @@ export const defaultSettings: UiSettings = {
   tableFont: "var(--font-main)",
   autoSave: true,
   showHelp: true,
-  stripeColor1: "#F8EEF1",
-  stripeColor2: "#E4ECEF",
-  gridLineColor: "rgba(122, 148, 118, 0.18)",
+  stripeColor1: "#FFFFFF",
+  stripeColor2: "#F2F7FA",
+  gridLineColor: "rgba(69, 100, 73, 0.12)",
   tableHeaderBg: "#CFDABD",
   tableSubHeaderBg: "#FAF1F4",
   tableFooterBg: "#CFDABD",
-  tableColumnHeaderBg: "#D8E5EE",
-  tableColumnHeaderTextColor: "#1E2B1F",
+  tableColumnHeaderBg: "#F0CCCE",
+  tableColumnHeaderTextColor: "#243026",
   tableDataBg: "#FFFFFF",
   showPivotSubtotals: true,
+  preset: "default",
   showGrandTotals: true,
   showMktCols: true,
   showBusiness: true,
   showL07: true,
   colWidthPreference: "normal",
   defaultAuditYear: 2026,
-  preset: "dream-state",
 };
+
+// Immediately rehydrate saved user default settings if present in browser localStorage
+try {
+  const syncDefaultRaw =
+    typeof window !== "undefined" && window.localStorage
+      ? localStorage.getItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small")
+      : null;
+  if (syncDefaultRaw) {
+    const syncDefault = JSON.parse(syncDefaultRaw);
+    if (syncDefault && typeof syncDefault === "object") {
+      Object.assign(defaultSettings, syncDefault);
+    }
+  }
+} catch {
+  // ignore
+}
+
+// Registered default preset replacing the base template
+TASTE_PRESETS["default"] = {
+  id: "default",
+  name: "⭐ Giao diện mẫu mặc định (Default Theme)",
+  bg: defaultSettings.bg,
+  accent: defaultSettings.accent,
+  text: defaultSettings.text,
+  border: defaultSettings.border,
+  stripeColor1: defaultSettings.stripeColor1,
+  stripeColor2: defaultSettings.stripeColor2,
+  gridLineColor: defaultSettings.gridLineColor,
+  tableHeaderBg: defaultSettings.tableHeaderBg,
+  tableSubHeaderBg: defaultSettings.tableSubHeaderBg,
+  tableFooterBg: defaultSettings.tableFooterBg,
+  tableColumnHeaderBg: defaultSettings.tableColumnHeaderBg,
+  tableColumnHeaderTextColor: defaultSettings.tableColumnHeaderTextColor,
+  tableDataBg: defaultSettings.tableDataBg,
+  tableFont: defaultSettings.tableFont,
+  tableRadius: defaultSettings.tableRadius,
+};
+
+// Synchronize "Lila Rose · Hồng Phấn (Theo ảnh)" with custom saved default if available
+try {
+  const syncDefaultRaw =
+    typeof window !== "undefined" && window.localStorage
+      ? localStorage.getItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small")
+      : null;
+  if (syncDefaultRaw) {
+    const syncDefault = JSON.parse(syncDefaultRaw);
+    if (syncDefault && typeof syncDefault === "object" && TASTE_PRESETS["lila-rose"]) {
+      Object.assign(TASTE_PRESETS["lila-rose"], {
+        bg: syncDefault.bg || TASTE_PRESETS["lila-rose"].bg,
+        accent: syncDefault.accent || TASTE_PRESETS["lila-rose"].accent,
+        text: syncDefault.text || TASTE_PRESETS["lila-rose"].text,
+        border: syncDefault.border || TASTE_PRESETS["lila-rose"].border,
+        stripeColor1: syncDefault.stripeColor1 || TASTE_PRESETS["lila-rose"].stripeColor1,
+        stripeColor2: syncDefault.stripeColor2 || TASTE_PRESETS["lila-rose"].stripeColor2,
+        gridLineColor: syncDefault.gridLineColor || TASTE_PRESETS["lila-rose"].gridLineColor,
+        tableHeaderBg: syncDefault.tableHeaderBg || TASTE_PRESETS["lila-rose"].tableHeaderBg,
+        tableSubHeaderBg: syncDefault.tableSubHeaderBg || TASTE_PRESETS["lila-rose"].tableSubHeaderBg,
+        tableFooterBg: syncDefault.tableFooterBg || TASTE_PRESETS["lila-rose"].tableFooterBg,
+        tableColumnHeaderBg: syncDefault.tableColumnHeaderBg || TASTE_PRESETS["lila-rose"].tableColumnHeaderBg,
+        tableColumnHeaderTextColor: syncDefault.tableColumnHeaderTextColor || TASTE_PRESETS["lila-rose"].tableColumnHeaderTextColor,
+        tableDataBg: syncDefault.tableDataBg || TASTE_PRESETS["lila-rose"].tableDataBg,
+        tableFont: syncDefault.tableFont || TASTE_PRESETS["lila-rose"].tableFont,
+        tableRadius: syncDefault.tableRadius || TASTE_PRESETS["lila-rose"].tableRadius,
+      });
+    }
+  }
+} catch {
+  // ignore
+}
+
+export const CURATED_PRESETS: TastePreset[] = CURATED_PRESET_IDS.map(
+  (id) => TASTE_PRESETS[id]
+);
+
+export const ALL_TASTE_PRESETS: TastePreset[] = [
+  TASTE_PRESETS["default"],
+  ...CURATED_PRESETS,
+  TASTE_PRESETS["lila-rose"],
+  TASTE_PRESETS["ss26"],
+  TASTE_PRESETS["flowbutter"],
+].filter(Boolean);
 
 export const UI_SETTINGS_KEY = "PayrollApp_UiSettings_HushedElegance_v11";
 
@@ -343,9 +422,9 @@ const CLOUDY_PUDDING = {
   tableDataBg: "#F2F3F4",
 } as const;
 
-function sameValue(value: unknown, expected: string) {
+function sameValue(value: unknown, expected?: string) {
+  if (typeof value !== "string" || typeof expected !== "string") return false;
   return (
-    typeof value === "string" &&
     value.trim().toUpperCase() === expected.trim().toUpperCase()
   );
 }
@@ -529,11 +608,13 @@ export function migrateEspressoBlushPalette(settings: UiSettings): UiSettings {
 }
 
 export function migrateMultiColorPastelPalettes(settings: UiSettings): UiSettings {
-  if (settings.preset === "breeze-blue") {
-    if (sameValue(settings.tableColumnHeaderBg, "#E4ECEF") || sameValue(settings.tableFooterBg, "#E4ECEF")) {
-      const p = TASTE_PRESETS["breeze-blue"];
+  if (settings.preset === "bardak-pastel" || settings.preset === "dido-dream") {
+    const targetPreset = settings.preset === "bardak-pastel" ? "breeze-blue" : "dream-state";
+    const p = TASTE_PRESETS[targetPreset];
+    if (p) {
       return {
         ...settings,
+        preset: targetPreset,
         bg: p.bg,
         accent: p.accent,
         text: p.text,
@@ -542,71 +623,7 @@ export function migrateMultiColorPastelPalettes(settings: UiSettings): UiSetting
         stripeColor2: p.stripeColor2,
         gridLineColor: p.gridLineColor,
         tableHeaderBg: p.tableHeaderBg,
-        tableFooterBg: p.tableFooterBg,
-        tableColumnHeaderBg: p.tableColumnHeaderBg,
-        tableColumnHeaderTextColor: p.tableColumnHeaderTextColor,
-      };
-    }
-  } else if (settings.preset === "dream-state") {
-    if (sameValue(settings.tableColumnHeaderBg, "#DFE7DC") || sameValue(settings.tableHeaderBg, "#E4ECEF") || sameValue(settings.tableHeaderBg, "#D8E5EE")) {
-      const p = TASTE_PRESETS["dream-state"];
-      return {
-        ...settings,
-        bg: p.bg,
-        accent: p.accent,
-        text: p.text,
-        border: p.border,
-        stripeColor1: p.stripeColor1,
-        stripeColor2: p.stripeColor2,
-        gridLineColor: p.gridLineColor,
-        tableHeaderBg: p.tableHeaderBg,
-        tableFooterBg: p.tableFooterBg,
-        tableColumnHeaderBg: p.tableColumnHeaderBg,
-        tableColumnHeaderTextColor: p.tableColumnHeaderTextColor,
-      };
-    }
-  } else if (settings.preset === "espresso-blush") {
-    if (sameValue(settings.tableHeaderBg, "#F8EAE8") || sameValue(settings.tableHeaderBg, "#FAF3E8")) {
-      const p = TASTE_PRESETS["espresso-blush"];
-      return {
-        ...settings,
-        tableHeaderBg: p.tableHeaderBg,
-        tableFooterBg: p.tableFooterBg,
-        tableColumnHeaderBg: p.tableColumnHeaderBg,
-        tableColumnHeaderTextColor: p.tableColumnHeaderTextColor,
-      };
-    }
-  } else if (settings.preset === "dido-dream") {
-    if (sameValue(settings.tableHeaderBg, "#D8DFEE") || sameValue(settings.tableColumnHeaderBg, "#C2ECE5")) {
-      const p = TASTE_PRESETS["dido-dream"];
-      return {
-        ...settings,
-        bg: p.bg,
-        accent: p.accent,
-        text: p.text,
-        border: p.border,
-        stripeColor1: p.stripeColor1,
-        stripeColor2: p.stripeColor2,
-        gridLineColor: p.gridLineColor,
-        tableHeaderBg: p.tableHeaderBg,
-        tableFooterBg: p.tableFooterBg,
-        tableColumnHeaderBg: p.tableColumnHeaderBg,
-        tableColumnHeaderTextColor: p.tableColumnHeaderTextColor,
-      };
-    }
-  } else if (settings.preset === "bardak-pastel") {
-    if (sameValue(settings.stripeColor2, "#FBF1EF") || sameValue(settings.tableHeaderBg, "#C6D6E7")) {
-      const p = TASTE_PRESETS["bardak-pastel"];
-      return {
-        ...settings,
-        bg: p.bg,
-        accent: p.accent,
-        text: p.text,
-        border: p.border,
-        stripeColor1: p.stripeColor1,
-        stripeColor2: p.stripeColor2,
-        gridLineColor: p.gridLineColor,
-        tableHeaderBg: p.tableHeaderBg,
+        tableSubHeaderBg: p.tableSubHeaderBg,
         tableFooterBg: p.tableFooterBg,
         tableColumnHeaderBg: p.tableColumnHeaderBg,
         tableColumnHeaderTextColor: p.tableColumnHeaderTextColor,
@@ -901,6 +918,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
   if (settings.accent) {
     root.style.setProperty("--accent", settings.accent);
     root.style.setProperty("--primary", settings.accent);
+    root.style.setProperty("--table-initial-color", settings.accent);
     root.style.setProperty("--ring", settings.accent);
     root.style.setProperty("--secondary", "var(--harmony-complement)");
     root.style.setProperty("--secondary-foreground", "var(--primary-foreground)");
@@ -967,6 +985,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
   if (settings.accent) {
     root.style.setProperty("--accent", settings.accent);
     root.style.setProperty("--primary", settings.accent);
+    root.style.setProperty("--table-initial-color", settings.accent);
     root.style.setProperty("--ring", settings.accent);
   }
   if (settings.text) {
@@ -1599,14 +1618,19 @@ export async function loadUiSettings(): Promise<UiSettings> {
       });
     }
 
-    // For recognized presets, always synchronize palette table backgrounds to match the current preset definition
-    if (result.preset && TASTE_PRESETS[result.preset]) {
+    // For recognized merged presets, normalize to target preset
+    if (result.preset) {
+      if (result.preset === "bardak-pastel") result.preset = "breeze-blue";
+      else if (result.preset === "dido-dream") result.preset = "dream-state";
+    }
+
+    if (result.preset && TASTE_PRESETS[result.preset] && result.preset !== "default") {
       const presetDef = TASTE_PRESETS[result.preset];
-      result.tableHeaderBg = presetDef.tableHeaderBg;
-      result.tableSubHeaderBg = presetDef.tableSubHeaderBg;
-      result.tableFooterBg = presetDef.tableHeaderBg;
-      result.tableColumnHeaderBg = presetDef.tableColumnHeaderBg;
-      result.tableColumnHeaderTextColor = presetDef.tableColumnHeaderTextColor;
+      if (!result.tableHeaderBg) result.tableHeaderBg = presetDef.tableHeaderBg;
+      if (!result.tableSubHeaderBg) result.tableSubHeaderBg = presetDef.tableSubHeaderBg;
+      if (!result.tableFooterBg) result.tableFooterBg = presetDef.tableHeaderBg;
+      if (!result.tableColumnHeaderBg) result.tableColumnHeaderBg = presetDef.tableColumnHeaderBg;
+      if (!result.tableColumnHeaderTextColor) result.tableColumnHeaderTextColor = presetDef.tableColumnHeaderTextColor;
     } else if (result.tableHeaderBg) {
       result.tableFooterBg = result.tableHeaderBg;
     }
@@ -1638,12 +1662,116 @@ export async function loadUiSettings(): Promise<UiSettings> {
   } catch {
     // Ignore storage errors
   }
+  try {
+    const userDef = getUserDefaultUiSettingsSync();
+    if (userDef) return sanitize(userDef);
+  } catch {
+    // Ignore fallback errors
+  }
+  return defaultSettings;
+}
+
+export async function saveUserDefaultUiSettings(settings: UiSettings): Promise<void> {
+  const settingsToSave = { ...settings };
+  Object.assign(defaultSettings, settingsToSave);
+
+  const updatedPresetFields = {
+    bg: settingsToSave.bg || defaultSettings.bg,
+    accent: settingsToSave.accent || defaultSettings.accent,
+    text: settingsToSave.text || defaultSettings.text,
+    border: settingsToSave.border || defaultSettings.border,
+    stripeColor1: settingsToSave.stripeColor1 || defaultSettings.stripeColor1,
+    stripeColor2: settingsToSave.stripeColor2 || defaultSettings.stripeColor2,
+    gridLineColor: settingsToSave.gridLineColor || defaultSettings.gridLineColor,
+    tableHeaderBg: settingsToSave.tableHeaderBg || defaultSettings.tableHeaderBg,
+    tableSubHeaderBg: settingsToSave.tableSubHeaderBg || defaultSettings.tableSubHeaderBg,
+    tableFooterBg: settingsToSave.tableFooterBg || defaultSettings.tableFooterBg,
+    tableColumnHeaderBg: settingsToSave.tableColumnHeaderBg || defaultSettings.tableColumnHeaderBg,
+    tableColumnHeaderTextColor: settingsToSave.tableColumnHeaderTextColor || defaultSettings.tableColumnHeaderTextColor,
+    tableDataBg: settingsToSave.tableDataBg || defaultSettings.tableDataBg,
+    tableFont: settingsToSave.tableFont || defaultSettings.tableFont,
+    tableRadius: settingsToSave.tableRadius || defaultSettings.tableRadius,
+  };
+
+  if (TASTE_PRESETS["default"]) {
+    Object.assign(TASTE_PRESETS["default"], updatedPresetFields);
+  }
+
+  // Synchronize "Lila Rose · Hồng Phấn (Theo ảnh)" ("phần ảnh tôi gửi") with the custom saved default!
+  if (TASTE_PRESETS["lila-rose"]) {
+    Object.assign(TASTE_PRESETS["lila-rose"], updatedPresetFields);
+  }
+
+  try {
+    await localforage.setItem(USER_DEFAULT_UI_SETTINGS_KEY, settingsToSave);
+  } catch (err) {
+    console.error("Failed to save user default in localforage", err);
+  }
+  const smallSettings: Partial<UiSettings> = { ...settingsToSave };
+  delete smallSettings.bgImage;
+  try {
+    localStorage.setItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small", JSON.stringify(smallSettings));
+  } catch {
+    // Ignore storage quota errors
+  }
+  window.dispatchEvent(new Event("ui-user-default-changed"));
+}
+
+export async function loadUserDefaultUiSettings(): Promise<UiSettings | null> {
+  try {
+    const saved = await localforage.getItem<UiSettings>(USER_DEFAULT_UI_SETTINGS_KEY);
+    if (saved && typeof saved === "object") return saved;
+  } catch {
+    // fallback
+  }
+  try {
+    const savedLocal = localStorage.getItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small");
+    if (savedLocal) {
+      return JSON.parse(savedLocal);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function getUserDefaultUiSettingsSync(): UiSettings | null {
+  try {
+    const savedLocal = localStorage.getItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small");
+    if (savedLocal) {
+      return JSON.parse(savedLocal);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export async function clearUserDefaultUiSettings(): Promise<void> {
+  try {
+    await localforage.removeItem(USER_DEFAULT_UI_SETTINGS_KEY);
+  } catch {
+    // ignore
+  }
+  try {
+    localStorage.removeItem(USER_DEFAULT_UI_SETTINGS_KEY + "_small");
+  } catch {
+    // ignore
+  }
+  window.dispatchEvent(new Event("ui-user-default-changed"));
+}
+
+export async function getEffectiveDefaultUiSettings(): Promise<UiSettings> {
+  const userDef = await loadUserDefaultUiSettings();
+  if (userDef) {
+    return { ...defaultSettings, ...userDef };
+  }
   return defaultSettings;
 }
 
 export async function saveUiSettings(nextSettings: UiSettings): Promise<void> {
   await localforage.setItem(UI_SETTINGS_KEY, nextSettings);
-  const smallSettings = { ...nextSettings };
+  const smallSettings: Partial<UiSettings> = { ...nextSettings };
   delete smallSettings.bgImage;
   try {
     localStorage.setItem(UI_SETTINGS_KEY + "_small", JSON.stringify(smallSettings));

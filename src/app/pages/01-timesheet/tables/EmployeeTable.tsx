@@ -91,6 +91,7 @@ function EmployeeTableComponent({
           striped={false}
           stickyHeader={true}
           storageKey="timesheet_employee"
+          hideSaveStatus={true}
           className="border-none"
           
           footerClassName="bg-[var(--secondary)] text-foreground font-black border-t border-border"

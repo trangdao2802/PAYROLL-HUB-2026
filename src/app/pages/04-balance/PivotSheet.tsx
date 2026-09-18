@@ -2065,19 +2065,17 @@ export function PivotSheet() {
       >
         <div className="flex w-full min-w-0 items-center">
           <div className="app-table-title-lockup min-w-0">
-            <div className="app-table-title-line" style={{ width: "325.297px", height: "19.4375px" }}>
+            <div className="app-table-title-line">
               <TableInitialMark
                 label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
                 className="shrink-0 text-primary"
-                style={{ width: "23.4375px", paddingLeft: "2px", paddingRight: "2px" }}
               />
-            <h3 className="truncate text-[13px] font-bold leading-[18px] tracking-tight text-foreground">
-              <TableTitleRemainder
-                label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
-                className="app-table-title-remainder--expanded"
-                style={{ height: "18px" }}
-              />
-            </h3>
+              <h3 className="truncate text-[15px] font-bold leading-[22px] tracking-tight text-foreground">
+                <TableTitleRemainder
+                  label="PIVOT MASTER COST ALLOCATION BY BU, L07 & TASK TYPE"
+                  className="app-table-title-remainder--expanded text-[15px]"
+                />
+              </h3>
             </div>
             <p className="app-table-title-meta truncate text-[10px] font-medium leading-[14px] text-muted-foreground">
               Tổng hợp chi phí theo BU, L07 và loại · {totalCenters} trung tâm

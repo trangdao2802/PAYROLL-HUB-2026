@@ -111,6 +111,7 @@ function RosterRawTableComponent({
           striped={false}
           stickyHeader={true}
           storageKey="timesheet_roster_raw"
+          hideSaveStatus={true}
           className="border-none"
           
           footerClassName="bg-[var(--secondary)] text-foreground font-black border-t border-border"

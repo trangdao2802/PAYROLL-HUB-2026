@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   TASTE_PRESETS,
+  ALL_TASTE_PRESETS,
   TastePreset,
   UiSettings,
   applyUiSettings,
@@ -37,8 +38,6 @@ export interface ThemePreviewCardProps {
   compact?: boolean;
 }
 
-const PRESET_ENTRIES = Object.values(TASTE_PRESETS);
-
 export function ThemePreviewCard({
   initialPresetId,
   customSettingsPreview,
@@ -53,16 +52,17 @@ export function ThemePreviewCard({
       return (
         document.documentElement.getAttribute("data-theme") ||
         localStorage.getItem("app-theme") ||
-        "lila-rose"
+        "dream-state"
       );
     }
-    return "lila-rose";
+    return "dream-state";
   });
 
   // Selected preset being previewed (null means follow initialPresetId / activeThemeId)
   const [userSelectedPresetId, setUserSelectedPresetId] = useState<string | null>(null);
+  const [presetVersion, setPresetVersion] = useState(0);
 
-  const previewId = userSelectedPresetId ?? (initialPresetId || activeThemeId || "lila-rose");
+  const previewId = userSelectedPresetId ?? (initialPresetId || activeThemeId || "dream-state");
 
   // Synchronize active theme from storage/DOM mutation events
   useEffect(() => {
@@ -70,11 +70,14 @@ export function ThemePreviewCard({
       const current =
         document.documentElement.getAttribute("data-theme") ||
         localStorage.getItem("app-theme") ||
-        "lila-rose";
+        "dream-state";
       setActiveThemeId(current);
+      setPresetVersion((v) => v + 1);
     };
 
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("ui-user-default-changed", handleStorageChange);
+    window.addEventListener("ui-settings-changed", handleStorageChange);
     const observer = new MutationObserver(handleStorageChange);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -83,18 +86,29 @@ export function ThemePreviewCard({
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("ui-user-default-changed", handleStorageChange);
+      window.removeEventListener("ui-settings-changed", handleStorageChange);
       observer.disconnect();
     };
   }, []);
 
+  const presetEntries = useMemo(() => {
+    void presetVersion;
+    return ALL_TASTE_PRESETS.map((p) => ({
+      ...p,
+      ...(TASTE_PRESETS[p.id] || {}),
+    }));
+  }, [presetVersion]);
+
   const selectedPreset: TastePreset = useMemo(() => {
+    void presetVersion;
     return (
       TASTE_PRESETS[previewId] ||
       TASTE_PRESETS[activeThemeId] ||
-      TASTE_PRESETS["lila-rose"] ||
-      PRESET_ENTRIES[0]
+      TASTE_PRESETS["dream-state"] ||
+      presetEntries[0]
     );
-  }, [previewId, activeThemeId]);
+  }, [previewId, activeThemeId, presetVersion, presetEntries]);
 
   // Resolve preview colors: custom override takes precedence if supplied
   const previewColors = useMemo(() => {
@@ -252,40 +266,63 @@ export function ThemePreviewCard({
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Palette className="h-3 w-3" /> Chọn chủ đề để xem trước:
+              <Palette className="h-3 w-3" /> Chủ đề phối màu giao diện:
             </span>
             <span className="text-[10px] text-muted-foreground tabular-nums font-mono">
-              {PRESET_ENTRIES.length} chủ đề
+              {presetEntries.length} chủ đề
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-0.5 py-0.5">
-            {PRESET_ENTRIES.map((preset) => {
+          <div className="grid grid-cols-2 gap-2 py-0.5">
+            {presetEntries.map((preset) => {
               const isSelected = preset.id === previewId;
               const isActive = preset.id === activeThemeId;
+              const titlePart = preset.name.includes("·")
+                ? preset.name.split("·")[0].trim()
+                : preset.name;
+              const subPart = preset.name.includes("·")
+                ? preset.name.split("·")[1]?.trim()
+                : (preset.id === "default" ? "Giao diện đã lưu" : preset.id);
               return (
                 <button
                   key={preset.id}
                   type="button"
                   onClick={() => setUserSelectedPresetId(preset.id)}
-                  className={`group relative flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left text-[11px] transition-all cursor-pointer active:scale-[0.98] ${
+                  className={`group relative flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition-all cursor-pointer active:scale-[0.98] ${
                     isSelected
                       ? "border-primary bg-primary/10 font-bold text-primary shadow-xs ring-1 ring-primary/30"
-                      : "border-border/60 bg-background/80 hover:bg-muted/70 text-foreground"
+                      : "border-border/70 bg-background/90 hover:bg-muted/70 text-foreground"
                   }`}
                   title={preset.name}
                 >
-                  <span
-                    className="h-3.5 w-3.5 shrink-0 rounded-full border border-border/80 shadow-2xs"
-                    style={{ backgroundColor: preset.tableHeaderBg }}
-                  />
-                  <span className="truncate flex-1 font-medium">
-                    {preset.name.split("·")[0].trim()}
-                  </span>
-                  {isActive && (
-                    <Check
-                      className="h-3 w-3 shrink-0 text-emerald-600"
-                      title="Chủ đề đang áp dụng"
+                  <div className="flex items-center -space-x-1 shrink-0">
+                    <span
+                      className="h-4 w-4 rounded-full border border-border/80 shadow-2xs z-30"
+                      style={{ backgroundColor: preset.tableHeaderBg }}
+                      title={`Tiêu đề & Chân bảng: ${preset.tableHeaderBg}`}
                     />
+                    <span
+                      className="h-4 w-4 rounded-full border border-border/80 shadow-2xs z-20"
+                      style={{ backgroundColor: preset.tableColumnHeaderBg }}
+                      title={`Tiêu đề cột & Tổng cộng: ${preset.tableColumnHeaderBg}`}
+                    />
+                    <span
+                      className="h-4 w-4 rounded-full border border-border/80 shadow-2xs z-10"
+                      style={{ backgroundColor: preset.accent }}
+                      title={`Màu nhấn: ${preset.accent}`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-semibold text-[11px]">
+                      {titlePart}
+                    </div>
+                    <div className="text-[9.5px] text-muted-foreground truncate">
+                      {subPart}
+                    </div>
+                  </div>
+                  {isActive && (
+                    <span title="Chủ đề đang áp dụng" className="shrink-0">
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                    </span>
                   )}
                 </button>
               );
@@ -315,19 +352,19 @@ export function ThemePreviewCard({
               className="text-[10px] leading-tight"
               style={{ color: previewColors.headerContrast.muted }}
             >
-              Kỳ tính lương 03/2026 • 24 Cơ sở
+              Tiêu đề bảng (Đồng bộ cùng chân bảng)
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span
               className="rounded px-1.5 py-0.5 text-[9px] font-bold tabular-nums border"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.4)",
+                backgroundColor: "rgba(255, 255, 255, 0.45)",
                 borderColor: previewColors.gridLineColor,
                 color: previewColors.headerContrast.primary,
               }}
             >
-              Đồng bộ 100%
+              Tiêu đề & Chân bảng
             </span>
           </div>
         </div>
@@ -343,7 +380,7 @@ export function ThemePreviewCard({
         >
           <span className="col-span-3 truncate">Mã NV</span>
           <span className="col-span-4 truncate">Họ và Tên</span>
-          <span className="col-span-2 text-right tabular-nums">Giờ</span>
+          <span className="col-span-2 text-right tabular-nums">Giờ công</span>
           <span className="col-span-3 text-right tabular-nums">Thực lĩnh</span>
         </div>
 
@@ -377,6 +414,20 @@ export function ThemePreviewCard({
             </span>
             <span className="col-span-2 text-right">176.5h</span>
             <span className="col-span-3 text-right font-semibold">16,200,000₫</span>
+          </div>
+
+          {/* Mini Total Row (Synchronized with Column Header color) */}
+          <div
+            className="grid grid-cols-12 gap-1 border-b px-3 py-1 text-[10px] font-bold transition-colors tabular-nums"
+            style={{
+              backgroundColor: previewColors.tableColumnHeaderBg,
+              color: previewColors.tableColumnHeaderTextColor,
+              borderColor: previewColors.gridLineColor,
+            }}
+          >
+            <span className="col-span-7 font-bold">DÒNG TỔNG CỘNG (2 NV)</span>
+            <span className="col-span-2 text-right">360.5h</span>
+            <span className="col-span-3 text-right font-extrabold">34,700,000₫</span>
           </div>
         </div>
 
@@ -424,6 +475,61 @@ export function ThemePreviewCard({
               <ChevronRight className="h-3 w-3" />
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 4 distinct pastel color roles explanation badge */}
+      <div className="grid grid-cols-4 gap-1.5 rounded-lg bg-muted/40 p-2 text-[10.5px] border border-border/50">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-border/70 shrink-0"
+              style={{ backgroundColor: selectedPreset.accent }}
+            />
+            <span className="text-[10px] font-semibold text-muted-foreground truncate">Màu nhấn</span>
+          </div>
+          <span className="font-mono text-[9.5px] text-foreground font-medium truncate">
+            {selectedPreset.accent}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-border/70 shrink-0"
+              style={{ backgroundColor: selectedPreset.bg }}
+            />
+            <span className="text-[10px] font-semibold text-muted-foreground truncate">Màu nền</span>
+          </div>
+          <span className="font-mono text-[9.5px] text-foreground font-medium truncate">
+            {selectedPreset.bg}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-border/70 shrink-0"
+              style={{ backgroundColor: previewColors.tableColumnHeaderBg }}
+            />
+            <span className="text-[10px] font-semibold text-muted-foreground truncate">Cột & Tổng</span>
+          </div>
+          <span className="font-mono text-[9.5px] text-foreground font-medium truncate">
+            {previewColors.tableColumnHeaderBg}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-border/70 shrink-0"
+              style={{ backgroundColor: previewColors.tableHeaderBg }}
+            />
+            <span className="text-[10px] font-semibold text-muted-foreground truncate">Bảng & Chân</span>
+          </div>
+          <span className="font-mono text-[9.5px] text-foreground font-medium truncate">
+            {previewColors.tableHeaderBg}
+          </span>
         </div>
       </div>
 

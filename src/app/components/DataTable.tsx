@@ -325,10 +325,14 @@ interface DataTableProps {
   onResetFilters?: () => void;
   hideColumnVisibilityToggle?: boolean;
   defaultItemsPerPage?: number | typeof Infinity;
+  /** When true, suppresses the built-in BU quick filter bar above the table header. */
+  hideBuFilter?: boolean;
   /** Optional compact action rendered beside the table save status. */
   footerActionContent?: React.ReactNode;
   /** Replaces the generic saved-time badge in the table footer. */
   footerStatusContent?: React.ReactNode;
+  /** When true, hides the SAVED status card in the table footer. */
+  hideSaveStatus?: boolean;
 }
 
 const ColumnFilter = ({
@@ -1075,10 +1079,12 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       ignoreSavedHiddenColumns = false,
       ignoreSavedPagination = false,
       onResetFilters,
-      hideColumnVisibilityToggle = false,
+      hideColumnVisibilityToggle = true,
       defaultItemsPerPage,
+      hideBuFilter = false,
       footerActionContent,
       footerStatusContent,
+      hideSaveStatus = false,
     },
     ref,
   ) => {
@@ -3487,7 +3493,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           )}
 
           {/* BU Filter Bar */}
-          {buColumn && (
+          {buColumn && !hideBuFilter && (
             <div
               className="bu-filter-bar flex items-center justify-between gap-2 px-3 border-b flex-none overflow-x-auto select-none z-10 h-9 min-h-9 max-h-9"
               style={{
@@ -4176,38 +4182,59 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
               {footerActionContent}
 
-              <div 
-                className="flex items-center gap-1.5 hidden md:flex border-l border-slate-100 pl-3"
-                style={{
-                  marginRight: "0px",
-                  marginBottom: "0px",
-                  marginTop: "3px",
-                  height: "36.9953px"
-                }}
-              >
-                {footerStatusContent || (
-                  <SaveStatusCard
-                    scope={storageKey === "bulk_payment" ? "transaction" : "default"}
-                    className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
+              {(() => {
+                const shouldHide =
+                  hideSaveStatus ||
+                  storageKey === "analys_hold_lifecycle_v12" ||
+                  storageKey?.includes("analys") ||
+                  storageKey?.includes("timesheet") ||
+                  storageKey?.includes("roster") ||
+                  storageKey?.includes("center") ||
+                  storageKey?.includes("employee") ||
+                  (typeof window !== "undefined" &&
+                    (window.location.pathname.includes("audit") ||
+                      window.location.pathname.includes("centers") ||
+                      window.location.pathname.includes("timesheet")));
+
+                if (shouldHide && !footerStatusContent) {
+                  return null;
+                }
+
+                return (
+                  <div 
+                    className="flex items-center gap-1.5 hidden md:flex border-l border-slate-100 pl-3"
                     style={{
-                      paddingLeft: "0px",
-                      paddingRight: "0px",
-                      marginRight: "12px"
+                      marginRight: "0px",
+                      marginBottom: "0px",
+                      marginTop: "3px",
+                      height: "36.9953px"
                     }}
-                    textStyle={{
-                      fontFamily: "inherit",
-                      fontWeight: "600",
-                      fontSize: "10px",
-                      color: "#475569",
-                    }}
-                    iconStyle={{
-                      width: "11px",
-                      height: "11px",
-                      color: "#475569",
-                    }}
-                  />
-                )}
-              </div>
+                  >
+                    {footerStatusContent || (
+                      <SaveStatusCard
+                        scope={storageKey === "bulk_payment" ? "transaction" : "default"}
+                        className="!px-1.5 !py-0.5 !rounded-[10px] bg-slate-50 border border-[#e7dbdc]/80 shadow-none gap-1 ml-1"
+                        style={{
+                          paddingLeft: "0px",
+                          paddingRight: "0px",
+                          marginRight: "12px"
+                        }}
+                        textStyle={{
+                          fontFamily: "inherit",
+                          fontWeight: "600",
+                          fontSize: "10px",
+                          color: "#475569",
+                        }}
+                        iconStyle={{
+                          width: "11px",
+                          height: "11px",
+                          color: "#475569",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Pagination Controls - Direct, high-fidelity tactile buttons */}

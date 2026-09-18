@@ -6,7 +6,9 @@
  */
 .app-table-initial-mark {
   position: relative;
-  top: -2px;
+  top: 0;
+  vertical-align: baseline !important;
+  align-self: baseline !important;
 }
 
 /* Hover animation may scale the decorative initial, but must never move its

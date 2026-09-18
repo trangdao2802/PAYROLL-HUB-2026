@@ -95,6 +95,7 @@ function CenterTableComponent({
           striped={false}
           stickyHeader={true}
           storageKey="timesheet_center"
+          hideSaveStatus={true}
           className="roster-center-data-table border-none"
           
           footerClassName="bg-[var(--secondary)] text-foreground font-black border-t border-border"

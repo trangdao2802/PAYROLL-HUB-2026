@@ -15,8 +15,9 @@ import {
   Eye,
   ExternalLink,
   FileSpreadsheet,
+  Filter,
 } from "lucide-react";
-import { DataTable, type Column } from "../../../components/DataTable";
+import { DataTable, type Column, isAhpBuValue } from "../../../components/DataTable";
 import {
   TableInitialMark,
   TableTitleRemainder,
@@ -289,11 +290,15 @@ export function BulkPaymentAnalytics({
 
   const effectiveSelectedBusiness =
     selectedBusiness === allBusinessUnitsValue ||
+    selectedBusiness === "EXCLUDE_AHP" ||
     analytics.businessUnits.includes(selectedBusiness)
       ? selectedBusiness
       : allBusinessUnitsValue;
 
   const baseRows = useMemo(() => {
+    if (effectiveSelectedBusiness === "EXCLUDE_AHP") {
+      return analytics.summaryRows.filter((row) => !isAhpBuValue(row.BU));
+    }
     return effectiveSelectedBusiness === allBusinessUnitsValue
       ? analytics.summaryRows
       : analytics.summaryRows.filter(
@@ -1165,7 +1170,7 @@ export function BulkPaymentAnalytics({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-baseline bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
+                  className="inline-flex items-baseline bg-transparent p-0 text-primary hover:text-primary/80 transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none text-left"
                   title="Chuyển bảng"
                 >
                   <TableTitleRemainder
@@ -1243,36 +1248,48 @@ export function BulkPaymentAnalytics({
             </div>
           )}
 
-          <div className="relative py-0 flex items-center">
-            <select
-              id="analys-business-filter"
-              value={effectiveSelectedBusiness}
-              onChange={(event) => onSelectedBusinessChange(event.target.value)}
-              className="h-[26px] w-auto min-w-[70px] max-w-[170px] appearance-none rounded-none border-0 bg-transparent pl-1 pr-4 text-[10px] font-normal uppercase leading-[20px] text-[var(--card-foreground)] outline-none transition-colors hover:text-primary cursor-pointer shadow-none font-sans"
-              style={{
-                fontSize: "10px",
-                backgroundColor: "transparent",
-                fontFamily: "var(--font-table, var(--font-main))",
-                textAlign: "right",
-              }}
-              title="Chọn BU trên bảng ANALYSIS"
+          {/* BU Filter Bar thay thế ở phần Tất cả BU */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-0.5">
+              <Filter className="w-3 h-3 text-primary" />
+              <span className="hidden sm:inline">Lọc BU:</span>
+            </span>
+            {/* Nút Tất cả */}
+            <button
+              type="button"
+              onClick={() => onSelectedBusinessChange(allBusinessUnitsValue)}
+              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] ${
+                effectiveSelectedBusiness === allBusinessUnitsValue
+                  ? "bg-primary text-primary-foreground shadow-2xs font-black"
+                  : "bg-background hover:bg-muted text-foreground border border-border/80"
+              }`}
             >
-              <option
-                value={allBusinessUnitsValue}
-                className="bg-[var(--card,#fff)] text-[var(--card-foreground,#000)] text-[12px]"
-              >
-                Tất cả BU
-              </option>
-              {analytics.businessUnits.map((business) => (
-                <option
-                  key={business}
-                  value={business}
-                  className="bg-[var(--card,#fff)] text-[var(--card-foreground,#000)] text-[12px]"
-                >
-                  {business}
-                </option>
-              ))}
-            </select>
+              Tất cả
+            </button>
+            {/* Nút Trừ AHP */}
+            <button
+              type="button"
+              onClick={() =>
+                onSelectedBusinessChange(
+                  effectiveSelectedBusiness === "EXCLUDE_AHP"
+                    ? allBusinessUnitsValue
+                    : "EXCLUDE_AHP"
+                )
+              }
+              className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold transition-all cursor-pointer whitespace-nowrap active:scale-[0.98] flex items-center gap-1 ${
+                effectiveSelectedBusiness === "EXCLUDE_AHP"
+                  ? "bg-amber-600 text-white shadow-2xs ring-1 ring-amber-600 font-black"
+                  : "bg-amber-50/80 hover:bg-amber-100/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60"
+              }`}
+              title="Lọc bảng trừ BU AHP (Hải Phòng)"
+            >
+              <span>Trừ AHP</span>
+              {effectiveSelectedBusiness === "EXCLUDE_AHP" && (
+                <span className="text-[8.5px] font-black bg-white/25 px-1 rounded">
+                  Đang lọc
+                </span>
+              )}
+            </button>
           </div>
 
           <DropdownMenu>
@@ -1474,6 +1491,8 @@ export function BulkPaymentAnalytics({
           tableStyle={{ backgroundColor: "var(--card)" }}
           ignoreSavedHiddenColumns={true}
           ignoreSavedPagination={true}
+          hideBuFilter={true}
+          hideSaveStatus={true}
           headerClassName="bg-primary/[0.055] text-primary border-[#e7dbdc] font-bold text-[9px] uppercase tracking-[0.08em] text-center"
           footerClassName="bg-primary/[0.085] text-primary border-t border-[#e7dbdc] font-black text-[12.5px] md:text-[13px]"
         />

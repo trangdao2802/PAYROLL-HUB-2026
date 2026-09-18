@@ -270,16 +270,80 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     } catch { setMessage('Không thể xuất báo cáo Check STK & ID.'); }
   }
 
+  useEffect(() => {
+    const handleSave = () => {
+      if (!userId) {
+        setSettingsOpen(true);
+        setLoginOpen(true);
+        return;
+      }
+      void run('save');
+    };
+    const handleCheck = () => {
+      if (!userId) {
+        setSettingsOpen(true);
+        setLoginOpen(true);
+        return;
+      }
+      void run('check');
+    };
+    window.addEventListener('trigger-transaction-save', handleSave);
+    window.addEventListener('trigger-transaction-check', handleCheck);
+    return () => {
+      window.removeEventListener('trigger-transaction-save', handleSave);
+      window.removeEventListener('trigger-transaction-check', handleCheck);
+    };
+  }, [userId, hasPendingEdits, rows, month, defaultBank]);
+
+  const hasPanelContent = hasPendingEdits || message || (showReport && visibleReport) || busy;
+
+  if (!hasPanelContent) {
+    return (
+      <>
+        {/* Supabase Settings Dialog */}
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="!max-w-md !rounded-2xl !border !border-primary/20 !bg-card p-5 text-foreground shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold normal-case not-italic tracking-tight">Cài đặt Kho Batch Payment</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">Tùy chọn đối chiếu và kết nối Supabase.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-xs">
+              <label className="block space-y-1.5">
+                <span className="font-semibold">Ngân hàng mặc định khi dòng chưa ghi ngân hàng</span>
+                <select aria-label="Ngân hàng mặc định khi dòng chưa ghi ngân hàng" disabled={busy} className="w-full rounded-lg border border-primary/20 bg-background px-3 py-2 text-foreground" value={defaultBank} onChange={event => setDefaultBank(event.target.value)}>
+                  <option value="VCB">Vietcombank</option><option value="">Chưa xác định</option>
+                </select>
+              </label>
+              <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+                <p className="font-semibold">Kho dữ liệu Supabase</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">Đăng nhập để lưu tháng và kiểm tra dữ liệu Transaction đã lưu.</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {!userId ? <button type="button" className={buttonClass} disabled={busy} onClick={() => setLoginOpen(value => !value)}>Đăng nhập kho</button>
+                    : <button type="button" className={buttonClass} disabled={busy} onClick={async () => {
+                      const { error } = await supabase.auth.signOut();
+                      setMessage(error ? error.message : 'Đã đăng xuất kho.');
+                    }}>Đăng xuất kho</button>}
+                  {userId && <span className="text-[10px] text-emerald-700">Đã kết nối</span>}
+                </div>
+                {loginOpen && !userId && <form className="mt-3 space-y-2" onSubmit={event => {event.preventDefault(); void login();}}>
+                  <label className="block">Email<input type="email" required autoComplete="username" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
+                  <label className="block">Mật khẩu<input type="password" required autoComplete="current-password" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={password} onChange={event => setPassword(event.target.value)} /></label>
+                  <button className={buttonClass} disabled={busy}>Đăng nhập</button>
+                  <p className="text-[10px] text-muted-foreground">Cần tài khoản được quản trị viên cấp quyền kho payroll.</p>
+                </form>}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
   return <section aria-label="Kho Batch Payment theo tháng" className="shrink-0 border-b border-primary/15 bg-card p-2 text-foreground" style={{fontFamily: 'var(--font-table, var(--font-main))'}}>
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold">Kho Batch Payment · {month}</span>
-      <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Lưu Batch Payment đã bấm Lưu sửa lên Supabase, thay dữ liệu đúng tháng đang chọn" onClick={() => void run('save')}>Lưu tháng</button>
-      <button type="button" className={buttonClass} disabled={busy || !userId || hasPendingEdits} title="Tải phiên bản mới nhất của tháng này và các tháng trước từ Supabase" onClick={() => void run('check')}>Check STK & ID</button>
-      {busy && <span role="status" className="text-xs">Đang xử lý…</span>}
-    </div>
-    {hasPendingEdits && <p role="status" className="mt-2 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Batch Payment trước khi Lưu tháng hoặc Check STK & ID.</p>}
-    {message && <p role="status" className="text-xs mt-2">{message}</p>}
-    {showReport && report && !visibleReport && <p className="text-xs mt-2">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
+    {busy && <div role="status" className="text-xs font-semibold text-primary py-1">Đang xử lý kết nối Supabase…</div>}
+    {hasPendingEdits && <p role="status" className="mt-1 text-xs text-primary">Có chỉnh sửa chưa lưu. Bấm Lưu sửa trong Batch Payment trước khi Lưu tháng hoặc Check STK & ID.</p>}
+    {message && <p role="status" className="text-xs mt-1">{message}</p>}
+    {showReport && report && !visibleReport && <p className="text-xs mt-1">Dữ liệu đã đổi. Bấm Check STK & ID để kiểm tra lại.</p>}
     {showReport && visibleReport && <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <strong>Check STK & ID · {month}</strong>

@@ -300,17 +300,6 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
 
               {/* Theme Preview Card Dropdown Trigger */}
               <ThemeSwitcher />
-
-              {/* Quick UI Settings Modal Trigger */}
-              <button
-                type="button"
-                onClick={onOpenSettings}
-                className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted/80 text-foreground transition-all outline-none active:scale-[0.98] cursor-pointer shadow-2xs"
-                title="Cài đặt giao diện chi tiết"
-                aria-label="Cài đặt giao diện"
-              >
-                <Settings2 className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-              </button>
           </div>
 
           <DropdownMenu>

@@ -10,10 +10,10 @@ export function ThemeSwitcher() {
       return (
         document.documentElement.getAttribute("data-theme") ||
         localStorage.getItem("app-theme") ||
-        "lila-rose"
+        "dream-state"
       );
     }
-    return "lila-rose";
+    return "dream-state";
   });
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export function ThemeSwitcher() {
       const theme =
         document.documentElement.getAttribute("data-theme") ||
         localStorage.getItem("app-theme") ||
-        "lila-rose";
+        "dream-state";
       setCurrentTheme(theme);
     };
 
@@ -43,11 +43,11 @@ export function ThemeSwitcher() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border/80 bg-card hover:bg-muted/80 text-foreground text-xs font-semibold shadow-2xs transition-all outline-none active:scale-[0.98] cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/80 bg-card hover:bg-muted/80 text-foreground shadow-2xs transition-all outline-none active:scale-[0.98] cursor-pointer"
           title={`Xem trước chủ đề bảng (${currentTheme})`}
+          aria-label="Chủ đề giao diện"
         >
-          <Palette className="w-3.5 h-3.5 text-accent" />
-          <span className="hidden lg:inline text-[11px]">Chủ đề</span>
+          <Palette className="w-4 h-4 text-accent" />
         </button>
       </PopoverTrigger>
       <PopoverContent

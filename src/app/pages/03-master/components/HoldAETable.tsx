@@ -1097,7 +1097,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
           <DataTable
             className="flex-1 !overflow-visible"
-            hideColumnVisibilityToggle={false}
+            hideColumnVisibilityToggle={true}
             scrollContainerStyle={{ borderRadius: "0", border: "none" }}
             stickyFirstColumn={false}
             showPagination={true}

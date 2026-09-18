@@ -6,6 +6,7 @@ import { AppDataProvider } from "./lib/contexts/AppDataContext";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { Toaster, toast } from "sonner";
 import { LoadingWrapper } from "./components/shared/LoadingWrapper";
+import { KeyboardShortcutsModal } from "./components/KeyboardShortcutsModal";
 import localforage from "localforage";
 import {
   type UiSettings,
@@ -128,6 +129,7 @@ export default function App() {
         <LoadingWrapper>
           <RouterProvider router={router} />
         </LoadingWrapper>
+        <KeyboardShortcutsModal />
         <Toaster position="bottom-right" richColors visibleToasts={1} duration={2000} />
       </AppDataProvider>
     </ErrorBoundary>

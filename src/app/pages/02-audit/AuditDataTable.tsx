@@ -73,7 +73,6 @@ import {
 import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
-import { SaveStatusCard } from "../../components/shared/SaveStatusCard";
 import {
   applyContiguousRowSpans,
   sortRowsPreservingGroupBlocks,
@@ -3387,21 +3386,6 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                <SaveStatusCard 
-                  className="!px-2 !py-0.5 !rounded-full bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-3xs gap-1 w-[130px] justify-center"
-                  textStyle={{
-                    fontFamily: "inherit",
-                    fontWeight: "600",
-                    fontSize: "9px",
-                    color: "#475569",
-                  }}
-                  iconStyle={{
-                    width: "11px",
-                    height: "11px",
-                    color: "#475569",
-                  }}
-                />
               </div>
             </div>
 

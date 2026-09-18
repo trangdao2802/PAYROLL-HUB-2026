@@ -21,6 +21,9 @@ import {
   AlignRight,
   AlignJustify,
   Ruler,
+  BookmarkCheck,
+  RotateCcw,
+  Table2,
 } from "lucide-react";
 import { toast } from "sonner";
 import localforage from "localforage";
@@ -36,7 +39,14 @@ import {
   UI_SETTINGS_KEY,
   applyUiSettings,
   loadUiSettings,
+  saveUserDefaultUiSettings,
+  loadUserDefaultUiSettings,
+  clearUserDefaultUiSettings,
+  getUserDefaultUiSettingsSync,
+  colorToHex7,
   TASTE_PRESETS,
+  CURATED_PRESETS,
+  ALL_TASTE_PRESETS,
   isSafeCustomSelector,
   normalizeCssLength,
 } from "../lib/ui-settings";
@@ -167,6 +177,7 @@ export function UiSettingsModal({
   onClose: () => void;
 }) {
   const [settings, setSettings] = useState<UiSettings>(defaultSettings);
+  const [hasCustomDefault, setHasCustomDefault] = useState(false);
   const persistedSettingsRef = useRef<UiSettings>(defaultSettings);
   const wasOpenRef = useRef(false);
   const { updateAppData } = useAppData();
@@ -837,7 +848,7 @@ export function UiSettingsModal({
     await localforage.setItem(UI_SETTINGS_KEY, nextSettings);
     persistedSettingsRef.current = nextSettings;
     const { bgImage: _bgImage, ...smallSettings } = nextSettings;
-    localStorage.setItem(UI_SETTINGS_KEY + "_small", JSON.stringify(smallSettings));
+    try { localStorage.setItem(UI_SETTINGS_KEY + "_small", JSON.stringify(smallSettings)); } catch (e) { console.warn(e); }
     applyUiSettings(nextSettings);
     window.dispatchEvent(new Event("ui-settings-changed"));
   }, []);
@@ -902,8 +913,21 @@ export function UiSettingsModal({
 
     if (isOpen) {
       loadSettings();
+      loadUserDefaultUiSettings().then((def) => {
+        setHasCustomDefault(!!def);
+      });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleCustomDefaultChange = () => {
+      setHasCustomDefault(!!getUserDefaultUiSettingsSync());
+    };
+    window.addEventListener("ui-user-default-changed", handleCustomDefaultChange);
+    return () => {
+      window.removeEventListener("ui-user-default-changed", handleCustomDefaultChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -1000,18 +1024,48 @@ export function UiSettingsModal({
     }
   };
 
+  const saveAsCustomDefault = async () => {
+    let settingsToPersist = settings;
+    if (
+      activeModalTab === "div_selector" &&
+      newSelector.trim() &&
+      editorHasChanges()
+    ) {
+      const updatedSettings = addCustomRule(true, false);
+      if (!updatedSettings) return;
+      settingsToPersist = updatedSettings;
+    }
+
+    try {
+      const defaultToSave: UiSettings = {
+        ...settingsToPersist,
+        preset: "default",
+      };
+      setSettings(defaultToSave);
+      await saveUserDefaultUiSettings(defaultToSave);
+      await persistSettings(defaultToSave);
+      setHasCustomDefault(true);
+      syncEditorBaseline();
+      toast.dismiss();
+      toast.success("Đã lưu giao diện hiện tại thành giao diện mẫu mặc định!");
+    } catch (e) {
+      console.error("Failed to save default UI settings", e);
+      toast.dismiss();
+      toast.error("Không thể lưu giao diện làm mặc định.");
+    }
+  };
+
   const resetSettings = async () => {
-    toast.info("Đang reset cài đặt...");
-    setSettings(defaultSettings);
-    persistedSettingsRef.current = defaultSettings;
-    await localforage.setItem(UI_SETTINGS_KEY, defaultSettings);
-    localStorage.setItem(
-      UI_SETTINGS_KEY + "_small",
-      JSON.stringify(defaultSettings),
-    );
-    toast.success("Đã reset cài đặt!");
-    window.dispatchEvent(new Event("ui-settings-changed"));
-    applyUiSettings(defaultSettings);
+    toast.info("Đang khôi phục giao diện mẫu mặc định...");
+    const userDef = await loadUserDefaultUiSettings();
+    const targetSettings = userDef
+      ? { ...defaultSettings, ...userDef, preset: "default" }
+      : defaultSettings;
+    setSettings(targetSettings);
+    persistedSettingsRef.current = targetSettings;
+    await persistSettings(targetSettings);
+    toast.dismiss();
+    toast.success("Đã khôi phục về giao diện mẫu mặc định!");
     onClose();
   };
 
@@ -1272,7 +1326,7 @@ export function UiSettingsModal({
         onClick={onClose}
       >
         <div 
-          className={`bg-white border-4 border-primary rounded-2xl shadow-hard-lg max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden transition-all duration-300 pointer-events-auto ${
+          className={`bg-white border-4 border-primary rounded-2xl shadow-hard-lg w-[96vw] max-w-6xl xl:max-w-7xl max-h-[92vh] h-[92vh] flex flex-col overflow-hidden transition-all duration-300 pointer-events-auto ${
             isInspecting || isCompactInspector ? "opacity-0 pointer-events-none scale-95 invisible" : "scale-100"
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -1706,23 +1760,40 @@ export function UiSettingsModal({
                 </div>
               </div>
             ) : (
-              /* Cài đặt chung (General Mode): MỤC 1 & MỤC 3 */
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Left Column: MỤC 1. MÀU SẮC & NỀN */}
-                <div className="flex flex-col gap-6">
-                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
-                    <h4 className="font-black text-sm text-primary tracking-widest uppercase border-b-2 border-primary/10 pb-2">
-                      1. MÀU SẮC & NỀN (COLORS & BG)
-                    </h4>
-                    <div className="flex flex-col gap-1.5 border-b border-dashed border-primary/10 pb-4 mb-2">
-                      <label htmlFor="preset-select" className="font-bold text-[0.8125rem] text-accent flex items-center gap-1.5">
-                        <span>🎨 Giao diện mẫu (Taste Preset)</span>
+              /* Cài đặt chung (General Mode): Hiển thị dạng màn hình ngang 2 cột (Widescreen 2-column Cockpit) */
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full items-start">
+                {/* CỘT TRÁI (LEFT COLUMN - 5 COLS): GIAO DIỆN MẪU, XEM TRƯỚC, FONT & THAO TÁC */}
+                <div className="lg:col-span-5 flex flex-col gap-4">
+                  {/* 1. GIAO DIỆN MẪU & XEM TRƯỚC */}
+                  <div className="bg-white p-4.5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
+                      <h4 className="font-black text-xs sm:text-sm text-primary tracking-widest uppercase flex items-center gap-1.5">
+                        <PaintBucket className="w-4 h-4 text-accent" />
+                        1. GIAO DIỆN MẪU & XEM TRƯỚC
+                      </h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase">
+                        Taste-Skill
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="preset-select" className="font-bold text-[0.8125rem] text-primary">
+                        Chọn giao diện mẫu (Taste Preset):
                       </label>
                       <select
                         id="preset-select"
-                        value={settings.preset || "systematic"}
-                        onChange={(e) => {
+                        value={settings.preset || "default"}
+                        onChange={async (e) => {
                           const pId = e.target.value;
+                          if (pId === "default") {
+                            const userDef = await loadUserDefaultUiSettings();
+                            const targetSettings = userDef
+                              ? { ...defaultSettings, ...userDef, preset: "default" }
+                              : defaultSettings;
+                            setSettings(targetSettings);
+                            toast.success("Đã áp dụng giao diện mẫu mặc định (Đã lưu cố định)");
+                            return;
+                          }
                           const presetData = TASTE_PRESETS[pId];
                           if (presetData) {
                             setSettings((prev) => ({
@@ -1746,273 +1817,59 @@ export function UiSettingsModal({
                             toast.success(`Đã áp dụng giao diện: ${presetData.name}`);
                           }
                         }}
-                        className="w-full border-2 border-primary rounded-lg p-2 font-bold text-sm outline-none focus:shadow-hard-sm transition-all bg-white text-primary"
+                        className="w-full border-2 border-primary rounded-lg p-2 font-bold text-xs sm:text-sm outline-none focus:shadow-hard-sm transition-all bg-white text-primary cursor-pointer"
                       >
-                        {Object.values(TASTE_PRESETS).map((p) => (
+                        <option value="default">⭐ Giao diện mẫu mặc định (Đã lưu cố định)</option>
+                        {ALL_TASTE_PRESETS.filter((p) => p.id !== "default").map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
                         ))}
                       </select>
-                      <p className="text-[10px] text-gray-500 font-medium">
-                        * Thay đổi giao diện mẫu sẽ tự động cấu hình các thông số màu sắc, bo góc và phông chữ của bảng theo chuẩn Taste-Skill.
+                      <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                        * Chọn giao diện mẫu sẽ đồng bộ bảng màu, phông chữ và bo góc chuẩn Taste-Skill.
                       </p>
+                    </div>
 
-                      {/* Live Theme & Table Preview Card */}
-                      <div className="mt-2.5">
-                        <ThemePreviewCard
-                          initialPresetId={settings.preset || "systematic"}
-                          customSettingsPreview={settings}
-                          compact={true}
-                          onApply={(pId, presetData) => {
-                            setSettings((prev) => ({
-                              ...prev,
-                              preset: pId,
-                              bg: presetData.bg,
-                              accent: presetData.accent,
-                              text: presetData.text,
-                              border: presetData.border,
-                              stripeColor1: presetData.stripeColor1,
-                              stripeColor2: presetData.stripeColor2,
-                              gridLineColor: presetData.gridLineColor,
-                              tableHeaderBg: presetData.tableHeaderBg,
-                              tableFooterBg: presetData.tableFooterBg,
-                              tableColumnHeaderBg: presetData.tableColumnHeaderBg,
-                              tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
-                              tableDataBg: presetData.tableDataBg,
-                              tableFont: presetData.tableFont,
-                              tableRadius: presetData.tableRadius,
-                            }));
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="accent-color"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Màu nhấn (Accent/Table)
-                      </label>
-                      <input
-                        id="accent-color"
-                        type="color"
-                        value={
-                          settings.accent?.startsWith("#") && settings.accent.length === 7
-                            ? settings.accent
-                            : "#7A9476"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, accent: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="text-color" className="font-bold text-[0.8125rem]">
-                        Màu chữ (Text)
-                      </label>
-                      <input
-                        id="text-color"
-                        type="color"
-                        value={
-                          settings.text?.startsWith("#") && settings.text.length === 7
-                            ? settings.text
-                            : "#4D3653"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, text: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="stripe-color1"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Nền Web: Màu sọc 1
-                      </label>
-                      <input
-                        id="stripe-color1"
-                        type="color"
-                        value={
-                          settings.stripeColor1?.startsWith("#") &&
-                          settings.stripeColor1.length === 7
-                            ? settings.stripeColor1
-                            : "#FFFFFF"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, stripeColor1: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="stripe-color2"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Nền Web: Màu sọc 2
-                      </label>
-                      <input
-                        id="stripe-color2"
-                        type="color"
-                        value={
-                          settings.stripeColor2?.startsWith("#") &&
-                          settings.stripeColor2.length === 7
-                            ? settings.stripeColor2
-                            : "#EFECE8"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, stripeColor2: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="border-color"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Viền & Đổ bóng (Border)
-                      </label>
-                      <input
-                        id="border-color"
-                        type="color"
-                        value={
-                          settings.border?.startsWith("#") && settings.border.length === 7
-                            ? settings.border
-                            : "#D3CCD8"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, border: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="grid-color"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Màu kẻ lưới (Grid Line)
-                      </label>
-                      <input
-                        id="grid-color"
-                        type="color"
-                        value={
-                          settings.gridLineColor?.startsWith("#") &&
-                          settings.gridLineColor.length === 7
-                            ? settings.gridLineColor
-                            : "#D3CCD8"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, gridLineColor: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="table-header-bg"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Nền Tiêu đề Bảng & Chân Bảng
-                      </label>
-                      <input
-                        id="table-header-bg"
-                        type="color"
-                        value={
-                          settings.tableHeaderBg?.startsWith("#") &&
-                          settings.tableHeaderBg.length === 7
-                            ? settings.tableHeaderBg
-                            : "#CFC4D6"
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSettings({ ...settings, tableHeaderBg: val, tableFooterBg: val });
+                    {/* Live Theme & Table Preview Card */}
+                    <div className="mt-1">
+                      <ThemePreviewCard
+                        initialPresetId={settings.preset || "default"}
+                        customSettingsPreview={settings}
+                        compact={true}
+                        onApply={(pId, presetData) => {
+                          setSettings((prev) => ({
+                            ...prev,
+                            preset: pId,
+                            bg: presetData.bg,
+                            accent: presetData.accent,
+                            text: presetData.text,
+                            border: presetData.border,
+                            stripeColor1: presetData.stripeColor1,
+                            stripeColor2: presetData.stripeColor2,
+                            gridLineColor: presetData.gridLineColor,
+                            tableHeaderBg: presetData.tableHeaderBg,
+                            tableFooterBg: presetData.tableFooterBg,
+                            tableColumnHeaderBg: presetData.tableColumnHeaderBg,
+                            tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
+                            tableDataBg: presetData.tableDataBg,
+                            tableFont: presetData.tableFont,
+                            tableRadius: presetData.tableRadius,
+                          }));
                         }}
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="table-column-header-bg"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Nền Tiêu đề Cột & Dòng Tổng Cộng
-                      </label>
-                      <input
-                        id="table-column-header-bg"
-                        type="color"
-                        value={
-                          settings.tableColumnHeaderBg?.startsWith("#") &&
-                          settings.tableColumnHeaderBg.length === 7
-                            ? settings.tableColumnHeaderBg
-                            : "#E3DBE8"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, tableColumnHeaderBg: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="table-column-header-text"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Màu Chữ Tiêu đề Cột & Tổng Cộng
-                      </label>
-                      <input
-                        id="table-column-header-text"
-                        type="color"
-                        value={
-                          settings.tableColumnHeaderTextColor?.startsWith("#") &&
-                          settings.tableColumnHeaderTextColor.length === 7
-                            ? settings.tableColumnHeaderTextColor
-                            : "#FFFFFF"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, tableColumnHeaderTextColor: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="table-data-bg"
-                        className="font-bold text-[0.8125rem]"
-                      >
-                        Nền Ô Dữ Liệu Bảng (Dữ liệu TD)
-                      </label>
-                      <input
-                        id="table-data-bg"
-                        type="color"
-                        value={
-                          settings.tableDataBg?.startsWith("#") &&
-                          settings.tableDataBg.length === 7
-                            ? settings.tableDataBg
-                            : "#FCFBFD"
-                        }
-                        onChange={(e) =>
-                          setSettings({ ...settings, tableDataBg: e.target.value })
-                        }
-                        className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm"
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Right Column: MỤC 2. FONT CHỮ & BẢNG + MỤC 3. DỮ LIỆU */}
-                <div className="flex flex-col gap-6">
-                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
-                    <h4 className="font-black text-sm text-primary tracking-widest uppercase border-b-2 border-primary/10 pb-2">
-                      2. FONT CHỮ & BẢNG (FONTS & TABLE)
+                  {/* KIỂU DÁNG & PHÔNG CHỮ BẢNG */}
+                  <div className="bg-white p-4.5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-3">
+                    <h4 className="font-black text-xs sm:text-sm text-primary tracking-widest uppercase border-b-2 border-primary/10 pb-2 flex items-center gap-1.5">
+                      <Type className="w-4 h-4 text-accent" />
+                      KIỂU DÁNG & PHÔNG CHỮ BẢNG
                     </h4>
+                    
                     <div className="flex flex-col gap-1">
-                      <label className="font-bold text-[0.8125rem]">
+                      <label className="font-bold text-[0.8125rem] text-slate-800">
                         Font chữ Bảng (Table Font)
                       </label>
                       <select
@@ -2020,10 +1877,10 @@ export function UiSettingsModal({
                         onChange={(e) =>
                           setSettings({ ...settings, tableFont: e.target.value })
                         }
-                        className="w-full border-2 border-primary rounded-lg p-2 font-bold text-sm outline-none focus:shadow-hard-sm transition-all bg-white text-primary"
+                        className="w-full border-2 border-primary rounded-lg p-2 font-bold text-xs sm:text-sm outline-none focus:shadow-hard-sm transition-all bg-white text-primary cursor-pointer"
                       >
                         <option value="var(--font-main)">Plus Jakarta Sans (Mặc định / Chuẩn)</option>
-                        <option value="var(--font-be-vietnam)">Be Vietnam Pro (Tối ưu Tiếng Việt hoàn hảo)</option>
+                        <option value="var(--font-be-vietnam)">Be Vietnam Pro (Tối ưu Tiếng Việt)</option>
                         <option value="var(--font-newsreader)">Newsreader (Serif Cổ điển / Báo chí)</option>
                         <option value="var(--font-port-lligat-slab)">Gentium Book Plus (Serif Thanh lịch)</option>
                         <option value="var(--font-nunito)">Nunito (Mềm mại)</option>
@@ -2031,15 +1888,15 @@ export function UiSettingsModal({
                       </select>
                     </div>
 
-                    <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-center justify-between">
-                        <label htmlFor="general-font-size" className="font-bold text-[0.8125rem]">
+                        <label htmlFor="gen-table-font-size" className="font-bold text-[0.8125rem] text-slate-800">
                           Cỡ chữ của bảng
                         </label>
-                        <span className="text-xs font-bold">{settings.fontSize || "13px"}</span>
+                        <span className="text-xs font-bold tabular-nums text-primary">{settings.fontSize || "13px"}</span>
                       </div>
                       <input
-                        id="general-font-size"
+                        id="gen-table-font-size"
                         type="range"
                         min="9"
                         max="20"
@@ -2048,43 +1905,336 @@ export function UiSettingsModal({
                         onChange={(e) =>
                           setSettings({ ...settings, fontSize: `${e.target.value}px` })
                         }
-                        className="w-full accent-primary"
+                        className="w-full accent-primary cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="gen-table-radius" className="font-bold text-[0.8125rem] text-slate-800">
+                          Bo góc bảng (Table Radius)
+                        </label>
+                        <span className="text-xs font-bold tabular-nums text-primary">{settings.tableRadius || "12px"}</span>
+                      </div>
+                      <input
+                        id="gen-table-radius"
+                        type="range"
+                        min="0"
+                        max="24"
+                        step="2"
+                        value={parseFloat(settings.tableRadius || "12") || 12}
+                        onChange={(e) =>
+                          setSettings({ ...settings, tableRadius: `${e.target.value}px`, radius: `${e.target.value}px` })
+                        }
+                        className="w-full accent-primary cursor-pointer"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
-                    <h4 className="font-black text-sm text-red-500 tracking-widest uppercase border-b-2 border-red-500/10 pb-2">
-                      3. DỮ LIỆU & LƯU TRỮ (DATA & ACTIONS)
+                  {/* DỮ LIỆU & LƯU TRỮ */}
+                  <div className="bg-white p-4.5 rounded-xl border-2 border-red-500/10 shadow-sm flex flex-col gap-2.5">
+                    <h4 className="font-black text-xs text-red-500 tracking-widest uppercase border-b border-red-500/10 pb-1.5 flex items-center gap-1.5">
+                      <Trash2 className="w-3.5 h-3.5" /> DỮ LIỆU & LƯU TRỮ
                     </h4>
-                    <div className="flex flex-col gap-3">
-                      <button
-                        onClick={() => setShowClearConfirm(true)}
-                        className="flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-xl font-bold border-2 border-red-200 transition-colors cursor-pointer text-sm uppercase tracking-wide"
-                      >
-                        <Trash2 className="w-5 h-5" /> Xóa toàn bộ dữ liệu web
-                      </button>
+                    <button
+                      onClick={() => setShowClearConfirm(true)}
+                      className="flex items-center justify-center gap-2 w-full bg-red-50 text-red-600 hover:bg-red-100 py-2 rounded-xl font-bold border-2 border-red-200 transition-colors cursor-pointer text-xs uppercase tracking-wide"
+                    >
+                      <Trash2 className="w-4 h-4" /> Xóa toàn bộ dữ liệu web
+                    </button>
+                  </div>
+                </div>
+
+                {/* CỘT PHẢI (RIGHT COLUMN - 7 COLS): BẢNG MÀU CHI TIẾT (PHẦN ẢNH 2) & CỐ ĐỊNH MẶC ĐỊNH */}
+                <div className="lg:col-span-7 flex flex-col gap-4">
+                  {/* 2. BẢNG MÀU CHI TIẾT & NỀN WEB (MÀU SẮC CHÍNH - ẢNH 2) */}
+                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
+                      <h4 className="font-black text-sm text-primary tracking-widest uppercase flex items-center gap-2">
+                        <PaintBucket className="w-4 h-4 text-accent" />
+                        2. BẢNG MÀU CHI TIẾT & NỀN WEB (COLORS & BG)
+                      </h4>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        Đồng bộ trực tiếp
+                      </span>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Màu nhấn */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="accent-color" className="font-bold text-[0.8125rem] text-slate-800">
+                            Màu nhấn (Accent/Table)
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.accent, defaultSettings.accent)}
+                          </span>
+                        </div>
+                        <input
+                          id="accent-color"
+                          type="color"
+                          value={colorToHex7(settings.accent, defaultSettings.accent)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, accent: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Màu chữ */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="text-color" className="font-bold text-[0.8125rem] text-slate-800">
+                            Màu chữ chính (Text)
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.text, defaultSettings.text)}
+                          </span>
+                        </div>
+                        <input
+                          id="text-color"
+                          type="color"
+                          value={colorToHex7(settings.text, defaultSettings.text)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, text: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Nền Web: Màu sọc 1 */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="stripe-color1" className="font-bold text-[0.8125rem] text-slate-800">
+                            Nền Web: Màu sọc 1
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.stripeColor1, defaultSettings.stripeColor1)}
+                          </span>
+                        </div>
+                        <input
+                          id="stripe-color1"
+                          type="color"
+                          value={colorToHex7(settings.stripeColor1, defaultSettings.stripeColor1)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, stripeColor1: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Nền Web: Màu sọc 2 */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="stripe-color2" className="font-bold text-[0.8125rem] text-slate-800">
+                            Nền Web: Màu sọc 2
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.stripeColor2, defaultSettings.stripeColor2)}
+                          </span>
+                        </div>
+                        <input
+                          id="stripe-color2"
+                          type="color"
+                          value={colorToHex7(settings.stripeColor2, defaultSettings.stripeColor2)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, stripeColor2: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Viền & Đổ bóng */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="border-color" className="font-bold text-[0.8125rem] text-slate-800">
+                            Viền & Đổ bóng (Border)
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.border, defaultSettings.border)}
+                          </span>
+                        </div>
+                        <input
+                          id="border-color"
+                          type="color"
+                          value={colorToHex7(settings.border, defaultSettings.border)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, border: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Màu kẻ lưới */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="grid-color" className="font-bold text-[0.8125rem] text-slate-800">
+                            Màu kẻ lưới (Grid Line)
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.gridLineColor, colorToHex7(defaultSettings.gridLineColor, "#C8D7C9"))}
+                          </span>
+                        </div>
+                        <input
+                          id="grid-color"
+                          type="color"
+                          value={colorToHex7(settings.gridLineColor, colorToHex7(defaultSettings.gridLineColor, "#C8D7C9"))}
+                          onChange={(e) =>
+                            setSettings({ ...settings, gridLineColor: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MÀU SẮC CHUYÊN SÂU BẢNG TÍNH */}
+                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
+                    <h4 className="font-black text-sm text-primary tracking-widest uppercase border-b-2 border-primary/10 pb-2 flex items-center gap-2">
+                      <Table2 className="w-4 h-4 text-accent" />
+                      MÀU SẮC BẢNG TÍNH CHI TIẾT (TABLE SPECIFIC)
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Nền Tiêu đề Bảng & Chân Bảng */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="table-header-bg" className="font-bold text-[0.8125rem] text-slate-800">
+                            Nền Tiêu đề Bảng & Chân Bảng
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.tableHeaderBg, defaultSettings.tableHeaderBg)}
+                          </span>
+                        </div>
+                        <input
+                          id="table-header-bg"
+                          type="color"
+                          value={colorToHex7(settings.tableHeaderBg, defaultSettings.tableHeaderBg)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSettings({ ...settings, tableHeaderBg: val, tableFooterBg: val });
+                          }}
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Nền Tiêu đề Cột & Dòng Tổng Cộng */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="table-column-header-bg" className="font-bold text-[0.8125rem] text-slate-800">
+                            Nền Tiêu đề Cột & Tổng Cộng
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.tableColumnHeaderBg, defaultSettings.tableColumnHeaderBg)}
+                          </span>
+                        </div>
+                        <input
+                          id="table-column-header-bg"
+                          type="color"
+                          value={colorToHex7(settings.tableColumnHeaderBg, defaultSettings.tableColumnHeaderBg)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, tableColumnHeaderBg: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Màu Chữ Tiêu đề Cột & Tổng Cộng */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="table-column-header-text" className="font-bold text-[0.8125rem] text-slate-800">
+                            Màu Chữ Tiêu đề Cột
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.tableColumnHeaderTextColor, defaultSettings.tableColumnHeaderTextColor)}
+                          </span>
+                        </div>
+                        <input
+                          id="table-column-header-text"
+                          type="color"
+                          value={colorToHex7(settings.tableColumnHeaderTextColor, defaultSettings.tableColumnHeaderTextColor)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, tableColumnHeaderTextColor: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+
+                      {/* Nền Ô Dữ Liệu Bảng (Dữ liệu TD) */}
+                      <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="flex flex-col">
+                          <label htmlFor="table-data-bg" className="font-bold text-[0.8125rem] text-slate-800">
+                            Nền Ô Dữ Liệu Bảng (TD)
+                          </label>
+                          <span className="font-mono text-[11px] text-slate-500">
+                            {colorToHex7(settings.tableDataBg, defaultSettings.tableDataBg)}
+                          </span>
+                        </div>
+                        <input
+                          id="table-data-bg"
+                          type="color"
+                          value={colorToHex7(settings.tableDataBg, defaultSettings.tableDataBg)}
+                          onChange={(e) =>
+                            setSettings({ ...settings, tableDataBg: e.target.value })
+                          }
+                          className="w-10 h-10 cursor-pointer border-2 border-primary rounded-lg p-0.5 shadow-hard-sm shrink-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. GIAO DIỆN MẪU MẶC ĐỊNH & CỐ ĐỊNH */}
+                  <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-3">
+                    <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
+                      <h4 className="font-black text-sm text-primary tracking-widest uppercase flex items-center gap-1.5">
+                        <BookmarkCheck className="w-4 h-4 text-amber-500" />
+                        3. GIAO DIỆN MẪU MẶC ĐỊNH (CỐ ĐỊNH)
+                      </h4>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                        Cố định vĩnh viễn
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Lưu toàn bộ màu sắc, phông chữ và các quy tắc tuỳ biến của giao diện hiện tại thành giao diện mẫu mặc định cố định. Giao diện này sẽ trở thành giao diện chuẩn duy nhất của hệ thống khi mở web và không thể khôi phục lại giao diện gốc ban đầu.
+                    </p>
+
+                    <button
+                      onClick={saveAsCustomDefault}
+                      className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-xl font-black border-2 border-amber-600 transition-all cursor-pointer text-xs uppercase tracking-wider shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
+                    >
+                      <BookmarkCheck className="w-4 h-4" />
+                      Lưu giao diện hiện tại làm mặc định (Cố định)
+                    </button>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-  <div className="p-4 flex gap-3 bg-background border-t-2 border-primary/10 shrink-0">
-    <button
-      onClick={saveSettings}
-      className="flex-1 text-primary-foreground py-2.5 rounded-xl font-bold border-2 border-primary bg-primary hover:bg-primary/95 hover:shadow-none shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer text-sm uppercase tracking-wider"
-    >
-      Lưu Lại
-    </button>
-    <button
-      onClick={resetSettings}
-      className="flex-1 bg-white text-primary py-2.5 rounded-xl font-bold border-2 border-primary hover:bg-primary/5 hover:shadow-none shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer text-sm uppercase tracking-wider"
-    >
-      Mặc định
-    </button>
-  </div>
+          {/* FOOTER: KHÔNG CÓ NÚT KHÔI PHỤC MẶC ĐỊNH */}
+          <div className="p-4 flex flex-wrap items-center justify-between gap-3 bg-background border-t-2 border-primary/10 shrink-0">
+            <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+              <BookmarkCheck className="w-4 h-4 text-amber-600" />
+              <span>Giao diện đã lưu làm mặc định sẽ là cấu hình chuẩn cuối cùng của hệ thống.</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={saveSettings}
+                className="text-primary-foreground py-2.5 px-6 rounded-xl font-black border-2 border-primary bg-primary hover:bg-primary/95 shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer text-xs md:text-sm uppercase tracking-wider"
+              >
+                Lưu Lại
+              </button>
+              <button
+                onClick={saveAsCustomDefault}
+                title="Lưu toàn bộ màu sắc, phông chữ và style tuỳ chỉnh hiện tại thành giao diện mẫu mặc định cố định"
+                className="bg-amber-600 hover:bg-amber-500 text-white py-2.5 px-6 rounded-xl font-black border-2 border-amber-700 shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer text-xs md:text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <BookmarkCheck className="w-4 h-4 shrink-0" />
+                Lưu làm mặc định (Cố định)
+              </button>
+            </div>
+          </div>
 
   <ConfirmDialog
         isOpen={showClearConfirm}

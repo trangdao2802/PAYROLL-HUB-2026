@@ -1176,7 +1176,7 @@ export function MasterAE() {
 
                           <DataTable
                             className="!overflow-visible"
-                            hideColumnVisibilityToggle={false}
+                            hideColumnVisibilityToggle={true}
                             showRowNumber={true}
                             scrollContainerStyle={{ borderRadius: "0", border: "none" }}
                             storageKey={`master-ae-${activeTab}`}
