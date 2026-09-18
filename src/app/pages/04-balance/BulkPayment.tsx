@@ -2167,7 +2167,7 @@ export function BulkPayment({
             </div>
           </div>
 
-          <div className="master-panel-tabs flex items-center gap-1 p-1.5 border-b shrink-0">
+          <div className="master-panel-tabs flex items-center gap-1 py-[12px] px-[6px] border-b shrink-0">
             {[
               { id: "summary", label: "Overview", icon: Layers },
               {
@@ -2226,7 +2226,7 @@ export function BulkPayment({
                       </span>
                     </div>
 
-                    <div className="bu-summary-card border rounded-xl p-3 shadow-xs flex flex-col gap-2.5">
+                    <div className="bu-summary-card border-0 rounded-xl p-3 shadow-xs flex flex-col gap-2.5">
                       <div className="flex items-center justify-between border-b pb-2 gap-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

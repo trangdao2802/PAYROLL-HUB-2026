@@ -4200,3 +4200,7 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 /* removed border-right: none hack */
 
 /* removed border-bottom: none hack */
+
+/* Bulk Payment panel spacing shared across viewport sizes. */
+.bulk-payment-layout #table-card { padding-bottom: 0 !important; }
+.bulk-payment-layout .bu-summary-card { border-width: 0 !important; }

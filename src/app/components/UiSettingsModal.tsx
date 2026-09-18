@@ -1,3 +1,4 @@
+import { getVisibleTastePresets, deleteTastePreset } from "../lib/theme-preset-library";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
@@ -39,14 +40,12 @@ import {
   UI_SETTINGS_KEY,
   applyUiSettings,
   loadUiSettings,
+  saveUiSettings,
   saveUserDefaultUiSettings,
   loadUserDefaultUiSettings,
   clearUserDefaultUiSettings,
   getUserDefaultUiSettingsSync,
   colorToHex7,
-  TASTE_PRESETS,
-  CURATED_PRESETS,
-  ALL_TASTE_PRESETS,
   isSafeCustomSelector,
   normalizeCssLength,
 } from "../lib/ui-settings";
@@ -1326,7 +1325,7 @@ export function UiSettingsModal({
         onClick={onClose}
       >
         <div 
-          className={`bg-white border-4 border-primary rounded-2xl shadow-hard-lg w-[96vw] max-w-6xl xl:max-w-7xl max-h-[92vh] h-[92vh] flex flex-col overflow-hidden transition-all duration-300 pointer-events-auto ${
+          className={`bg-white border-4 border-primary rounded-2xl shadow-hard-lg w-[96vw] max-w-[960px] max-h-[92vh] h-[92vh] flex flex-col overflow-hidden transition-all duration-300 pointer-events-auto ${
             isInspecting || isCompactInspector ? "opacity-0 pointer-events-none scale-95 invisible" : "scale-100"
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -1760,10 +1759,10 @@ export function UiSettingsModal({
                 </div>
               </div>
             ) : (
-              /* Cài đặt chung (General Mode): Hiển thị dạng màn hình ngang 2 cột (Widescreen 2-column Cockpit) */
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full items-start">
+              /* General settings use a single scrolling column. */
+              <div className="flex flex-col gap-5 w-full">
                 {/* CỘT TRÁI (LEFT COLUMN - 5 COLS): GIAO DIỆN MẪU, XEM TRƯỚC, FONT & THAO TÁC */}
-                <div className="lg:col-span-5 flex flex-col gap-4">
+                <div className="flex flex-col gap-4 w-full">
                   {/* 1. GIAO DIỆN MẪU & XEM TRƯỚC */}
                   <div className="bg-white p-4.5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-3">
                     <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
@@ -1794,7 +1793,7 @@ export function UiSettingsModal({
                             toast.success("Đã áp dụng giao diện mẫu mặc định (Đã lưu cố định)");
                             return;
                           }
-                          const presetData = TASTE_PRESETS[pId];
+                          const presetData = getVisibleTastePresets().find(p => p.id === pId);
                           if (presetData) {
                             setSettings((prev) => ({
                               ...prev,
@@ -1812,20 +1811,29 @@ export function UiSettingsModal({
                               tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
                               tableDataBg: presetData.tableDataBg,
                               tableFont: presetData.tableFont,
-                              tableRadius: presetData.tableRadius,
+                              tableRadius: "0px",
                             }));
                             toast.success(`Đã áp dụng giao diện: ${presetData.name}`);
                           }
                         }}
                         className="w-full border-2 border-primary rounded-lg p-2 font-bold text-xs sm:text-sm outline-none focus:shadow-hard-sm transition-all bg-white text-primary cursor-pointer"
                       >
-                        <option value="default">⭐ Giao diện mẫu mặc định (Đã lưu cố định)</option>
-                        {ALL_TASTE_PRESETS.filter((p) => p.id !== "default").map((p) => (
+                        {getVisibleTastePresets().map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
                         ))}
                       </select>
+                      <button type="button" disabled={getVisibleTastePresets().length <= 1} className="self-end text-xs text-destructive disabled:opacity-40 inline-flex items-center gap-1" onClick={async () => {
+                        deleteTastePreset(settings.preset || "default");
+                        const fallback = getVisibleTastePresets()[0];
+                        const next = { ...settings, ...fallback, preset: fallback.id, tableRadius: "0px" };
+                        setSettings(next);
+                        await saveUiSettings(next);
+                        if (hasCustomDefault) await saveUserDefaultUiSettings(next);
+                        persistedSettingsRef.current = next;
+                        toast.success("Đã xoá giao diện mẫu khỏi danh sách");
+                      }}><Trash2 className="w-3 h-3" /> Xoá giao diện mẫu</button>
                       <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
                         * Chọn giao diện mẫu sẽ đồng bộ bảng màu, phông chữ và bo góc chuẩn Taste-Skill.
                       </p>
@@ -1854,7 +1862,7 @@ export function UiSettingsModal({
                             tableColumnHeaderTextColor: presetData.tableColumnHeaderTextColor,
                             tableDataBg: presetData.tableDataBg,
                             tableFont: presetData.tableFont,
-                            tableRadius: presetData.tableRadius,
+                            tableRadius: "0px",
                           }));
                         }}
                       />
@@ -1909,26 +1917,7 @@ export function UiSettingsModal({
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="gen-table-radius" className="font-bold text-[0.8125rem] text-slate-800">
-                          Bo góc bảng (Table Radius)
-                        </label>
-                        <span className="text-xs font-bold tabular-nums text-primary">{settings.tableRadius || "12px"}</span>
-                      </div>
-                      <input
-                        id="gen-table-radius"
-                        type="range"
-                        min="0"
-                        max="24"
-                        step="2"
-                        value={parseFloat(settings.tableRadius || "12") || 12}
-                        onChange={(e) =>
-                          setSettings({ ...settings, tableRadius: `${e.target.value}px`, radius: `${e.target.value}px` })
-                        }
-                        className="w-full accent-primary cursor-pointer"
-                      />
-                    </div>
+
                   </div>
 
                   {/* DỮ LIỆU & LƯU TRỮ */}
@@ -1946,7 +1935,7 @@ export function UiSettingsModal({
                 </div>
 
                 {/* CỘT PHẢI (RIGHT COLUMN - 7 COLS): BẢNG MÀU CHI TIẾT (PHẦN ẢNH 2) & CỐ ĐỊNH MẶC ĐỊNH */}
-                <div className="lg:col-span-7 flex flex-col gap-4">
+                <div className="flex flex-col gap-4 w-full">
                   {/* 2. BẢNG MÀU CHI TIẾT & NỀN WEB (MÀU SẮC CHÍNH - ẢNH 2) */}
                   <div className="bg-white p-5 rounded-xl border-2 border-primary/10 shadow-sm flex flex-col gap-4">
                     <div className="flex items-center justify-between border-b-2 border-primary/10 pb-2">
