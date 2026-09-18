@@ -4204,3 +4204,21 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 /* Bulk Payment panel spacing shared across viewport sizes. */
 .bulk-payment-layout #table-card { padding-bottom: 0 !important; }
 .bulk-payment-layout .bu-summary-card { border-width: 0 !important; }
+/* Table switch labels use a fixed readable size at all viewport widths. */
+.navbar-view-trigger,
+.navbar-view-trigger .navbar-current-label {
+  font-size: 13px !important;
+}
+
+/* Only the BU detail report uses the requested black, borderless surface. */
+.bulk-payment-layout .payroll-theme-card.bu-report-card {
+  background: #000 !important;
+  border-width: 0 !important;
+  color: #fff;
+}
+.bulk-payment-layout .bu-report-card .bu-report-header,
+.bulk-payment-layout .bu-report-card .bu-report-header > span,
+.bulk-payment-layout .bu-report-card .border-t,
+.bulk-payment-layout .bu-report-card .border-t > span {
+  color: #fff !important;
+}
