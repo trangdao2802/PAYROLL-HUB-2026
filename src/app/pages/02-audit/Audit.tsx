@@ -809,26 +809,25 @@ export function Audit() {
       label: "STATUS",
       sortable: true,
       filterable: true,
-      width: 150,
+      width: 180,
+      align: "center",
       headerStyle: {
         fontSize: "0.65rem",
         padding: "0.5rem",
       },
       render: (val: string, row: any) => (
-        <div className="flex items-center gap-2 w-full pr-2">
-          <span
-            className={`px-3 py-1 rounded-full text-[0.625rem] font-bold uppercase tracking-widest flex items-center justify-center truncate tabular-nums shrink-0 ${
-              row.statusColor === "emerald"
-                ? "bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm w-[75px]"
-                : row.statusColor === "amber"
-                  ? "bg-amber-100 text-amber-700 border border-amber-200 shadow-sm flex-1 min-w-[120px]"
-                  : "bg-rose-100 text-rose-700 border border-rose-200 shadow-sm flex-1 min-w-[120px]"
-            }`}
-            title={val}
-          >
-            {val}
-          </span>
-        </div>
+        <span
+          className={`inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full border px-2 py-1 text-[0.625rem] font-bold uppercase tracking-normal shadow-sm ${
+            row.statusColor === "emerald"
+              ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+              : row.statusColor === "amber"
+                ? "bg-amber-100 text-amber-700 border-amber-200"
+                : "bg-rose-100 text-rose-700 border-rose-200"
+          }`}
+          title={val}
+        >
+          {val}
+        </span>
       ),
     },
     {

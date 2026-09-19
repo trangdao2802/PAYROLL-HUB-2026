@@ -2845,13 +2845,13 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
           {/* BU Filter Bar */}
           {buColumn && (
             <div
-              className="bu-filter-bar flex items-center justify-between gap-2 px-3 py-1.5 border-b shrink-0 overflow-x-auto select-none z-10"
+              className="bu-filter-bar flex h-9 min-h-9 max-h-9 flex-none items-center justify-between gap-2 px-3 border-b overflow-x-auto select-none z-10"
               style={{
                 backgroundColor: "var(--table-sub-header-bg, #EDE4DB)",
                 borderColor: "var(--grid-line-color, var(--border, #E2E8F0))",
               }}
             >
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground mr-1">
                   <Filter className="w-3 h-3 text-primary" />
                   <span>Lọc BU:</span>
@@ -2938,7 +2938,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
             <table
               className={`border-separate border-spacing-0 table-fixed border-l border-t border-[var(--grid-line-color,#E2E8F0)] bg-white ${isSelecting ? "select-none" : ""}`}
               style={{
-                width: totalTableWidth,
+                width: "100%",
                 minWidth: totalTableWidth,
                 minHeight: paginatedData.length === 0 ? 400 : 0,
                 borderWidth: "0px",

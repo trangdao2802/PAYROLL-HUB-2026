@@ -1234,8 +1234,9 @@ tfoot[class*="sticky"] td {
   max-height: calc(100vh - 180px) !important;
 }
 
-.data-table-wrapper > div:first-child,
-.audit-data-table-wrapper > div:first-child {
+/* Audit starts with a BU toolbar; only its scrollable grid may grow. */
+.data-table-wrapper:not(.audit-data-table-wrapper) > div:first-child,
+.audit-data-table-wrapper > .table-body-region {
   max-height: none !important;
   flex-grow: 1;
 }
@@ -2333,8 +2334,7 @@ header.table-header,
   padding-right: 16px !important;
 }
 
-/* Audit's first child is the scrollable grid, not a title header. Keep the
-   table and both scrollbars flush with the frame on every Audit view. */
+/* Keep Audit's scrollable grid flush with the frame, with or without a BU bar. */
 .data-table-wrapper.audit-data-table-wrapper > div.table-body-region {
   padding: 0 !important;
 }
