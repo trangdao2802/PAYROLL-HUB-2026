@@ -983,7 +983,7 @@ export function MasterAE() {
                             <button type="button" onClick={() => handleAddRow()} className="rounded-full border border-border px-3 py-1.5 text-xs">Thêm dòng</button>
                           </div>
                           <p className="text-[0.625rem] font-bold uppercase opacity-40 tracking-widest mt-2 text-center max-w-md">
-                            Vui lòng vào phần Cấu hình để chọn file AE Final, hệ thống sẽ tự động cập nhật dữ liệu.
+                            Vui lòng vào phần Setting Master để chọn file AE Final, hệ thống sẽ tự động cập nhật dữ liệu.
                           </p>
                         </div>
                       ) : (

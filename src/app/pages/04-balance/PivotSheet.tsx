@@ -1282,12 +1282,12 @@ export function PivotSheet() {
         }
 
         if (showToastMsg) {
-          toast.success("Đã đồng bộ lại dữ liệu Pivot Master từ bảng Cài đặt & Tải file (Master)");
+          toast.success("Đã đồng bộ lại dữ liệu Pivot Master từ bảng Setting Master");
         }
       } else {
         if (showToastMsg) {
           toast.info(
-            "Chưa có dữ liệu Master đã xử lý. Đang mở bảng Cài đặt & tải file (Master).",
+            "Chưa có dữ liệu Master đã xử lý. Đang mở bảng Setting Master.",
           );
           window.dispatchEvent(new Event("master-ae-request-upload"));
         }
@@ -1814,7 +1814,7 @@ export function PivotSheet() {
       return (
         <tr>
           <td colSpan={6 + safeTypeColumns.length} className="bg-card py-12 text-center text-sm text-muted-foreground">
-            <span>Chưa có dữ liệu. Vui lòng tải file ở bảng <span className="font-semibold text-foreground/70">Cài đặt & Tải file (Master)</span> và nhấn <span className="font-semibold text-foreground/70">Xử lý dữ liệu</span>.</span>
+            <span>Chưa có dữ liệu. Vui lòng tải file ở bảng <span className="font-semibold text-foreground/70">Setting Master</span> và nhấn <span className="font-semibold text-foreground/70">Xử lý dữ liệu</span>.</span>
           </td>
         </tr>
       );

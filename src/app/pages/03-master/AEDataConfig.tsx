@@ -662,11 +662,11 @@ export function AEDataConfig({
             <div className="app-table-title-lockup min-w-0 flex-1">
               <div className="app-table-title-line">
                 <TableInitialMark
-                  label="Cài đặt & Tải file (Master)"
+                  label="Setting Master"
                   className="shrink-0 text-primary"
                 />
                 <h1 className="truncate text-base font-extrabold leading-5 tracking-tight text-foreground">
-                  <TableTitleRemainder label="Cài đặt & Tải file (Master)" />
+                  <TableTitleRemainder label="Setting Master" />
                 </h1>
               </div>
               <div className="app-table-title-meta flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium leading-4 text-muted-foreground">

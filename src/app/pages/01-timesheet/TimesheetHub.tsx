@@ -850,7 +850,7 @@ export function TimesheetHub() {
 
   useEffect(() => {
     const tabId = view === "upload" ? "upload" : activeTab;
-    const label = tabId === "upload" ? "Settings & Upload (Timesheet)" : (tabs.find((t) => t.id === activeTab)?.label || "Timesheet Overview");
+    const label = tabId === "upload" ? "Setting Timesheet" : (tabs.find((t) => t.id === activeTab)?.label || "Timesheet Overview");
     const event = new CustomEvent("timesheet-tab-changed", { detail: { label, tab: tabId } });
     window.dispatchEvent(event);
   }, [activeTab, view, tabs]);
@@ -2169,9 +2169,10 @@ export function TimesheetHub() {
                       <button 
                         className="btn-primary w-full h-9 flex items-center justify-center gap-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs uppercase tracking-wider transition-all shadow-xs active:scale-[0.98]"
                         onClick={() => setView("upload")}
+                        title="Setting Timesheet"
                       >
                         <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
-                        <span>Cấu hình / Tải file</span>
+                        <span>Setting Timesheet</span>
                       </button>
                     </div>
                   </div>

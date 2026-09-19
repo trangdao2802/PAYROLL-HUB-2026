@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Link, useLocation } from "react-router";
 import { ThemeSwitcher } from "../ThemeSwitcher";
+import { DataChangeHistoryToggle } from "../DataChangeHistoryToggle";
 import {
   CircleDollarSign,
   Building2,
@@ -58,7 +59,7 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
     { id: "center", label: "Roster Center", icon: Building2 },
     { id: "mkt_local_north", label: "Pivot Timesheet", icon: FileText },
     { id: "roster_raw", label: "Raw Data", icon: FileText },
-    { id: "upload", label: "Cài đặt & Tải file (Timesheet)", icon: UploadCloud },
+    { id: "upload", label: "Setting Timesheet", icon: UploadCloud },
   ],
   "/audit": [
     { id: "main", label: "Audit Overview", icon: ShieldCheck },
@@ -70,7 +71,7 @@ const pageTabs: Record<string, { id: string; label: string; icon: React.ElementT
     { id: "Hold_AE", label: "Deductions", icon: Database },
     { id: "BulkPayment", label: "Bulk Payment", icon: Wallet },
     { id: "Pivot", label: "Pivot Master", icon: FileText },
-    { id: "upload", label: "Cài đặt & Tải file (Master)", icon: UploadCloud },
+    { id: "upload", label: "Setting Master", icon: UploadCloud },
   ],
 };
 
@@ -297,6 +298,9 @@ export function Navbar({ onOpenSettings }: NavbarProps) {
                   />
                 </div>
               )}
+
+              {/* Recent Data Changes History Toggle */}
+              <DataChangeHistoryToggle />
 
               {/* Theme Preview Card Dropdown Trigger */}
               <ThemeSwitcher />

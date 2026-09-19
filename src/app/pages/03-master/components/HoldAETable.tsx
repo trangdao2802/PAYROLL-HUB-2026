@@ -734,7 +734,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       if (isCurrentMonthLocked) { toast.error("Tháng đã khóa. Hãy mở khóa trước khi khôi phục."); return; }
       if (appData.TableOriginals && Object.prototype.hasOwnProperty.call(appData.TableOriginals, "Hold_AE")) { restoreTable(["Hold_AE"]); return; }
       if (!appData.Hold_AE_Source) {
-        toast.error("Chưa có bản dữ liệu gốc. Vui lòng xử lý lại file nguồn trong Cấu hình để tạo bản khôi phục.");
+        toast.error("Chưa có bản dữ liệu gốc. Vui lòng xử lý lại file nguồn trong Setting Master để tạo bản khôi phục.");
         return;
       }
       updateAppData((prev: any) => ({

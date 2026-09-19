@@ -130,14 +130,11 @@ export const KeyboardShortcutsModal: React.FC = () => {
         type="button"
         id="btn-global-keyboard-shortcuts"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-3 right-3 z-40 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-md backdrop-blur-xs text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary transition-all active:scale-95 cursor-pointer select-none group"
-        title="Danh sách phím tắt hệ thống (Ctrl + /)"
+        className="fixed bottom-3 right-3 z-40 flex h-8 w-8 items-center justify-center rounded-full bg-background/50 hover:bg-background/80 border border-border/50 shadow-xs backdrop-blur-md text-muted-foreground hover:text-primary transition-all active:scale-95 cursor-pointer select-none group"
+        title="Phím tắt hệ thống (Ctrl + /)"
+        aria-label="Phím tắt hệ thống (Ctrl + /)"
       >
-        <Keyboard className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-        <span className="text-[11px] font-medium hidden sm:inline">Phím tắt</span>
-        <kbd className="hidden sm:inline-block px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-700 text-[10px] font-mono text-slate-500 border border-slate-200 dark:border-slate-600">
-          ?
-        </kbd>
+        <Keyboard className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
       </button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

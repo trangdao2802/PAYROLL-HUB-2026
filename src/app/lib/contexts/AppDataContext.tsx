@@ -25,6 +25,10 @@ import {
   hasRequiredDeductionsFields,
   selectValidDeductionsRowsWithSourceIndexes,
 } from "../utils/deductions-row-validation";
+import {
+  detectAndRecordAppDataChanges,
+  recordDataChange,
+} from "../utils/data-change-tracker";
 
 // Configure localforage
 localforage.config({
@@ -650,6 +654,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         const nextPresent = trackTableOriginals(prev.present, normalized, saveToHistory, sourceFields);
         if (nextPresent === prev.present) return prev;
         if (persistImmediately) immediatePersistRequestedRef.current = true;
+        try {
+          detectAndRecordAppDataChanges(prev.present, nextPresent, sourceFields);
+        } catch {
+          // Ignore telemetry errors
+        }
         return {
           past: saveToHistory
             ? [...prev.past, prev.present].slice(-3)
@@ -666,6 +675,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => {
       if (prev.past.length === 0) return prev;
       const previous = prev.past[prev.past.length - 1];
+      try {
+        recordDataChange({
+          actionType: "restore",
+          entity: "Hoàn tác",
+          summary: "Hoàn tác thao tác chỉnh sửa (Undo)",
+          details: "Khôi phục lại trạng thái dữ liệu trước đó",
+        });
+      } catch {
+        // Ignore
+      }
       return {
         past: prev.past.slice(0, -1),
         present: previous,
@@ -678,6 +697,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => {
       if (prev.future.length === 0) return prev;
       const next = prev.future[0];
+      try {
+        recordDataChange({
+          actionType: "sync",
+          entity: "Làm lại",
+          summary: "Làm lại thao tác chỉnh sửa (Redo)",
+          details: "Áp dụng lại trạng thái kế tiếp",
+        });
+      } catch {
+        // Ignore
+      }
       return {
         past: [...prev.past, prev.present],
         present: next,

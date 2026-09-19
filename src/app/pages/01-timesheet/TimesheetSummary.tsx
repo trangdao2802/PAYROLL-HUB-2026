@@ -1252,11 +1252,11 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
             <div className="app-table-title-lockup min-w-0 flex-1">
               <div className="app-table-title-line">
                 <TableInitialMark
-                  label="Settings & Upload (Timesheet)"
+                  label="Setting Timesheet"
                   className="shrink-0 text-primary"
                 />
                 <h1 className="truncate text-base leading-5 font-bold tracking-tight text-foreground">
-                  <TableTitleRemainder label="Settings & Upload (Timesheet)" />
+                  <TableTitleRemainder label="Setting Timesheet" className="font-bold" style={{ fontWeight: "bold" }} />
                 </h1>
               </div>
               <div className="app-table-title-meta flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-muted-foreground">
