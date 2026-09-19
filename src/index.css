@@ -1,6 +1,14 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,700&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Voyage";
+  src: url("/fonts/Voyage.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 .ui-inspector-selected {
   outline: 3px solid #78a6ff !important;
   outline-offset: 2px !important;
@@ -93,7 +101,7 @@
 .app-table-initial-mark {
   font-size: 15px !important;
 
-  display: inline-flex;
+  display: inline-block;
   width: max-content;
   box-sizing: border-box;
   flex: 0 0 auto;
@@ -101,7 +109,7 @@
   justify-content: center;
   overflow: visible;
   color: var(--primary, #8E4A49);
-  line-height: 1;
+  line-height: 0;
   vertical-align: baseline !important;
   align-self: baseline !important;
   margin-right: 0 !important;
@@ -144,9 +152,9 @@
 .app-table-title-remainder {
   display: inline-block;
   color: var(--primary, #8E4A49) !important;
-  font-family: "Macondo Swash Caps", "Port Lligat Slab", "Newsreader", Georgia, serif !important;
+  font-family: "Voyage", "Be Vietnam Pro", Georgia, serif !important;
   font-size: 15px !important;
-  font-weight: 700 !important;
+  font-weight: 400 !important;
   letter-spacing: -0.025em;
   line-height: 1.35 !important;
   padding-block: 0;
@@ -250,9 +258,9 @@
    corresponding table titles. */
 .navbar-current-label {
   color: var(--primary, #8E4A49) !important;
-  font-family: "Macondo Swash Caps", "Port Lligat Slab", "Newsreader", Georgia, serif !important;
+  font-family: "Voyage", "Be Vietnam Pro", Georgia, serif !important;
 
-  font-weight: 700 !important;
+  font-weight: 400 !important;
   line-height: 1.35 !important;
   padding-block: 0.12em 0.08em;
   transform: translateY(1px);
@@ -4210,17 +4218,17 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   font-size: 13px !important;
 }
 
-/* Only the BU detail report uses the requested black, borderless surface. */
+/* Balance follows the user's interface colors, including custom backgrounds. */
 .bulk-payment-layout .payroll-theme-card.bu-report-card {
-  background: #000 !important;
+  background: var(--background) !important;
   border-width: 0 !important;
-  color: #fff;
+  color: var(--foreground) !important;
 }
 .bulk-payment-layout .bu-report-card .bu-report-header,
 .bulk-payment-layout .bu-report-card .bu-report-header > span,
 .bulk-payment-layout .bu-report-card .border-t,
 .bulk-payment-layout .bu-report-card .border-t > span {
-  color: #fff !important;
+  color: var(--foreground) !important;
 }
 
 div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) {

@@ -21,7 +21,7 @@ const tableTitleFiles = [
   "src/app/pages/04-balance/components/HoldAddDashboard.tsx",
 ];
 
-test("all branded table headers use the shared Macondo title remainder", () => {
+test("all branded table headers use the shared title remainder", () => {
   for (const file of tableTitleFiles) {
     const source = readSource(file);
     assert.match(source, /<TableInitialMark/, `${file} must render the branded initial`);
@@ -29,15 +29,16 @@ test("all branded table headers use the shared Macondo title remainder", () => {
   }
 });
 
-test("table and page titles share the requested Macondo styling and baseline", () => {
+test("table and page titles share the supplied Voyage font without vertical offsets", () => {
   const styles = readSource("src/index.css");
   const navbar = readSource("src/app/components/layouts/Navbar.tsx");
 
-  assert.match(styles, /\.app-table-title-remainder[\s\S]*font-family: "Macondo Swash Caps"/);
+  assert.match(styles, /@font-face\s*\{[^}]*font-family: "Voyage"[^}]*url\("\/fonts\/Voyage\.otf"\)/);
+  assert.match(styles, /\.app-table-title-remainder\s*\{[^}]*font-family: "Voyage"/);
   assert.match(styles, /\.app-table-title-remainder[\s\S]*font-size: 15px !important/);
-  assert.match(styles, /\.app-table-title-remainder[\s\S]*transform: translateY\(2px\)/);
-  assert.match(styles, /\.app-table-title-line > :has\(\.app-table-title-remainder\)[\s\S]*padding-bottom: 2px !important/);
-  assert.match(styles, /\.navbar-current-label[\s\S]*font-family: "Macondo Swash Caps"/);
+  assert.match(styles, /\.app-table-title-remainder\s*\{[^}]*transform: none !important/);
+  assert.match(styles, /\.app-table-title-line > :has\(\.app-table-title-remainder\)\s*\{[^}]*padding-bottom: 0 !important/);
+  assert.match(styles, /\.navbar-current-label\s*\{[^}]*font-family: "Voyage"/);
   assert.match(navbar, /className="navbar-current-label truncate"/);
   assert.doesNotMatch(navbar, /navbar-current-label[^\n]*Gentium Book Plus/);
 });

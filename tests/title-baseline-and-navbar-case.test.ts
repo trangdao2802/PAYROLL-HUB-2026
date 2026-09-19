@@ -9,7 +9,8 @@ test("all branded table initials keep one optical baseline", () => {
   const styles = readSource("src/title-alignment.css");
   const main = readSource("src/main.tsx");
 
-  assert.match(styles, /\.app-table-initial-mark\s*\{[\s\S]*?top:\s*-2px/);
+  assert.match(styles, /\.app-table-initial-mark\s*\{[^}]*top:\s*0/);
+  assert.match(styles, /\.app-table-initial-mark\s*\{[^}]*transform-origin:\s*center bottom/);
   assert.match(
     styles,
     /:where\(button, a\):hover \.app-table-initial-mark\s*\{[\s\S]*?transform:\s*scale\(1\.025\) !important/,

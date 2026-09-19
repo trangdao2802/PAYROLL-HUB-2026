@@ -1,14 +1,14 @@
 /*
  * Keeps every branded table-title initial on the same optical baseline as the
- * text that follows it. The reference A–Z masks contain a small amount of
- * lower visual weight, so the initial needs a fixed 2px lift everywhere it is
- * rendered, including expandable/toggle headers.
+ * text that follows it. An empty inline-block places the mask's bottom on the
+ * text baseline without inheriting a flex item's synthesized font baseline.
  */
 .app-table-initial-mark {
   position: relative;
   top: 0;
   vertical-align: baseline !important;
   align-self: baseline !important;
+  transform-origin: center bottom;
 }
 
 /* Hover animation may scale the decorative initial, but must never move its
