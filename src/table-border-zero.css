@@ -1,62 +1,127 @@
- * Table outer-border normalization.
- *
- * Nested table shells/cards expose Border = 0. The non-scrolling
- * .unified-table-frame keeps the single outside border so the frame remains
- * visible while its table-body-region scrolls horizontally. Internal grid
- * dividers on th/td/header/footer remain untouched for readability.
- * The #root + :is(...) specificity intentionally outranks runtime UI-setting
- * rules (which are injected later with !important).
+/*
+ * One frame per table: title | BU filter | column headers | rows | total | footer.
+ * Only the outer shell draws an outline. Adjacent sections own one seam each.
+ * The #table-card branch raises specificity above saved UI / positional rules.
+ * This stylesheet deliberately does not set backgrounds or text colors.
  */
-html body #root :is(
-  #table-card,
-  .table-container:not(.unified-table-frame),
-  .data-table-wrapper,
-  .audit-data-table-wrapper,
-  .pivot-table-container,
-  .master-ae-table-wrapper,
-  .pivot-master-frame,
-  .analysis-table-frame,
-  .analysis-data-table,
-  .reconcile-table-region,
-  .trial-balance-frame,
-  .table-data-container,
-  .table-wrapper,
-  .master-config-data-table,
-  .master-config-table-region,
-  .hold-dashboard-card
+/* Layout-only wrappers around a framed table do not own another frame. */
+html body #root :is(#table-card, .table-container, .pivot-table-container, .master-ae-table-wrapper, .table-data-container, .table-wrapper):not(.unified-table-frame):not(.data-table-wrapper):not(.audit-data-table-wrapper):not(:has(> table)) {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #root :is(#table-card, .unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) {
+  border: 1px solid var(--table-frame-border, var(--table-border-color, var(--border, #cbd5e1))) !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+
+/* A standalone native table gets its frame on the scroll viewport, not the
+   moving <table>. Titled / DataTable shells already provide that frame. */
+html body #root :is(#table-card, div, section):has(> table):not(:where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) *) {
+  border: 1px solid var(--table-frame-border, var(--table-border-color, var(--border, #cbd5e1))) !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+
+/* Nested shells must never add another outline inside the owning frame. */
+html body #root :where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) :is(
+  #table-card, .unified-table-frame, .table-container, .data-table-wrapper,
+  .audit-data-table-wrapper, .pivot-table-container, .master-ae-table-wrapper,
+  .pivot-master-frame, .analysis-data-table, .reconcile-table-region,
+  .table-data-container, .table-wrapper, .master-config-data-table,
+  .master-config-table-region, .table-body-region, div:has(> table)
 ) {
   border: 0 !important;
-  border-width: 0 !important;
-  border-style: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
 }
 
-/*
- * The viewport shell owns the only outside frame. It does not scroll with the
- * wide table, so all four edges stay visible at every horizontal scroll offset.
- */
-html body #root .unified-table-frame {
-  border: 1px solid var(--table-frame-border, var(--border, #cbd5e1)) !important;
-  border-width: 1px !important;
+/* Remove legacy painted outlines: the real shell border is the only frame. */
+html body #root :is(
+  #table-card, .unified-table-frame, .data-table-wrapper,
+  .audit-data-table-wrapper, .pivot-table-container, .master-ae-table-wrapper
+)::after {
+  content: none !important;
+  border: 0 !important;
+}
+
+/* Title and BU bars own their bottom seam; pagination owns its top seam. */
+html body #root :is(#table-card, .unified-table-frame-header, .table-header, .trial-balance-header, .bu-filter-bar):not(#table-card) {
+  border-width: 0 0 1px !important;
   border-style: solid !important;
-  box-sizing: border-box !important;
+  border-color: var(--table-frame-border, var(--border, #cbd5e1)) !important;
+  box-shadow: none !important;
+  margin: 0 !important;
 }
 
-/* Native table elements never own an outside frame. */
+html body #root :is(#table-card, .table-footer-pagination, .unified-table-frame-footer):not(#table-card) {
+  border-width: 1px 0 0 !important;
+  border-style: solid !important;
+  border-color: var(--table-frame-border, var(--border, #cbd5e1)) !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+/* Data viewports sit flush between the bars; only these regions scroll. */
+html body #root :is(#table-card, .unified-table-frame) :where(.data-table-wrapper, .audit-data-table-wrapper, .table-body-region, .master-config-data-table) {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Cells own grid lines, never table / row-group / row borders or shadows.
+   Keep separate borders so sticky headers and totals work while scrolling. */
+html body #root :is(#table-card, table):not(#table-card),
+html body #root :is(#table-card, table) > :is(thead, tbody, tfoot),
+html body #root :is(#table-card, table) > :is(thead, tbody, tfoot) > tr {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* #table-card is a specificity anchor, not a table to strip of its frame. */
 html body #root table {
-  border: 0 !important;
-  border-width: 0 !important;
-  border-style: none !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
 }
 
-/* Legacy nested table shells previously reintroduced a 1px frame. */
-html body #root .table-container > div.min-h-0,
-html body #root .unified-table-frame > .table-body-region,
-html body #root .trial-balance-frame > .table-body-region,
-html body #root .analysis-table-frame .table-body-region,
-html body #root .master-config-data-table > .master-config-table-region {
+html body #root :is(#table-card, table) > thead > tr > :is(th, td) {
+  border-width: 0 1px 1px 0 !important;
+  border-style: solid !important;
+  border-color: var(--grid-line-color, var(--border, #cbd5e1)) !important;
+  box-shadow: none !important;
+}
+
+/* Top-only row lines prevent a last row (including rowspan cells) from
+   doubling the total's top line or the pagination's top line. */
+html body #root :is(#table-card, table) > :is(tbody, tfoot) > tr > :is(td, th) {
+  border-width: 1px 1px 0 0 !important;
+  border-style: solid !important;
+  border-color: var(--grid-line-color, var(--border, #cbd5e1)) !important;
+}
+
+/* Keep data-cell selection shadows; suppress only decorative total shadows. */
+html body #root :is(#table-card, table) > tfoot > tr > :is(td, th) {
+  box-shadow: none !important;
+}
+
+html body #root :is(#table-card, table) > tbody > tr:first-child > :is(td, th),
+html body #root :is(#table-card, table) > tbody > tr[aria-hidden="true"]:first-child + tr > :is(td, th) {
+  border-top-width: 0 !important;
+}
+
+html body #root :is(#table-card, table) > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
+  border-right-width: 0 !important;
+}
+
+/* Virtual padding must stay height-only, even with saved cell padding rules. */
+html body #root :is(#table-card, table) > tbody > tr[aria-hidden="true"] > td {
   border: 0 !important;
-  border-width: 0 !important;
-  border-style: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 
 /* Timesheet table container padding = 0 normalization */

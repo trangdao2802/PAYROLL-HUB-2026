@@ -287,7 +287,7 @@ export function TimesheetInputTable({
         )}
 
         <div 
-          className="flex-1 overflow-auto custom-scrollbar bg-card relative min-h-0 shadow-none p-0 scroll-pt-0"
+          className="table-body-region flex-1 overflow-auto custom-scrollbar bg-card relative min-h-0 shadow-none p-0 scroll-pt-0"
           style={{ borderWidth: "0.5px", borderStyle: "solid", borderColor: "var(--border)" }}
         >
           <table className="w-full min-w-max border-separate border-spacing-0 border-l border-t border-border" style={{ tableLayout: "fixed" }}>
