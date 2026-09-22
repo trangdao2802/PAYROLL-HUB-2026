@@ -992,7 +992,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       />
 
       <div 
-        className="unified-table-frame bg-card flex-1 flex flex-col min-h-0 w-full relative overflow-hidden border border-border rounded-xl shadow-sm"
+        className="bg-card flex-1 flex flex-col min-h-0 w-full relative overflow-hidden border border-border rounded-xl shadow-sm"
         style={{ paddingLeft: "0px", paddingTop: "0px", paddingBottom: "0px", paddingRight: "0px", borderWidth: "1px" }}
       >
         <div className="absolute inset-0 bg-accent/5 opacity-[0.05] pointer-events-none hidden" />

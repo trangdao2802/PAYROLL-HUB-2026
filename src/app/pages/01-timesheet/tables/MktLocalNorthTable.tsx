@@ -60,7 +60,7 @@ export function MktLocalNorthTable({ data, onFilteredDataChange }: MktLocalNorth
   }, [mktPivotRows, onFilteredDataChange]);
 
   return (
-    <div className="unified-table-frame table-container flex-1 flex flex-col min-h-0 bg-card overflow-hidden rounded-none">
+    <div className="flex-1 flex flex-col min-h-0 bg-card border-t border-border overflow-hidden rounded-[40px]">
       {/* Summary Ribbon */}
       <div className="px-6 py-2 bg-primary/5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between font-sans text-[13px] font-bold text-primary tracking-wider uppercase shrink-0 gap-2">
         <div className="flex items-center gap-2">

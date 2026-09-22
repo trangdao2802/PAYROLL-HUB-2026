@@ -18,15 +18,13 @@ test("document and application shell use the device viewport safely", () => {
   assert.match(styles, /-webkit-text-size-adjust: 100%/);
 });
 
-test("all table routes use one 12px content inset below the navbar", () => {
-  const root = readSource("src/app/pages/Root.tsx");
-  const styles = readSource("src/table-border-zero.css");
-  const index = readSource("src/index.css");
+test("every routed page keeps a 12px inset from the viewport edges", () => {
+  const styles = readSource("src/index.css");
 
-  assert.match(root, /app-table-workspace/);
-  assert.match(styles, /main\.app-table-workspace\s*\{[^}]*padding:\s*12px\s*!important/s);
-  assert.match(styles, /main\.app-table-workspace > div\.min-h-0 > div\.min-h-0\s*\{[^}]*padding:\s*0\s*!important/s);
-  assert.doesNotMatch(index, /main\s*>\s*div\.min-h-0\s*>\s*div\.min-h-0\s*\{[^}]*padding:\s*12px\s*!important/s);
+  assert.match(
+    styles,
+    /main\s*>\s*div\.min-h-0\s*>\s*div\.min-h-0\s*\{[\s\S]*?padding:\s*12px\s*!important/,
+  );
 });
 
 test("Timesheet upload settings keeps its requested top and left inset", () => {
@@ -49,14 +47,14 @@ test("Master upload settings keeps a 12px inset with an 18px left gutter", () =>
   );
 });
 
-test("Trial Balance keeps its frame inside the viewport", () => {
+test("Trial Balance keeps a 12px inset inside the viewport", () => {
   const trialBalancePage = readSource(
     "src/app/pages/04-balance/HoldDashboardPage.tsx",
   );
 
   assert.match(
     trialBalancePage,
-    /key="hold-dashboard-main"[\s\S]*?className="trial-balance-page-content/,
+    /key="hold-dashboard-main"[\s\S]*?style=\{\{\s*padding:\s*"12px"\s*\}\}/,
   );
 });
 
@@ -94,45 +92,4 @@ test("user table font preference stays the responsive size baseline", () => {
   assert.match(styles, /--responsive-table-font-size: calc\(var\(--user-font-size\) \+ var\(--device-font-adjustment\)\)/);
   assert.match(styles, /@media \(min-width: 2200px\)/);
   assert.match(styles, /\.app-table-title-remainder[\s\S]*font-size: 15px !important/);
-});
-
-test("Trial Balance keeps its own inset and scrollable grid without changing other tables", () => {
-  const page = readSource("src/app/pages/04-balance/HoldDashboardPage.tsx");
-  const styles = readSource("src/table-border-zero.css");
-
-  assert.match(page, /trial-balance-page-content/);
-  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*24px\s*!important/s);
-  assert.match(styles, /\.trial-balance-frame > #trial-balance-table-body\s*\{[^}]*overflow-x:\s*auto\s*!important/s);
-  assert.match(styles, /\.trial-balance-frame \.trial-balance-table\s*\{[^}]*min-width:\s*1120px\s*!important/s);
-  assert.match(styles, /\.trial-balance-frame #trial-balance-summary\s*\{[^}]*max-height:\s*none\s*!important/s);
-});
-
-test("Trial Balance title and header rules are isolated from other tables", () => {
-  const styles = readSource("src/table-border-zero.css");
-  const trial = readSource("src/app/pages/04-balance/components/HoldAddDashboard.tsx");
-
-  assert.match(styles, /main\.app-table-workspace:has\(\.trial-balance-page\)\s*\{[^}]*padding:\s*0\s*!important/s);
-  assert.match(styles, /\.trial-balance-frame\s*\{[^}]*--table-frame-border:\s*#dfd0d6/s);
-  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr > th\s*\{[^}]*border-bottom:\s*0\s*!important/s);
-  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr > th\s*\{[^}]*padding-bottom:\s*10px\s*!important/s);
-  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr:nth-child\(2\) > th\s*\{[^}]*padding-bottom:\s*6px\s*!important/s);
-  assert.match(styles, /#trial-balance-summary > span:not\(:first-child\) > span:last-child\s*\{[^}]*font-size:\s*13px\s*!important/s);
-  assert.match(styles, /\.trial-balance-header\s*\{[^}]*padding-bottom:\s*8px\s*!important/s);
-  assert.match(trial, /className="trial-balance-header[^"]*py-2/);
-  assert.doesNotMatch(trial, /trial-balance-header[^\n]*paddingBottom: "0px"/);
-});
-
-test("Trial Balance keeps both thead rows sticky as one unit with single NOTE dividers", () => {
-  const trial = readSource("src/app/pages/04-balance/components/HoldAddDashboard.tsx");
-  const styles = readSource("src/table-border-zero.css");
-
-  assert.match(trial, /<thead className="sticky top-0 z-20/);
-  assert.match(styles, /\.trial-balance-table > thead\s*\{[^}]*position:\s*sticky\s*!important/s);
-  assert.match(styles, /\.trial-balance-table > thead > tr > th\s*\{[^}]*position:\s*static\s*!important/s);
-  assert.match(styles, /inset -1px 0 0 #dfd0d6, inset 0 -1px 0 #dfd0d6/);
-  assert.match(trial, /note-column-header/);
-  assert.equal((trial.match(/note-column-cell/g) || []).length, 4);
-  assert.match(styles, /\.trial-balance-header-content\s*\{[^}]*padding-left:\s*12px\s*!important/s);
-  assert.match(styles, /\.trial-balance-frame > div#trial-balance-table-body\s*\{[^}]*height:\s*auto\s*!important/s);
-  assert.doesNotMatch(styles, /height:\s*calc\(100vh\s*-\s*250px\)/);
 });

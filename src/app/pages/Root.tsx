@@ -33,7 +33,7 @@ export function Root() {
           />
         </div>
 
-        <main className={`flex-1 flex flex-col min-h-0 min-w-0 relative ${location.pathname === "/" ? "" : "app-table-workspace"}`}>
+        <main className="flex-1 flex flex-col min-h-0 relative">
           <ErrorBoundary key={location.pathname}>
             <div className="flex-1 flex flex-col min-h-0">
               <Outlet />

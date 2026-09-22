@@ -39,7 +39,7 @@ test("table and page titles share the supplied Voyage font without vertical offs
   assert.match(styles, /\.app-table-title-remainder\s*\{[^}]*transform: none !important/);
   assert.match(styles, /\.app-table-title-line > :has\(\.app-table-title-remainder\)\s*\{[^}]*padding-bottom: 0 !important/);
   assert.match(styles, /\.navbar-current-label\s*\{[^}]*font-family: "Voyage"/);
-  assert.match(navbar, /className="navbar-current-label truncate(?: [^"]*)?"/);
+  assert.match(navbar, /className="navbar-current-label truncate"/);
   assert.doesNotMatch(navbar, /navbar-current-label[^\n]*Gentium Book Plus/);
 });
 

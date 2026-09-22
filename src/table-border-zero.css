@@ -1,127 +1,69 @@
 /*
- * One frame per table: title | BU filter | column headers | rows | total | footer.
- * Only the outer shell draws an outline. Adjacent sections own one seam each.
- * The #table-card branch raises specificity above saved UI / positional rules.
- * This stylesheet deliberately does not set backgrounds or text colors.
+ * Table outer-border normalization.
+ *
+ * Nested table shells/cards expose Border = 0. The non-scrolling
+ * .unified-table-frame keeps the single outside border so the frame remains
+ * visible while its table-body-region scrolls horizontally. Internal grid
+ * dividers on th/td/header/footer remain untouched for readability.
+ * The #root + :is(...) specificity intentionally outranks runtime UI-setting
+ * rules (which are injected later with !important).
  */
-/* Layout-only wrappers around a framed table do not own another frame. */
-html body #root :is(#table-card, .table-container, .pivot-table-container, .master-ae-table-wrapper, .table-data-container, .table-wrapper):not(.unified-table-frame):not(.data-table-wrapper):not(.audit-data-table-wrapper):not(:has(> table)) {
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-html body #root :is(#table-card, .unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) {
-  border: 1px solid var(--table-frame-border, var(--table-border-color, var(--border, #cbd5e1))) !important;
-  box-sizing: border-box !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  gap: 0 !important;
-  overflow: hidden !important;
-}
-
-/* A standalone native table gets its frame on the scroll viewport, not the
-   moving <table>. Titled / DataTable shells already provide that frame. */
-html body #root :is(#table-card, div, section):has(> table):not(:where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) *) {
-  border: 1px solid var(--table-frame-border, var(--table-border-color, var(--border, #cbd5e1))) !important;
-  box-sizing: border-box !important;
-  box-shadow: none !important;
-}
-
-/* Nested shells must never add another outline inside the owning frame. */
-html body #root :where(.unified-table-frame, .data-table-wrapper, .audit-data-table-wrapper) :is(
-  #table-card, .unified-table-frame, .table-container, .data-table-wrapper,
-  .audit-data-table-wrapper, .pivot-table-container, .master-ae-table-wrapper,
-  .pivot-master-frame, .analysis-data-table, .reconcile-table-region,
-  .table-data-container, .table-wrapper, .master-config-data-table,
-  .master-config-table-region, .table-body-region, div:has(> table)
+html body #root :is(
+  #table-card,
+  .table-container:not(.unified-table-frame),
+  .data-table-wrapper,
+  .audit-data-table-wrapper,
+  .pivot-table-container,
+  .master-ae-table-wrapper,
+  .pivot-master-frame,
+  .analysis-table-frame,
+  .analysis-data-table,
+  .reconcile-table-region,
+  .table-data-container,
+  .table-wrapper,
+  .master-config-data-table,
+  .master-config-table-region,
+  .hold-dashboard-card
 ) {
   border: 0 !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
 }
 
-/* Remove legacy painted outlines: the real shell border is the only frame. */
-html body #root :is(
-  #table-card, .unified-table-frame, .data-table-wrapper,
-  .audit-data-table-wrapper, .pivot-table-container, .master-ae-table-wrapper
-)::after {
-  content: none !important;
-  border: 0 !important;
+html body #root .trial-balance-frame {
+  border: 1px solid #dfd0d6 !important;
+  border-radius: 0px !important;
+  padding: 0px !important;
+  gap: 0px !important;
 }
 
-/* Title and BU bars own their bottom seam; pagination owns its top seam. */
-html body #root :is(#table-card, .unified-table-frame-header, .table-header, .trial-balance-header, .bu-filter-bar):not(#table-card) {
-  border-width: 0 0 1px !important;
+/*
+ * The viewport shell owns the only outside frame. It does not scroll with the
+ * wide table, so all four edges stay visible at every horizontal scroll offset.
+ */
+html body #root .unified-table-frame {
+  border: 1px solid var(--table-frame-border, var(--border, #cbd5e1)) !important;
+  border-width: 1px !important;
   border-style: solid !important;
-  border-color: var(--table-frame-border, var(--border, #cbd5e1)) !important;
-  box-shadow: none !important;
-  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
-html body #root :is(#table-card, .table-footer-pagination, .unified-table-frame-footer):not(#table-card) {
-  border-width: 1px 0 0 !important;
-  border-style: solid !important;
-  border-color: var(--table-frame-border, var(--border, #cbd5e1)) !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-}
-
-/* Data viewports sit flush between the bars; only these regions scroll. */
-html body #root :is(#table-card, .unified-table-frame) :where(.data-table-wrapper, .audit-data-table-wrapper, .table-body-region, .master-config-data-table) {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Cells own grid lines, never table / row-group / row borders or shadows.
-   Keep separate borders so sticky headers and totals work while scrolling. */
-html body #root :is(#table-card, table):not(#table-card),
-html body #root :is(#table-card, table) > :is(thead, tbody, tfoot),
-html body #root :is(#table-card, table) > :is(thead, tbody, tfoot) > tr {
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-/* #table-card is a specificity anchor, not a table to strip of its frame. */
+/* Native table elements never own an outside frame. */
 html body #root table {
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-}
-
-html body #root :is(#table-card, table) > thead > tr > :is(th, td) {
-  border-width: 0 1px 1px 0 !important;
-  border-style: solid !important;
-  border-color: var(--grid-line-color, var(--border, #cbd5e1)) !important;
-  box-shadow: none !important;
-}
-
-/* Top-only row lines prevent a last row (including rowspan cells) from
-   doubling the total's top line or the pagination's top line. */
-html body #root :is(#table-card, table) > :is(tbody, tfoot) > tr > :is(td, th) {
-  border-width: 1px 1px 0 0 !important;
-  border-style: solid !important;
-  border-color: var(--grid-line-color, var(--border, #cbd5e1)) !important;
-}
-
-/* Keep data-cell selection shadows; suppress only decorative total shadows. */
-html body #root :is(#table-card, table) > tfoot > tr > :is(td, th) {
-  box-shadow: none !important;
-}
-
-html body #root :is(#table-card, table) > tbody > tr:first-child > :is(td, th),
-html body #root :is(#table-card, table) > tbody > tr[aria-hidden="true"]:first-child + tr > :is(td, th) {
-  border-top-width: 0 !important;
-}
-
-html body #root :is(#table-card, table) > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
-  border-right-width: 0 !important;
-}
-
-/* Virtual padding must stay height-only, even with saved cell padding rules. */
-html body #root :is(#table-card, table) > tbody > tr[aria-hidden="true"] > td {
   border: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+}
+
+/* Legacy nested table shells previously reintroduced a 1px frame. */
+html body #root .table-container > div.min-h-0,
+html body #root .unified-table-frame > .table-body-region,
+html body #root .trial-balance-frame > .table-body-region,
+html body #root .analysis-table-frame .table-body-region,
+html body #root .master-config-data-table > .master-config-table-region {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
 }
 
 /* Timesheet table container padding = 0 normalization */
@@ -153,457 +95,4 @@ html body #root :is(
   min-width: 0;
   contain: strict;
   box-sizing: border-box;
-}
-
-
-/* --------------------------------------------------------------------------
-   2026-09-22 visual isolation fixes
-   Scope these rules to the three reported layouts only.
-   -------------------------------------------------------------------------- */
-
-/* MASTER > Bulk Payment: the split workspace itself must never paint a seam
-   between the left control card and the right table frame. Each child keeps
-   its own outline; the 12px gap remains visually empty. */
-html body #root .master-ae-table-wrapper[data-split-panels="true"],
-html body #root .master-ae-table-wrapper[data-split-panels="true"] > .bulk-payment-layout,
-html body #root .bulk-payment-layout {
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  background-image: none !important;
-}
-
-html body #root .master-ae-table-wrapper[data-split-panels="true"]::before,
-html body #root .master-ae-table-wrapper[data-split-panels="true"]::after,
-html body #root .bulk-payment-layout::before,
-html body #root .bulk-payment-layout::after {
-  content: none !important;
-  display: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-/* TRIAL BALANCE ONLY: the full frame must stay inside its parent viewport.
-   Unlike the other payroll grids, Trial Balance uses proportional columns so
-   it never increases the page's intrinsic width. */
-html body #root .trial-balance-frame {
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  align-self: stretch !important;
-  overflow: hidden !important;
-  contain: layout paint;
-}
-
-html body #root .trial-balance-frame > #trial-balance-table-body {
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain;
-  scrollbar-gutter: auto;
-}
-
-html body #root .trial-balance-frame .trial-balance-table {
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  table-layout: fixed !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-}
-
-/* Proportional visual columns. These selectors are scoped to Trial Balance,
-   so no DataTable, Master, Timesheet or Audit column sizing is changed.
-   The first header row contains colspans, therefore widths are assigned by
-   logical first-row cells and the second-row movement/result cells. */
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(1) { width: 6% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(2) { width: 19% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(3) { width: 16.5% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(4) { width: 13.5% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(5) { width: 16% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(6) { width: 16% !important; }
-html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(7) { width: 13% !important; }
-
-html body #root .trial-balance-frame .trial-balance-table :is(th, td) {
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  box-sizing: border-box !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-html body #root .trial-balance-frame .trial-balance-table th {
-  white-space: normal !important;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-html body #root .trial-balance-frame .trial-balance-table td {
-  white-space: nowrap;
-}
-
-html body #root .trial-balance-frame .trial-balance-table td:last-child {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-/* MASTER/DataTable: when DataTable lives inside a unified frame, the unified
-   frame owns the outside outline. The inner header+rows viewport must not draw
-   a second rectangle. */
-html body #root .unified-table-frame > #table-card.data-table-wrapper,
-html body #root .unified-table-frame > .data-table-wrapper,
-html body #root .unified-table-frame .table-body-region {
-  box-shadow: none !important;
-}
-
-html body #root .unified-table-frame > #table-card.data-table-wrapper,
-html body #root .unified-table-frame > .data-table-wrapper {
-  border: 0 !important;
-  outline: 0 !important;
-  border-radius: 0 !important;
-}
-
-html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region,
-html body #root .unified-table-frame > .data-table-wrapper > .table-body-region {
-  border: 0 !important;
-  outline: 0 !important;
-}
-
-/* The outer unified frame is the only perimeter. Grid cells draw internal
-   separators only, preventing doubled left/right/top/bottom edges. */
-html body #root .unified-table-frame > #table-card.data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
-html body #root .unified-table-frame > .data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
-  border-left-width: 0 !important;
-}
-
-html body #root .unified-table-frame > #table-card.data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child,
-html body #root .unified-table-frame > .data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
-  border-right-width: 0 !important;
-}
-
-
-/* --------------------------------------------------------------------------
-   2026-09-22 Trial Balance structural containment v2
-   Scoped ONLY to Trial Balance. The 9 physical columns are defined by a
-   component colgroup; these rules make every cell respect that column model.
-   -------------------------------------------------------------------------- */
-html body #root .trial-balance-frame {
-  flex: 1 1 0% !important;
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-html body #root .trial-balance-frame > #trial-balance-table-body {
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table {
-  inline-size: 100% !important;
-  width: 100% !important;
-  max-inline-size: 100% !important;
-  max-width: 100% !important;
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  table-layout: fixed !important;
-  box-sizing: border-box !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table col {
-  min-width: 0 !important;
-  max-width: none !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table :is(th, td) {
-  min-inline-size: 0 !important;
-  min-width: 0 !important;
-  max-inline-size: none !important;
-  max-width: none !important;
-  box-sizing: border-box !important;
-  padding-inline: clamp(4px, 0.55vw, 9px) !important;
-  overflow: hidden !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table thead th {
-  font-size: clamp(9px, 0.72vw, 12px) !important;
-  line-height: 1.15 !important;
-  white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  word-break: normal !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table tbody td,
-html body #root .trial-balance-frame .trial-balance-table tfoot td {
-  font-size: clamp(10px, 0.78vw, 13px) !important;
-  line-height: 1.25 !important;
-}
-
-/* Descriptive columns wrap instead of forcing intrinsic table width. */
-html body #root .trial-balance-frame .trial-balance-table :is(tbody, tfoot) tr > td:nth-child(2),
-html body #root .trial-balance-frame .trial-balance-table :is(tbody, tfoot) tr > td:nth-child(9) {
-  white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  text-overflow: clip !important;
-}
-
-/* Numeric and compact identity columns stay on one line inside their assigned
-   percentage width. */
-html body #root .trial-balance-frame .trial-balance-table :is(tbody, tfoot) tr > td:not(:nth-child(2)):not(:nth-child(9)) {
-  white-space: nowrap !important;
-  text-overflow: ellipsis !important;
-}
-
-
-/* Trial Balance viewport fix: ONLY this page owns these constraints.
-   A narrow viewport scrolls the 9-column grid, never the entire app;
-   the title, summary and pagination stay within the 12px page inset. */
-html body #root .trial-balance-page {
-  inline-size: 100%;
-  max-inline-size: 100%;
-  min-inline-size: 0;
-  box-sizing: border-box;
-}
-
-html body #root .trial-balance-page-content {
-  inline-size: 100% !important;
-  max-inline-size: 100% !important;
-  min-inline-size: 0 !important;
-  box-sizing: border-box !important;
-  padding: 24px !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-header-content {
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* Previous fixed 38px max-height cut off pills/title when they wrapped. */
-html body #root .trial-balance-frame #trial-balance-summary {
-  flex: 1 1 720px;
-  min-width: 0;
-  height: auto !important;
-  min-height: 38px !important;
-  max-height: none !important;
-  align-content: center;
-}
-
-html body #root .trial-balance-frame #trial-balance-summary > span:first-child {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-/* The 1120px floor is applied to the GRID, not the page/frame. Keep
-   sticky column headers and totals in the same two-axis scroll viewport. */
-html body #root .trial-balance-frame > #trial-balance-table-body {
-  overflow-x: auto !important;
-  overflow-y: auto !important;
-}
-
-html body #root .trial-balance-frame .trial-balance-table {
-  inline-size: max(100%, 1120px) !important;
-  width: max(100%, 1120px) !important;
-  min-inline-size: 1120px !important;
-  min-width: 1120px !important;
-  max-inline-size: none !important;
-  max-width: none !important;
-}
-
-@media (max-width: 640px) {
-  html body #root .trial-balance-frame > .table-footer-pagination {
-    height: auto !important;
-    min-height: 51px;
-    flex-wrap: wrap;
-  }
-}
-
-/* All payroll table routes share ONE outside gutter below the navbar.
-   The table frame, sidebar and footer must remain inside the padded main
-   content box. Do not pad an individual scroll viewport or every table cell. */
-html body #root main.app-table-workspace {
-  min-inline-size: 0 !important;
-  max-inline-size: 100% !important;
-  box-sizing: border-box !important;
-  padding: 12px !important;
-  overflow: hidden;
-}
-
-/* The outlet fills main's inner content box, not the entire viewport. */
-html body #root main.app-table-workspace > div.min-h-0 {
-  min-inline-size: 0 !important;
-  min-block-size: 0 !important;
-  max-inline-size: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* Remove legacy page-level 12/20px gutters to avoid 24/32px double inset.
-   Component padding INSIDE cards remains untouched. */
-html body #root main.app-table-workspace > div.min-h-0 > div.min-h-0 {
-  padding: 0 !important;
-  min-inline-size: 0 !important;
-  max-inline-size: 100% !important;
-  box-sizing: border-box !important;
-}
-
-/* Timesheet uses animated sibling views; the upload view retains its own
-   form spacing, while the finished table and sidebar use only main's gutter. */
-html body #root main.app-table-workspace .timesheet-workspace-grid {
-  max-inline-size: 100%;
-  min-inline-size: 0;
-}
-
-/* Trial Balance only: its 24px parent inset replaces the general 12px main
-   gutter, rather than accumulating to 36px. All other routes stay unchanged. */
-html body #root main.app-table-workspace:has(.trial-balance-page) {
-  padding: 0 !important;
-}
-
-html body #root .trial-balance-frame {
-  --table-frame-border: #dfd0d6;
-  --table-grid-color: #dfd0d6;
-  --grid-line-color: #dfd0d6;
-  border-radius: 0 !important;
-}
-
-/* Apply the title's 12px inset exactly once at its content row. */
-html body #root .trial-balance-frame > .trial-balance-header {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-html body #root .trial-balance-frame .trial-balance-header-content {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-  column-gap: 24px !important;
-}
-
-html body #root .trial-balance-frame #trial-balance-summary,
-html body #root .trial-balance-frame #trial-balance-summary > span {
-  align-items: baseline !important;
-}
-
-/* Scoped base-layer !important declarations outrank the global compact-table
-   and single-border contracts, but never affect another payroll table. */
-@layer base {
-  html body #root .trial-balance-frame {
-    border: 1px solid #dfd0d6 !important;
-    border-radius: 0 !important;
-  }
-
-  html body #root .trial-balance-frame > .trial-balance-header {
-    border-bottom: 0 !important;
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-  }
-
-  html body #root .trial-balance-frame .trial-balance-header-content {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-
-  /* Two pixels above the original 9/11/15px summary type scale. */
-  html body #root .trial-balance-frame #trial-balance-summary .app-table-initial-mark,
-  html body #root .trial-balance-frame #trial-balance-summary .app-table-title-remainder {
-    font-size: 17px !important;
-  }
-
-  html body #root .trial-balance-frame #trial-balance-summary > span:not(:first-child) > span:first-child {
-    font-size: 11px !important;
-  }
-
-  html body #root .trial-balance-frame #trial-balance-summary > span:not(:first-child) > span:last-child {
-    font-size: 13px !important;
-  }
-
-  /* Sticky the WHOLE thead: individual th at top:0 would overlap the
-     second header row and rowSpan=2 cells while scrolling. */
-  html body #root #trial-balance-table-body .trial-balance-table > thead {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 20 !important;
-    background: var(--table-column-header-bg, var(--table-header-bg, #FAF3E8)) !important;
-  }
-
-  /* Restore py-2.5 / py-1.5 and remove the physical bottom borders.
-     Inset shadows maintain horizontal/vertical dividers in sticky mode. */
-  html body #root #trial-balance-table-body .trial-balance-table > thead > tr > th {
-    position: static !important;
-    top: auto !important;
-    height: auto !important;
-    background: var(--table-column-header-bg, var(--table-header-bg, #FAF3E8)) !important;
-    border-bottom: 0 !important;
-    border-bottom-width: 0 !important;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
-    border-right-color: #dfd0d6 !important;
-    box-shadow: inset -1px 0 0 #dfd0d6, inset 0 -1px 0 #dfd0d6 !important;
-  }
-
-  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:nth-child(2) > th {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-  }
-
-  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:first-child > th.note-column-header {
-    border-left: 0 !important;
-    border-right: 0 !important;
-    /* The previous column draws NOTE's left line; the frame draws its right. */
-    box-shadow: inset 0 -1px 0 #dfd0d6 !important;
-  }
-
-  /* Exactly one 1px separator per internal edge, never a double outer line. */
-  html body #root #trial-balance-table-body .trial-balance-table > tbody > tr:not(:last-child) > td {
-    border-bottom: 1px solid #dfd0d6 !important;
-    border-right-color: #dfd0d6 !important;
-  }
-
-  html body #root #trial-balance-table-body .trial-balance-table > tbody > tr:last-child > td {
-    border-bottom: 0 !important;
-  }
-
-  html body #root #trial-balance-table-body .trial-balance-table > :is(tbody, tfoot) > tr > td.note-column-cell {
-    border-left: 0 !important;
-    border-right: 0 !important;
-  }
-
-  html body #root #trial-balance-table-body .trial-balance-table > tfoot > tr > td {
-    border-color: #dfd0d6 !important;
-  }
-}
-
-/* The flex frame already bounds the table body to the available viewport. */
-html body #root .trial-balance-frame > div#trial-balance-table-body {
-  /* Flex computes the available height after the toolbar and footer.
-     An absolute 100vh - 250px would clip wrapped summary titles and footers. */
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  height: auto !important;
-  max-height: 100% !important;
-  overflow-x: auto !important;
-  overflow-y: auto !important;
 }

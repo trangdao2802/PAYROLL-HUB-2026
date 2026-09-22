@@ -2146,8 +2146,14 @@ table thead th :where(span, div, p, button) {
   box-sizing: border-box !important;
 }
 
-/* The routed workspace below the navbar owns the 12px table inset.
-   Page-level wrappers must not each add another gutter (see table-border-zero.css). */
+/* Every routed page keeps its table frame safely inside the viewport. The
+   semantic selector remains stable when navigation siblings change. */
+main > div.min-h-0 > div.min-h-0 {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 12px !important;
+}
 
 /* Compact Grand Total Row & Table Headers Styling */
 table tfoot tr,
@@ -2374,28 +2380,170 @@ header.table-header,
   flex-direction: column !important;
 }
 
-/* Trial Balance owns one frame: title, grid and footer are direct siblings. */
+/* Trial Balance Redesign: Isolated to .trial-balance-page-content and .trial-balance-frame */
+.trial-balance-page-content {
+  padding: 24px 24px !important; /* Global outer padding */
+}
+
 .trial-balance-frame {
-  padding: 0 !important;
+  border: 1px solid #dfd0d6 !important;
+  border-radius: 0px !important; /* Square corners */
+  padding: 0px !important;
+  gap: 0px !important;
   background: var(--card, #ffffff) !important;
 }
 
 .trial-balance-frame > .trial-balance-header {
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+  margin: 0 !important;
+  border-bottom: 1px solid #dfd0d6 !important;
+  box-sizing: border-box !important;
+}
+
+.trial-balance-header-content {
   padding-left: 12px !important;
   padding-right: 12px !important;
+  gap: 24px !important;
+  display: flex !important;
+  align-items: center !important;
   margin: 0 !important;
-}
-
-.trial-balance-header-content,
-.trial-balance-frame > .table-body-region {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .trial-balance-frame > .table-body-region {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Sticky Header & Scrollable Body */
+#trial-balance-table-body {
+  overflow-y: auto !important;
+  height: calc(100vh - 250px) !important;
+}
+
+#trial-balance-table-body thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--table-header-bg, #FAF3E8) !important;
+  border-bottom-width: 0px !important; /* Header bottom border removed */
+  box-shadow: inset 0 -1px 0 #dfd0d6; /* Maintains divider look while sticky */
+}
+
+/* Second row of multi-row thead sticky offset */
+#trial-balance-table-body thead tr:nth-child(2) th {
+  top: 36px !important;
+  z-index: 10 !important;
+}
+
+/* Standardize Borders: Maintain 1px solid #dfd0d6 across all internal dividers */
+.trial-balance-table {
+  border-width: 0px !important;
+}
+
+.trial-balance-table th,
+.trial-balance-table td {
+  border-color: #dfd0d6 !important;
+}
+
+/* Column Fixes: NOTE Column */
+/* Remove border-left to prevent double lines, ensuring continuity */
+th.note-column-header,
+td.note-column-cell {
+  border-left: 0 !important;
+  border-right: 1px solid #dfd0d6 !important;
+}
+
+/* Typography: Summary Baseline Alignment */
+#trial-balance-summary {
+  display: flex !important;
+  align-items: baseline !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  margin-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+
+/* Warning button size */
+#trial-balance-summary > div:nth-of-type(1) > button:nth-of-type(1) {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Metric summary pills */
+#trial-balance-summary > span:not(#trial-balance-title):not(.trial-balance-title) {
+  font-size: 14px !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+}
+
+#trial-balance-summary > span:nth-of-type(2) {
+  height: 22.2812px !important;
+  line-height: 19px !important;
+}
+
+/* Title Lockup Styling */
+#trial-balance-summary #trial-balance-title,
+#trial-balance-summary .trial-balance-title {
+  height: 30.2969px !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  margin-bottom: 0px !important;
+  gap: 2px !important;
+}
+
+#trial-balance-summary #trial-balance-title .app-table-initial-mark,
+#trial-balance-summary .trial-balance-title .app-table-initial-mark {
+  font-size: 20px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-block !important;
+  vertical-align: baseline !important;
+}
+
+#trial-balance-summary #trial-balance-title .app-table-initial-mark__glyph,
+#trial-balance-summary .trial-balance-title .app-table-initial-mark__glyph {
+  font-size: 20px !important;
+  height: 30px !important;
+  width: 23.8281px !important;
+  line-height: 30px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-block !important;
+  vertical-align: baseline !important;
+}
+
+#trial-balance-summary #trial-balance-title .app-table-title-remainder,
+#trial-balance-summary .trial-balance-title .app-table-title-remainder {
+  font-size: 18px !important;
+  line-height: 21.3px !important;
+  height: auto !important;
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  display: inline-block !important;
+  vertical-align: baseline !important;
+}
+
+#trial-balance-summary .summary-badge,
+#trial-balance-summary span.badge-chiphi {
+  font-size: 11px !important;
+  align-self: center !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-width: 0px !important;
+  border: 0 !important;
+  border-radius: 0px !important;
+  color: #475569 !important;
+}
+
+.dark #trial-balance-summary span.badge-chiphi {
+  color: #94a3b8 !important;
 }
 
 /* Unified table frame: title, grid and pagination share one outer border. */
@@ -3480,9 +3628,10 @@ label.audit-source-card__body:hover .audit-source-card__refresh {
 }
 
 #root #trial-balance-summary {
-  height: 38px !important;
+  display: flex !important;
+  align-items: baseline !important;
   min-height: 38px !important;
-  max-height: 38px !important;
+  height: auto !important;
 }
 
 /* Table double border correction */
@@ -4357,207 +4506,21 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 }
 
 div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
-  padding-left: 0px !important;
+  padding-left: 12px !important;
   padding-top: 0px !important;
-  padding-right: 0px !important;
+  padding-right: 12px !important;
   padding-bottom: 0px !important;
+  box-sizing: border-box !important;
+}
+
+#root .trial-balance-frame .trial-balance-header-content,
+.trial-balance-header-content {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  box-sizing: border-box !important;
 }
 
 
 
 
 
-
-
-/* --------------------------------------------------------------------------
-   2026-09-22 nested unified frame border de-duplication
-   IMPORTANT: the global table borders are declared with !important inside
-   @layer base. Put this correction in the SAME layer so it can actually
-   override those declarations. Unlayered !important rules lose to layered
-   !important declarations in the cascade.
-   -------------------------------------------------------------------------- */
-@layer base {
-  /* In a titled unified frame, the outer .unified-table-frame is the only
-     perimeter. The nested DataTable grid must not paint its own top/left frame. */
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table,
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table {
-    border: 0 !important;
-    border-top: 0 !important;
-    border-right: 0 !important;
-    border-bottom: 0 !important;
-    border-left: 0 !important;
-  }
-
-  /* Cell borders are internal grid separators only. Remove the perimeter edges
-     that sit directly beside the unified frame and make it look double. */
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
-    border-left: 0 !important;
-  }
-
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child,
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
-    border-right: 0 !important;
-  }
-
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > thead > tr:first-child > :is(th, td),
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > thead > tr:first-child > :is(th, td) {
-    border-top: 0 !important;
-  }
-
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > tfoot > tr:last-child > :is(th, td),
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > tfoot > tr:last-child > :is(th, td) {
-    border-bottom: 0 !important;
-  }
-
-  /* The scroll viewport itself is not another framed box. */
-  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region,
-  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region {
-    border: 0 !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-  }
-}
-
-
-/* --------------------------------------------------------------------------
-   2026-09-22 synchronized single-frame table contract
-   One physical perimeter per table system. Tables/cells draw only the internal
-   grid; the owning frame draws the outside edge. This lives in @layer base so
-   it overrides the earlier global !important table-border primitives.
-   -------------------------------------------------------------------------- */
-@layer base {
-  /* Never paint a second synthetic outline over a real frame border. */
-  html body #root :is(
-    .unified-table-frame,
-    .data-table-wrapper,
-    .audit-data-table-wrapper,
-    .pivot-table-container,
-    .pivot-master-frame,
-    .trial-balance-frame,
-    .analysis-table-frame,
-    .master-config-data-table,
-    #table-card
-  )::after {
-    content: none !important;
-    display: none !important;
-    border: 0 !important;
-    box-shadow: none !important;
-  }
-
-  /* The native <table> never owns an outer frame. */
-  html body #root table,
-  html body #root .data-table-container table {
-    border: 0 !important;
-    border-top: 0 !important;
-    border-right: 0 !important;
-    border-bottom: 0 !important;
-    border-left: 0 !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-  }
-
-  /* Canonical frame owners: exactly one 1px perimeter, no shadow imitation. */
-  html body #root :is(
-    .unified-table-frame,
-    .data-table-wrapper,
-    .audit-data-table-wrapper
-  ) {
-    --table-frame-border: var(--table-border-color, var(--grid-line-color, var(--border, #cbd5e1)));
-    box-sizing: border-box !important;
-    border: 1px solid var(--table-frame-border) !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-  }
-
-  /* If a table component is already inside a unified owner, every nested
-     wrapper becomes layout-only and must not contribute another perimeter. */
-  html body #root .unified-table-frame :is(
-    .data-table-wrapper,
-    .audit-data-table-wrapper,
-    .pivot-table-container,
-    .master-config-data-table,
-    #table-card,
-    .table-container:not(.unified-table-frame)
-  ) {
-    border: 0 !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-  }
-
-  html body #root .unified-table-frame :is(
-    .table-body-region,
-    .master-config-table-region
-  ) {
-    border: 0 !important;
-    outline: 0 !important;
-    box-shadow: none !important;
-  }
-
-  /* Vertical grid: cells own only their right separator. The outside left/right
-     edges come from the frame, so the first/last column never doubles them. */
-  html body #root table > :is(thead, tbody, tfoot) > tr > :is(th, td) {
-    border-left: 0 !important;
-  }
-
-  html body #root table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
-    border-right: 0 !important;
-  }
-
-  /* Horizontal grid: use the preceding row's bottom separator. Remove the
-     generic top border injected by the legacy compatibility stylesheet. */
-  html body #root table > thead > tr:first-child > :is(th, td),
-  html body #root table > tbody > tr:first-child > :is(th, td) {
-    border-top: 0 !important;
-  }
-
-  html body #root table > tbody > tr:not(:where(
-    .total-row,
-    .trial-month-total-row,
-    .pivot-master-subtotal-row,
-    .pivot-bu-subtotal-row,
-    .data-table-subtotal-row
-  )) > :is(th, td) {
-    border-top: 0 !important;
-  }
-
-  html body #root table > tfoot > tr:not(:first-child) > :is(th, td) {
-    border-top: 0 !important;
-  }
-
-  /* Exactly one seam before tfoot, and exactly one bottom edge from the frame. */
-  html body #root table:has(> tfoot) > tbody > tr:last-child > :is(th, td),
-  html body #root table > tfoot > tr:last-child > :is(th, td),
-  html body #root table:not(:has(> tfoot)) > tbody > tr:last-child > :is(th, td) {
-    border-bottom: 0 !important;
-  }
-
-  html body #root table:not(:has(> tbody)):not(:has(> tfoot)) > thead > tr:last-child > :is(th, td) {
-    border-bottom: 0 !important;
-  }
-
-  /* Section bars contribute only the seam that separates them from the next
-     section; never another outside left/right/top/bottom outline. */
-  html body #root :is(
-    .unified-table-frame-header,
-    .table-header,
-    .trial-balance-header,
-    .bu-filter-bar
-  ) {
-    border-top: 0 !important;
-    border-right: 0 !important;
-    border-left: 0 !important;
-  }
-
-  html body #root :is(
-    .table-footer-pagination,
-    .unified-table-frame-footer
-  ) {
-    border-right: 0 !important;
-    border-bottom: 0 !important;
-    border-left: 0 !important;
-  }
-}

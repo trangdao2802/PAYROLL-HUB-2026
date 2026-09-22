@@ -1,5 +1,4 @@
 import { processMasterAEData, parseMonthFromFileName, type AERow } from "../../lib/utils/master-ae-processing";
-import "./master-config.css";
 import { TableRestoreButton } from '../../components/TableRestoreButton';
 import { chooseExcelExport } from "../../components/ExportScopeDialog";
 import { createMasterExportDefinition } from "../../lib/utils/master-excel-export";
@@ -634,7 +633,6 @@ export function AEDataConfig({
 
   return (
     <motion.div
-      id="master-config-workspace"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -854,16 +852,7 @@ export function AEDataConfig({
           style={{ padding: "0px" }}
         >
           <div className="table-body-region master-config-table-region relative flex-1 min-h-0 w-full max-w-full overflow-auto custom-scrollbar bg-card shadow-none">
-            <table className="master-config-table relative z-10 w-full border-separate border-spacing-0 text-left" style={{ borderWidth: "0px" }}>
-              <colgroup>
-                <col className="master-config-col-number" />
-                <col className="master-config-col-name" />
-                <col className="master-config-col-region" />
-                <col className="master-config-col-month" />
-                <col />
-                <col className="master-config-col-status" />
-                <col className="master-config-col-delete" />
-              </colgroup>
+            <table className="master-config-table relative z-10 min-w-max w-full border-separate border-spacing-0 table-auto text-left" style={{ borderWidth: "0px" }}>
               <thead>
                 <tr className="bg-muted/20">
                   <th
@@ -939,7 +928,6 @@ export function AEDataConfig({
                           name={`name-${row.id}`}
                           type="text"
                           value={row.name}
-                          title={row.name}
                           onChange={(e) =>
                             updateRow(row.id, "name", e.target.value)
                           }
@@ -1004,7 +992,7 @@ export function AEDataConfig({
                         }}
                         className="border-b border-r border-border min-w-[280px]"
                       >
-                        <div className="master-config-source flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           <input
                             type="file"
                             id={`file-${row.id}`}
@@ -1053,8 +1041,7 @@ export function AEDataConfig({
                           )}
                           {row.fileObj && (
                             <span
-                              title={row.fileObj.name}
-                              className="master-config-source-name text-[0.625rem] font-bold text-foreground/50 truncate uppercase tracking-wider"
+                              className="text-[0.625rem] font-bold text-foreground/50 truncate max-w-[100px] uppercase tracking-wider"
                             >
                               {row.fileObj.name}
                             </span>

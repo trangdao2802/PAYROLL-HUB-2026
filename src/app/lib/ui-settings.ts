@@ -267,8 +267,7 @@ export function colorToHex7(color: string | undefined | null, fallback = "#00000
   return fallback;
 }
 
-// Defaults also supply every required field of the registered theme preset.
-export const defaultSettings: UiSettings & Omit<TastePreset, "id" | "name"> = {
+export const defaultSettings: UiSettings = {
   bg: "#FAF8F5",
   bgImage: "",
   bgImageStyle: "cover",
@@ -1155,9 +1154,15 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
 
     .page-master-config .unified-table-frame,
     .page-master-config .table-container,
-    .pivot-master-frame,
-    .trial-balance-frame {
+    .pivot-master-frame {
       border-radius: var(--table-radius, 12px) !important;
+    }
+
+    .trial-balance-frame {
+      border: 1px solid #dfd0d6 !important;
+      border-radius: 0px !important;
+      padding: 0px !important;
+      gap: 0px !important;
     }
 
     /* General Table & Grid Rules */
@@ -1519,7 +1524,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
 export async function loadUiSettings(): Promise<UiSettings> {
   const sanitize = (s: unknown): UiSettings => {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
-    let result: UiSettings = { ...defaultSettings, ...sObj };
+    let result = { ...defaultSettings, ...sObj };
     result = migrateCocoaBlushContrast(result);
     result = migrateFrenchMatchaPalette(result);
     result = migrateSoftMatchaPalette(result);

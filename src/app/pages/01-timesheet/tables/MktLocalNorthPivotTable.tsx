@@ -159,7 +159,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
-      <div className="unified-table-frame table-container flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0">
       {/* Header Info - Consistent with other tables */}
       <div 
         className="unified-table-frame-header table-header flex min-h-[50px] w-full shrink-0 items-center justify-between border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3.5 py-2"

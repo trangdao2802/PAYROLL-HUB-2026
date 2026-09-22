@@ -81,7 +81,7 @@ function RosterRawTableComponent({
     <div 
       className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden"
     >
-      <div className="unified-table-frame table-container flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0 scroll-wrapper">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0 scroll-wrapper">
         <div 
           className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[50px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
         >

@@ -218,7 +218,7 @@ export function TimesheetInputTable({
         paddingRight: "0px",
       } as React.CSSProperties}
     >
-      <div className="unified-table-frame table-container relative flex flex-col flex-1 min-h-0 bg-card p-0">
+      <div className="relative flex flex-col flex-1 min-h-0 bg-card p-0">
         {/* Synchronization Panel Visual Indicator Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/40 border-b border-border text-xs">
           <div className="flex items-center gap-2 flex-wrap">
@@ -287,7 +287,7 @@ export function TimesheetInputTable({
         )}
 
         <div 
-          className="table-body-region flex-1 overflow-auto custom-scrollbar bg-card relative min-h-0 shadow-none p-0 scroll-pt-0"
+          className="flex-1 overflow-auto custom-scrollbar bg-card relative min-h-0 shadow-none p-0 scroll-pt-0"
           style={{ borderWidth: "0.5px", borderStyle: "solid", borderColor: "var(--border)" }}
         >
           <table className="w-full min-w-max border-separate border-spacing-0 border-l border-t border-border" style={{ tableLayout: "fixed" }}>
