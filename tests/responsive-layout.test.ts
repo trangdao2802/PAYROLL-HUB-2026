@@ -93,3 +93,14 @@ test("user table font preference stays the responsive size baseline", () => {
   assert.match(styles, /@media \(min-width: 2200px\)/);
   assert.match(styles, /\.app-table-title-remainder[\s\S]*font-size: 15px !important/);
 });
+
+test("Trial Balance keeps its own inset and scrollable grid without changing other tables", () => {
+  const page = readSource("src/app/pages/04-balance/HoldDashboardPage.tsx");
+  const styles = readSource("src/table-border-zero.css");
+
+  assert.match(page, /trial-balance-page-content/);
+  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*12px\s*!important/s);
+  assert.match(styles, /\.trial-balance-frame > #trial-balance-table-body\s*\{[^}]*overflow-x:\s*auto\s*!important/s);
+  assert.match(styles, /\.trial-balance-frame \.trial-balance-table\s*\{[^}]*min-width:\s*1120px\s*!important/s);
+  assert.match(styles, /\.trial-balance-frame #trial-balance-summary\s*\{[^}]*max-height:\s*none\s*!important/s);
+});

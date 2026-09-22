@@ -379,3 +379,66 @@ html body #root .trial-balance-frame .trial-balance-table :is(tbody, tfoot) tr >
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
 }
+
+
+/* Trial Balance viewport fix: ONLY this page owns these constraints.
+   A narrow viewport scrolls the 9-column grid, never the entire app;
+   the title, summary and pagination stay within the 12px page inset. */
+html body #root .trial-balance-page {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  box-sizing: border-box;
+}
+
+html body #root .trial-balance-page-content {
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  box-sizing: border-box !important;
+  padding: 12px !important;
+}
+
+html body #root .trial-balance-frame .trial-balance-header-content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Previous fixed 38px max-height cut off pills/title when they wrapped. */
+html body #root .trial-balance-frame #trial-balance-summary {
+  flex: 1 1 720px;
+  min-width: 0;
+  height: auto !important;
+  min-height: 38px !important;
+  max-height: none !important;
+  align-content: center;
+}
+
+html body #root .trial-balance-frame #trial-balance-summary > span:first-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The 1120px floor is applied to the GRID, not the page/frame. Keep
+   sticky column headers and totals in the same two-axis scroll viewport. */
+html body #root .trial-balance-frame > #trial-balance-table-body {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+html body #root .trial-balance-frame .trial-balance-table {
+  inline-size: max(100%, 1120px) !important;
+  width: max(100%, 1120px) !important;
+  min-inline-size: 1120px !important;
+  min-width: 1120px !important;
+  max-inline-size: none !important;
+  max-width: none !important;
+}
+
+@media (max-width: 640px) {
+  html body #root .trial-balance-frame > .table-footer-pagination {
+    height: auto !important;
+    min-height: 51px;
+    flex-wrap: wrap;
+  }
+}
