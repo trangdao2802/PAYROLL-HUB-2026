@@ -4373,3 +4373,54 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
 
 
 
+
+
+/* --------------------------------------------------------------------------
+   2026-09-22 nested unified frame border de-duplication
+   IMPORTANT: the global table borders are declared with !important inside
+   @layer base. Put this correction in the SAME layer so it can actually
+   override those declarations. Unlayered !important rules lose to layered
+   !important declarations in the cascade.
+   -------------------------------------------------------------------------- */
+@layer base {
+  /* In a titled unified frame, the outer .unified-table-frame is the only
+     perimeter. The nested DataTable grid must not paint its own top/left frame. */
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table,
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table {
+    border: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+  }
+
+  /* Cell borders are internal grid separators only. Remove the perimeter edges
+     that sit directly beside the unified frame and make it look double. */
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
+    border-left: 0 !important;
+  }
+
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child,
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
+    border-right: 0 !important;
+  }
+
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > thead > tr:first-child > :is(th, td),
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > thead > tr:first-child > :is(th, td) {
+    border-top: 0 !important;
+  }
+
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region > table > tfoot > tr:last-child > :is(th, td),
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region > table > tfoot > tr:last-child > :is(th, td) {
+    border-bottom: 0 !important;
+  }
+
+  /* The scroll viewport itself is not another framed box. */
+  html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region,
+  html body #root .unified-table-frame > .data-table-wrapper > .table-body-region {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+}
