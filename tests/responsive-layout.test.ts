@@ -24,9 +24,9 @@ test("all table routes use one 12px content inset below the navbar", () => {
   const index = readSource("src/index.css");
 
   assert.match(root, /app-table-workspace/);
-  assert.match(styles, /main\\.app-table-workspace\\s*\\{[^}]*padding:\\s*12px\\s*!important/s);
-  assert.match(styles, /main\\.app-table-workspace > div\\.min-h-0 > div\\.min-h-0\\s*\\{[^}]*padding:\\s*0\\s*!important/s);
-  assert.doesNotMatch(index, /main\\s*>\\s*div\\.min-h-0\\s*>\\s*div\\.min-h-0\\s*\\{[^}]*padding:\\s*12px\\s*!important/s);
+  assert.match(styles, /main\.app-table-workspace\s*\{[^}]*padding:\s*12px\s*!important/s);
+  assert.match(styles, /main\.app-table-workspace > div\.min-h-0 > div\.min-h-0\s*\{[^}]*padding:\s*0\s*!important/s);
+  assert.doesNotMatch(index, /main\s*>\s*div\.min-h-0\s*>\s*div\.min-h-0\s*\{[^}]*padding:\s*12px\s*!important/s);
 });
 
 test("Timesheet upload settings keeps its requested top and left inset", () => {
