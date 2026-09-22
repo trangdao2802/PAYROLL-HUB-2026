@@ -2146,14 +2146,8 @@ table thead th :where(span, div, p, button) {
   box-sizing: border-box !important;
 }
 
-/* Every routed page keeps its table frame safely inside the viewport. The
-   semantic selector remains stable when navigation siblings change. */
-main > div.min-h-0 > div.min-h-0 {
-  box-sizing: border-box !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  padding: 12px !important;
-}
+/* The routed workspace below the navbar owns the 12px table inset.
+   Page-level wrappers must not each add another gutter (see table-border-zero.css). */
 
 /* Compact Grand Total Row & Table Headers Styling */
 table tfoot tr,

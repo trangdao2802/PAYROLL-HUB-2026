@@ -396,7 +396,7 @@ html body #root .trial-balance-page-content {
   max-inline-size: 100% !important;
   min-inline-size: 0 !important;
   box-sizing: border-box !important;
-  padding: 12px !important;
+  padding: 0 !important;
 }
 
 html body #root .trial-balance-frame .trial-balance-header-content {
@@ -441,4 +441,39 @@ html body #root .trial-balance-frame .trial-balance-table {
     min-height: 51px;
     flex-wrap: wrap;
   }
+}
+
+/* All payroll table routes share ONE outside gutter below the navbar.
+   The table frame, sidebar and footer must remain inside the padded main
+   content box. Do not pad an individual scroll viewport or every table cell. */
+html body #root main.app-table-workspace {
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+  box-sizing: border-box !important;
+  padding: 12px !important;
+  overflow: hidden;
+}
+
+/* The outlet fills main's inner content box, not the entire viewport. */
+html body #root main.app-table-workspace > div.min-h-0 {
+  min-inline-size: 0 !important;
+  min-block-size: 0 !important;
+  max-inline-size: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove legacy page-level 12/20px gutters to avoid 24/32px double inset.
+   Component padding INSIDE cards remains untouched. */
+html body #root main.app-table-workspace > div.min-h-0 > div.min-h-0 {
+  padding: 0 !important;
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Timesheet uses animated sibling views; the upload view retains its own
+   form spacing, while the finished table and sidebar use only main's gutter. */
+html body #root main.app-table-workspace .timesheet-workspace-grid {
+  max-inline-size: 100%;
+  min-inline-size: 0;
 }

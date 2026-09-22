@@ -18,13 +18,15 @@ test("document and application shell use the device viewport safely", () => {
   assert.match(styles, /-webkit-text-size-adjust: 100%/);
 });
 
-test("every routed page keeps a 12px inset from the viewport edges", () => {
-  const styles = readSource("src/index.css");
+test("all table routes use one 12px content inset below the navbar", () => {
+  const root = readSource("src/app/pages/Root.tsx");
+  const styles = readSource("src/table-border-zero.css");
+  const index = readSource("src/index.css");
 
-  assert.match(
-    styles,
-    /main\s*>\s*div\.min-h-0\s*>\s*div\.min-h-0\s*\{[\s\S]*?padding:\s*12px\s*!important/,
-  );
+  assert.match(root, /app-table-workspace/);
+  assert.match(styles, /main\\.app-table-workspace\\s*\\{[^}]*padding:\\s*12px\\s*!important/s);
+  assert.match(styles, /main\\.app-table-workspace > div\\.min-h-0 > div\\.min-h-0\\s*\\{[^}]*padding:\\s*0\\s*!important/s);
+  assert.doesNotMatch(index, /main\\s*>\\s*div\\.min-h-0\\s*>\\s*div\\.min-h-0\\s*\\{[^}]*padding:\\s*12px\\s*!important/s);
 });
 
 test("Timesheet upload settings keeps its requested top and left inset", () => {
@@ -54,7 +56,7 @@ test("Trial Balance keeps a 12px inset inside the viewport", () => {
 
   assert.match(
     trialBalancePage,
-    /key="hold-dashboard-main"[\s\S]*?style=\{\{\s*padding:\s*"12px"\s*\}\}/,
+    /key="hold-dashboard-main"[\s\S]*?className="trial-balance-page-content/,
   );
 });
 
@@ -99,7 +101,7 @@ test("Trial Balance keeps its own inset and scrollable grid without changing oth
   const styles = readSource("src/table-border-zero.css");
 
   assert.match(page, /trial-balance-page-content/);
-  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*12px\s*!important/s);
+  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*0\s*!important/s);
   assert.match(styles, /\.trial-balance-frame > #trial-balance-table-body\s*\{[^}]*overflow-x:\s*auto\s*!important/s);
   assert.match(styles, /\.trial-balance-frame \.trial-balance-table\s*\{[^}]*min-width:\s*1120px\s*!important/s);
   assert.match(styles, /\.trial-balance-frame #trial-balance-summary\s*\{[^}]*max-height:\s*none\s*!important/s);
