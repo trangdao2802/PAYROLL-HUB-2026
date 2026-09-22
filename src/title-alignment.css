@@ -1,0 +1,33 @@
+/*
+ * Keeps every branded table-title initial on the same optical baseline as the
+ * text that follows it. An empty inline-block places the mask's bottom on the
+ * text baseline without inheriting a flex item's synthesized font baseline.
+ */
+.app-table-initial-mark {
+  position: relative;
+  top: 0;
+  vertical-align: baseline !important;
+  align-self: baseline !important;
+  transform-origin: center bottom;
+}
+
+/* Hover animation may scale the decorative initial, but must never move its
+ * baseline away from the remainder of the title. */
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, a):hover .app-table-initial-mark {
+    transform: scale(1.025) !important;
+  }
+}
+
+.table-initial-toggle:hover .app-table-initial-mark {
+  transform: scale(1.025) !important;
+}
+
+.navbar-current-label {
+  display: inline-block;
+  text-transform: lowercase !important;
+}
+
+.navbar-current-label::first-letter {
+  text-transform: uppercase !important;
+}
