@@ -2186,10 +2186,10 @@ export function HoldAddDashboard() {
     >
       {/* Toolbar */}
       <div
-        className="trial-balance-header unified-table-frame-header flex-shrink-0 py-0 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)] border-b border-border"
-        style={{ minHeight: "56px", paddingTop: "0px", paddingBottom: "0px", paddingLeft: "12px", paddingRight: "12px", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+        className="trial-balance-header unified-table-frame-header flex-shrink-0 py-2 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)] border-b border-border"
+        style={{ minHeight: "56px", paddingLeft: "12px", paddingRight: "12px", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
       >
-        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-2 h-full">
+        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-0 h-full">
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
           <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ minHeight: "38px" }}>
             <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-0 inline-flex items-center gap-0.5">
@@ -2341,7 +2341,7 @@ export function HoldAddDashboard() {
       </div>
       <div
         id="trial-balance-table-body"
-        className="table-body-region flex-1 min-h-0 min-w-0 max-w-full overflow-y-auto overflow-x-hidden custom-scrollbar border-0 shadow-none"
+        className="table-body-region flex-1 min-h-0 min-w-0 max-w-full overflow-auto custom-scrollbar border-0 shadow-none"
         style={{
           borderRadius: "0px",
           width: "100%",
@@ -2373,7 +2373,7 @@ export function HoldAddDashboard() {
               <col style={{ width: "10%" }} />
               <col style={{ width: "10%" }} />
             </colgroup>
-            <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)]">
+            <thead className="sticky top-0 z-20 border-b-0 bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)]">
               <tr>
                 <th
                   className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap"

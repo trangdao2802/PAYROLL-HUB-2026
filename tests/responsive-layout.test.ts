@@ -49,7 +49,7 @@ test("Master upload settings keeps a 12px inset with an 18px left gutter", () =>
   );
 });
 
-test("Trial Balance keeps a 12px inset inside the viewport", () => {
+test("Trial Balance keeps its frame inside the viewport", () => {
   const trialBalancePage = readSource(
     "src/app/pages/04-balance/HoldDashboardPage.tsx",
   );
@@ -101,8 +101,23 @@ test("Trial Balance keeps its own inset and scrollable grid without changing oth
   const styles = readSource("src/table-border-zero.css");
 
   assert.match(page, /trial-balance-page-content/);
-  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*0\s*!important/s);
+  assert.match(styles, /\.trial-balance-page-content\s*\{[^}]*padding:\s*24px\s*!important/s);
   assert.match(styles, /\.trial-balance-frame > #trial-balance-table-body\s*\{[^}]*overflow-x:\s*auto\s*!important/s);
   assert.match(styles, /\.trial-balance-frame \.trial-balance-table\s*\{[^}]*min-width:\s*1120px\s*!important/s);
   assert.match(styles, /\.trial-balance-frame #trial-balance-summary\s*\{[^}]*max-height:\s*none\s*!important/s);
+});
+
+test("Trial Balance title and header rules are isolated from other tables", () => {
+  const styles = readSource("src/table-border-zero.css");
+  const trial = readSource("src/app/pages/04-balance/components/HoldAddDashboard.tsx");
+
+  assert.match(styles, /main\.app-table-workspace:has\(\.trial-balance-page\)\s*\{[^}]*padding:\s*0\s*!important/s);
+  assert.match(styles, /\.trial-balance-frame\s*\{[^}]*--table-frame-border:\s*#dfd0d6/s);
+  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr > th\s*\{[^}]*border-bottom:\s*0\s*!important/s);
+  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr > th\s*\{[^}]*padding-bottom:\s*10px\s*!important/s);
+  assert.match(styles, /#trial-balance-table-body \.trial-balance-table > thead > tr:nth-child\(2\) > th\s*\{[^}]*padding-bottom:\s*6px\s*!important/s);
+  assert.match(styles, /#trial-balance-summary > span:not\(:first-child\) > span:last-child\s*\{[^}]*font-size:\s*13px\s*!important/s);
+  assert.match(styles, /\.trial-balance-header\s*\{[^}]*padding-bottom:\s*8px\s*!important/s);
+  assert.match(trial, /className="trial-balance-header[^"]*py-2/);
+  assert.doesNotMatch(trial, /trial-balance-header[^\n]*paddingBottom: "0px"/);
 });

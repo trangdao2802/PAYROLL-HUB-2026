@@ -396,7 +396,7 @@ html body #root .trial-balance-page-content {
   max-inline-size: 100% !important;
   min-inline-size: 0 !important;
   box-sizing: border-box !important;
-  padding: 0 !important;
+  padding: 24px !important;
 }
 
 html body #root .trial-balance-frame .trial-balance-header-content {
@@ -476,4 +476,112 @@ html body #root main.app-table-workspace > div.min-h-0 > div.min-h-0 {
 html body #root main.app-table-workspace .timesheet-workspace-grid {
   max-inline-size: 100%;
   min-inline-size: 0;
+}
+
+/* Trial Balance only: its 24px parent inset replaces the general 12px main
+   gutter, rather than accumulating to 36px. All other routes stay unchanged. */
+html body #root main.app-table-workspace:has(.trial-balance-page) {
+  padding: 0 !important;
+}
+
+html body #root .trial-balance-frame {
+  --table-frame-border: #dfd0d6;
+  --table-grid-color: #dfd0d6;
+  --grid-line-color: #dfd0d6;
+  border-radius: 0 !important;
+}
+
+html body #root .trial-balance-frame > .trial-balance-header {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+html body #root .trial-balance-frame #trial-balance-summary,
+html body #root .trial-balance-frame #trial-balance-summary > span {
+  align-items: baseline !important;
+}
+
+/* Scoped base-layer !important declarations outrank the global compact-table
+   and single-border contracts, but never affect another payroll table. */
+@layer base {
+  html body #root .trial-balance-frame {
+    border: 1px solid #dfd0d6 !important;
+    border-radius: 0 !important;
+  }
+
+  html body #root .trial-balance-frame > .trial-balance-header {
+    border-bottom: 0 !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  html body #root .trial-balance-frame .trial-balance-header-content {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Two pixels above the original 9/11/15px summary type scale. */
+  html body #root .trial-balance-frame #trial-balance-summary .app-table-initial-mark,
+  html body #root .trial-balance-frame #trial-balance-summary .app-table-title-remainder {
+    font-size: 17px !important;
+  }
+
+  html body #root .trial-balance-frame #trial-balance-summary > span:not(:first-child) > span:first-child {
+    font-size: 11px !important;
+  }
+
+  html body #root .trial-balance-frame #trial-balance-summary > span:not(:first-child) > span:last-child {
+    font-size: 13px !important;
+  }
+
+  /* Original py-2.5 and py-1.5, not the global 4px compact header padding.
+     Sticky vertical separators are painted inside th with a 1px inset shadow. */
+  html body #root #trial-balance-table-body .trial-balance-table > thead > tr > th {
+    position: sticky !important;
+    top: 0 !important;
+    height: auto !important;
+    border-bottom: 0 !important;
+    border-bottom-width: 0 !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    border-right-color: #dfd0d6 !important;
+    box-shadow: inset -1px 0 0 #dfd0d6 !important;
+  }
+
+  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:nth-child(2) > th {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:first-child > th:last-child {
+    border-left: 0 !important;
+    border-right: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Exactly one 1px separator per internal edge, never a double outer line. */
+  html body #root #trial-balance-table-body .trial-balance-table > tbody > tr:not(:last-child) > td {
+    border-bottom: 1px solid #dfd0d6 !important;
+    border-right-color: #dfd0d6 !important;
+  }
+
+  html body #root #trial-balance-table-body .trial-balance-table > tbody > tr:last-child > td {
+    border-bottom: 0 !important;
+  }
+
+  html body #root #trial-balance-table-body .trial-balance-table > :is(tbody, tfoot) > tr > td:last-child {
+    border-left: 0 !important;
+    border-right: 0 !important;
+  }
+
+  html body #root #trial-balance-table-body .trial-balance-table > tfoot > tr > td {
+    border-color: #dfd0d6 !important;
+  }
+}
+
+/* The flex frame already bounds the table body to the available viewport. */
+html body #root .trial-balance-frame > div#trial-balance-table-body {
+  max-height: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
