@@ -2057,11 +2057,19 @@ export function PivotSheet() {
   };
 
   return (
-    <div className="pivot-master-frame unified-table-frame relative flex h-full w-full flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground">
+    <div 
+      className="pivot-master-frame unified-table-frame table-container relative flex h-full w-full flex-col gap-0 overflow-hidden border border-border bg-card p-0 text-card-foreground shadow-xs"
+      style={{
+        borderRadius: "var(--table-radius, 12px)",
+        borderWidth: "1px",
+        borderColor: "var(--table-frame-border, var(--border))",
+        padding: 0,
+      }}
+    >
       {/* HEADER SECTION */}
       <div 
-        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 pb-2 pt-6"
-        style={{ paddingTop: "12px", height: "62px" }}
+        className="unified-table-frame-header flex min-h-[56px] shrink-0 items-center justify-between gap-3 border-b border-border bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2"
+        style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)", minHeight: "56px" }}
       >
         <div className="flex w-full min-w-0 items-center">
           <div className="app-table-title-lockup min-w-0">

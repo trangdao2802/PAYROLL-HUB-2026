@@ -919,12 +919,18 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
 
     return (
       <div 
-        className="unified-table-frame flex-1 flex flex-col min-h-0 w-full h-full px-0 py-0 m-0 relative overflow-hidden gap-0 bg-card border border-border shadow-xs z-10"
+        className="unified-table-frame table-container flex-1 flex flex-col min-h-0 w-full h-full px-0 py-0 m-0 relative overflow-hidden gap-0 bg-card border border-border shadow-xs z-10"
+        style={{
+          borderRadius: "var(--table-radius, 12px)",
+          borderWidth: "1px",
+          borderColor: "var(--table-frame-border, var(--border))",
+          padding: 0,
+        }}
       >
         {/* Top Toolbar Header with Settings Button */}
         <div 
-          className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none"
-          style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+          className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none border-b border-border"
+          style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)", minHeight: "56px" }}
         >
           <div className="app-table-title-lockup min-w-0">
             <div className="app-table-title-line">

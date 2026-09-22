@@ -47,6 +47,7 @@ export interface UiSettings {
   border: string;
   fontSize: string;
   tablePadding: string;
+  tablePaddingMode?: "compact" | "comfortable";
   sidebarPos: "left" | "right";
   radius: string;
   tableRadius?: string;
@@ -276,6 +277,7 @@ export const defaultSettings: UiSettings = {
   border: "#C8D7C9",
   fontSize: "13px",
   tablePadding: "12px 16px",
+  tablePaddingMode: "comfortable",
   sidebarPos: "left",
   radius: "12px",
   tableRadius: "0px",
@@ -302,6 +304,16 @@ export const defaultSettings: UiSettings = {
   colWidthPreference: "normal",
   defaultAuditYear: 2026,
 };
+
+export function getEffectiveTablePadding(settings: Partial<UiSettings>): string {
+  if (settings.tablePaddingMode === "compact") {
+    return "4px 8px";
+  }
+  if (settings.tablePaddingMode === "comfortable") {
+    return "12px 16px";
+  }
+  return settings.tablePadding || "12px 16px";
+}
 
 // Immediately rehydrate saved user default settings if present in browser localStorage
 try {
@@ -1010,8 +1022,8 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
     root.style.setProperty("--font-table", settings.tableFont);
     root.style.setProperty("--tabular-nums", settings.tableFont);
   }
-  if (settings.tablePadding)
-    root.style.setProperty("--table-padding", settings.tablePadding);
+  const effectivePadding = getEffectiveTablePadding(settings);
+  root.style.setProperty("--table-padding", effectivePadding);
   if (settings.radius) root.style.setProperty("--radius", settings.radius);
   if (settings.stripeColor1)
     root.style.setProperty("--stripe-color1", settings.stripeColor1);
@@ -1140,6 +1152,13 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
       border-radius: 0px !important;
     }
 
+    .page-master-config .unified-table-frame,
+    .page-master-config .table-container,
+    .pivot-master-frame,
+    .trial-balance-frame {
+      border-radius: var(--table-radius, 12px) !important;
+    }
+
     /* General Table & Grid Rules */
     table, 
     .data-table-wrapper table, 
@@ -1172,7 +1191,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
       border-color: ${effectiveGrid} !important;
       border-right: 1px solid ${effectiveGrid} !important;
       border-left: none !important;
-      padding: ${settings.tablePadding || "10px 14px"} !important;
+      padding: ${effectivePadding} !important;
       font-size: var(--responsive-table-font-size, ${settings.fontSize || "13px"}) !important;
       font-family: ${settings.tableFont || "var(--font-table, var(--font-main))"} !important;
     }

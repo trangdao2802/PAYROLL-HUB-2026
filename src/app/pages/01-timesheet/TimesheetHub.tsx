@@ -2468,12 +2468,12 @@ export function TimesheetHub() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-0 flex flex-col p-0 w-full"
+            className="absolute inset-0 flex flex-col w-full p-3.5"
             style={{
-              paddingLeft: "0px",
-              paddingRight: "0px",
-              paddingTop: "0px",
-              paddingBottom: "0px",
+              paddingLeft: "14px",
+              paddingRight: "14px",
+              paddingTop: "12px",
+              paddingBottom: "12px",
             }}
           >
             <TimesheetSummaryPage onBack={() => setView("final")} />

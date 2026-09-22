@@ -1409,6 +1409,61 @@ export function UiSettingsModal({
                     </p>
                   </div>
 
+                  {/* Khoảng cách hàng bảng (Table Row Padding Toggle) */}
+                  <div className="flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-slate-200/80">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-[0.8125rem] text-slate-800">
+                        Khoảng cách hàng bảng (Table Row Padding)
+                      </label>
+                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-md">
+                        {(settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "compact"
+                          ? "Compact (Gọn)"
+                          : "Comfortable (Rộng)"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSettings({
+                            ...settings,
+                            tablePaddingMode: "compact",
+                            tablePadding: "4px 8px",
+                          })
+                        }
+                        className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                          (settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "compact"
+                            ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <Ruler className="w-3.5 h-3.5" />
+                        <span>Compact (Gọn nhẹ)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSettings({
+                            ...settings,
+                            tablePaddingMode: "comfortable",
+                            tablePadding: "12px 16px",
+                          })
+                        }
+                        className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                          (settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "comfortable"
+                            ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                        }`}
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                        <span>Comfortable (Thoải mái)</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] font-medium text-slate-500">
+                      Chuyển đổi giữa chế độ Compact (gọn nhẹ, nhiều dòng) và Comfortable (thoải mái, khoảng cách thoáng).
+                    </p>
+                  </div>
+
                   {/* Custom Element Selector Styles */}
                   <div className="flex flex-col gap-2 mt-3 border-t border-primary/10 pt-3">
                       <label className="font-black text-xs text-primary/75 uppercase tracking-wider">
@@ -1915,6 +1970,58 @@ export function UiSettingsModal({
                         }
                         className="w-full accent-primary cursor-pointer"
                       />
+                    </div>
+
+                    {/* Khoảng cách hàng bảng (Table Row Padding Toggle) */}
+                    <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200/80">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-[0.8125rem] text-slate-800">
+                          Khoảng cách hàng bảng (Table Row Padding)
+                        </label>
+                        <span className="text-[11px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-md">
+                          {(settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "compact"
+                            ? "Compact (Gọn)"
+                            : "Comfortable (Rộng)"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSettings({
+                              ...settings,
+                              tablePaddingMode: "compact",
+                              tablePadding: "4px 8px",
+                            })
+                          }
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                            (settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "compact"
+                              ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                          }`}
+                        >
+                          <Ruler className="w-3.5 h-3.5" />
+                          <span>Compact (Gọn)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSettings({
+                              ...settings,
+                              tablePaddingMode: "comfortable",
+                              tablePadding: "12px 16px",
+                            })
+                          }
+                          className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                            (settings.tablePaddingMode || (settings.tablePadding === "4px 8px" || settings.tablePadding === "5px 10px" ? "compact" : "comfortable")) === "comfortable"
+                              ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+                          }`}
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span>Comfortable (Thoải mái)</span>
+                        </button>
+                      </div>
                     </div>
 
 

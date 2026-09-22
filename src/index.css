@@ -1307,53 +1307,51 @@ select:not([multiple]):not(.title-select-plain):focus {
   border-color: color-mix(in srgb, var(--primary) 18%, var(--border)) !important;
 }
 
-/* Master owns its visual language. These tokens are derived from the user's
-   accent harmony and are intentionally not shared with Timesheet pages. */
+/* Master theme panel and cards styled consistently with timesheet design language */
 .master-theme-panel,
 .page-master-ae,
 .page-master-config,
 .pivot-master-frame {
-  --master-border: color-mix(in srgb, var(--primary) 20%, var(--border));
-  --master-divider: color-mix(in srgb, var(--primary) 12%, var(--border));
-  --master-surface: var(--theme-surface-soft, color-mix(in srgb, var(--primary) 5%, var(--card)));
-  --master-surface-alt: var(--theme-surface-complement, color-mix(in srgb, var(--primary) 3%, var(--card)));
+  --master-border: var(--border);
+  --master-divider: var(--border);
+  --master-surface: var(--card);
+  --master-surface-alt: var(--card);
   color: var(--card-foreground, var(--foreground));
 }
 
 .master-theme-panel {
-  background: linear-gradient(145deg, var(--card) 0%, var(--master-surface) 100%) !important;
-  border-color: var(--master-border) !important;
+  background: var(--card) !important;
+  border-color: var(--border) !important;
 }
 
 .master-panel-header,
 .master-config-header {
-  background: transparent !important;
-  background-color: transparent !important;
-  border-color: var(--master-divider) !important;
+  background: var(--card) !important;
+  border-color: var(--border) !important;
 }
 
 .master-panel-tabs {
-  background: transparent !important;
-  border-color: var(--master-divider) !important;
+  background: var(--card) !important;
+  border-color: var(--border) !important;
 }
 
 .master-panel-tab {
-  border: 1px solid color-mix(in srgb, var(--primary) 14%, var(--border));
-  background: color-mix(in srgb, var(--primary) 2%, var(--card));
-  color: color-mix(in srgb, var(--primary) 55%, var(--foreground));
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--card));
+  color: var(--muted-foreground);
 }
 
 .master-panel-tab:hover {
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: color-mix(in srgb, var(--primary) 7%, var(--card));
-  color: var(--primary);
+  border-color: var(--border);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .master-panel-tab.is-active {
   border-color: var(--primary);
   background: var(--primary);
   color: var(--primary-foreground);
-  box-shadow: 0 4px 12px -8px color-mix(in srgb, var(--primary) 70%, transparent);
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
 .master-square-action {
@@ -1362,13 +1360,15 @@ select:not([multiple]):not(.title-select-plain):focus {
   min-width: 32px !important;
   min-height: 32px !important;
   padding: 0 !important;
-  border-radius: 9999px !important;
-  border-color: color-mix(in srgb, var(--primary) 18%, var(--border)) !important;
-  background: color-mix(in srgb, var(--primary) 2%, var(--card)) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  background: color-mix(in srgb, var(--foreground) 3%, var(--card)) !important;
+  color: var(--muted-foreground) !important;
 }
 
 .master-square-action:hover {
-  background: color-mix(in srgb, var(--primary) 8%, var(--card)) !important;
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
 }
 
 .master-header-action {
@@ -1384,35 +1384,27 @@ select:not([multiple]):not(.title-select-plain):focus {
 }
 
 .master-payout-hero {
-  background: linear-gradient(
-    120deg,
-    var(--primary) 0%,
-    color-mix(in srgb, var(--primary) 86%, var(--harmony-complement)) 100%
-  ) !important;
-  border-color: color-mix(in srgb, var(--primary) 72%, var(--harmony-complement)) !important;
+  background: color-mix(in srgb, var(--primary) 6%, var(--card)) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border)) !important;
 }
 
 .master-payout-glow {
-  background: color-mix(in srgb, var(--harmony-triadic-1) 24%, transparent);
+  display: none !important;
 }
 
 .bu-summary-card {
-  background: linear-gradient(145deg, var(--card) 0%, var(--theme-surface-soft) 100%) !important;
-  border-color: var(--master-border) !important;
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
 }
 
 .bu-summary-card > div:first-child,
 .bu-amount-card > div:last-child {
-  border-color: var(--master-divider) !important;
+  border-color: var(--border) !important;
 }
 
 .bu-amount-card {
-  background: linear-gradient(
-    135deg,
-    var(--theme-surface-complement) 0%,
-    var(--theme-surface-triadic) 100%
-  ) !important;
-  border-color: color-mix(in srgb, var(--primary) 17%, var(--border)) !important;
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
 }
 
 .bu-summary-label {
@@ -2610,6 +2602,8 @@ div.audit-data-table-wrapper {
 .page-master-config .unified-table-frame {
   border-width: 1px !important;
   border-color: var(--border, #E7E5E4) !important;
+  border-radius: var(--table-radius, 12px) !important;
+  overflow: hidden !important;
 }
 
 .page-master-ae .unified-table-frame .data-table-wrapper,
@@ -4367,6 +4361,14 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
   padding-bottom: 0px !important;
   padding-top: 0px !important;
 }
+
+div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) {
+  padding-left: 0px !important;
+  padding-top: 0px !important;
+  padding-right: 0px !important;
+  padding-bottom: 0px !important;
+}
+
 
 
 

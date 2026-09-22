@@ -1949,15 +1949,15 @@ export function BulkPayment({
       {/* Left Panel - Actions & Info (Unified Scrollable Card) */}
       {showLeftCard && (
         <div
-          className="bulk-payment-side-panel master-theme-panel w-[275px] sm:w-[290px] border flex flex-col gap-0 shrink-0 overflow-hidden min-h-0 relative select-text shadow-sm h-full rounded-none bg-card"
+          className="bulk-payment-side-panel timesheet-control-panel w-[275px] sm:w-[290px] shrink-0 flex flex-col h-full select-none bg-card border border-border rounded-none p-2.5 overflow-hidden z-20 shadow-2xs"
         >
           {/* Header */}
-          <div className="master-panel-header flex items-center justify-between px-3.5 py-3 border-b sticky top-0 z-25 shrink-0 box-border">
+          <div className="flex items-center justify-between pb-2 border-b border-border/70 shrink-0 box-border bg-card">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[8.5px] font-bold uppercase tracking-[0.16em] text-primary block truncate">
-                Statement
+              <span className="tabular-nums text-[9px] font-black uppercase tracking-wider text-primary block truncate">
+                [01] STATEMENT
               </span>
-              <h2 className="text-[12px] font-bold text-foreground uppercase tracking-tight font-sans truncate">
+              <h2 className="text-[11px] font-bold text-foreground uppercase tracking-tight font-sans truncate">
                 Batch Payment Hub
               </h2>
             </div>
@@ -1965,7 +1965,7 @@ export function BulkPayment({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={handleCopyReport}
-                className="master-square-action text-muted-foreground hover:text-primary transition-all active:scale-[0.98] shrink-0 border flex items-center justify-center cursor-pointer shadow-2xs"
+                className="h-7 w-7 rounded-lg border border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-primary transition-all active:scale-[0.98] shrink-0 flex items-center justify-center cursor-pointer shadow-2xs"
                 title="Sao chép toàn bộ thông tin"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -1973,7 +1973,7 @@ export function BulkPayment({
             </div>
           </div>
 
-          <div className="master-panel-tabs flex items-center gap-1 py-[12px] px-[6px] border-b shrink-0">
+          <div className="flex items-center gap-1 py-2 border-b border-border/70 shrink-0">
             {[
               { id: "summary", label: "Overview", icon: Layers },
               {
@@ -1986,10 +1986,10 @@ export function BulkPayment({
               <button
                 key={t.id}
                 onClick={() => setActiveLeftTab(t.id as any)}
-                className={`master-panel-tab flex h-7.5 flex-1 items-center justify-center gap-1 px-1 rounded-lg text-[8.5px] font-bold uppercase tracking-[0.03em] transition-all cursor-pointer active:scale-[0.98] active:translate-y-[1px] ${
+                className={`flex h-7.5 flex-1 items-center justify-center gap-1 px-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer active:scale-[0.98] ${
                   activeLeftTab === t.id
-                    ? "is-active"
-                    : ""
+                    ? "bg-primary text-primary-foreground border border-primary shadow-xs"
+                    : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border"
                 }`}
               >
                 <t.icon className="h-3 w-3 shrink-0" />
@@ -1999,7 +1999,7 @@ export function BulkPayment({
           </div>
 
           {/* Scrollable contents */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pb-6 flex flex-col gap-3.5 min-h-0">
+          <div className="flex-1 overflow-y-auto custom-scrollbar pt-2 pb-4 flex flex-col gap-2.5 min-h-0">
             <AnimatePresence mode="wait">
               {activeLeftTab === "summary" && (
                 <motion.div
@@ -2008,23 +2008,29 @@ export function BulkPayment({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.15 }}
-                  className="flex flex-col gap-3.5 pb-4"
+                  className="flex flex-col gap-2.5 pb-2"
                 >
-                  {/* Total Overview - Premium Minimal Dark Style */}
-                  <div className="master-payout-hero border rounded-xl p-3 shadow-sm flex flex-col justify-center relative overflow-hidden group min-h-[58px]">
-                    <div className="master-payout-glow absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-10 -mt-10 transition-all" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-primary-foreground/80 relative z-10 leading-snug mb-0.5 font-sans">
-                      TỔNG CHI LƯƠNG ĐỢT NÀY
-                    </span>
-                    <div className="flex items-baseline justify-between gap-1 relative z-10">
-                      <p className="text-[17px] sm:text-[18px] font-bold text-primary-foreground tabular-nums tracking-tighter leading-tight w-full text-right">
+                  {/* Total Overview - Matched with Timesheet Hero Card */}
+                  <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-2.5 flex flex-col gap-1 relative overflow-hidden shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-muted-foreground">Tổng chi lương đợt này</span>
+                      </div>
+                      <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md uppercase">
+                        {selectedBUGroup === "ALL" ? "ALL BU" : selectedBUGroup}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-end gap-1 pt-0.5">
+                      <span className="text-xl font-black tabular-nums tracking-tight text-foreground leading-none">
                         {formatMoneyVND(totalPayoutSum).replace(" ₫", "")}
-                      </p>
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">VND</span>
                     </div>
                   </div>
 
                   {/* BU breakdown metrics - REDESIGNED FOR SINGLE HEADER ROW CARD */}
-                  <div className="bu-summary-card border-0 rounded-xl p-3 shadow-xs flex flex-col gap-2.5">
+                  <div className="bg-card border border-border/80 rounded-xl p-2.5 flex flex-col gap-2 shadow-2xs">
                     <div className="flex items-center justify-between border-b pb-2 gap-2">
                       <span className="text-[10px] font-bold text-foreground uppercase tracking-[0.1em] font-sans flex items-center gap-1.5 shrink-0">
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -2288,20 +2294,20 @@ export function BulkPayment({
                     </div>
 
                     {/* General Info */}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="master-info-card border p-2.5 rounded-xl flex flex-col gap-1 shadow-xs">
-                      <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider font-sans">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="bg-card border border-border/80 p-2 rounded-xl flex flex-col gap-0.5 shadow-2xs">
+                      <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-wider font-sans">
                         Tháng báo cáo
                       </span>
-                      <span className="text-xs font-bold text-foreground tabular-nums leading-none">
+                      <span className="text-xs font-black text-foreground tabular-nums leading-tight">
                         {appData.globalMonth || "03.2026"}
                       </span>
                     </div>
-                    <div className="master-info-card border p-2.5 rounded-xl flex flex-col gap-1 shadow-xs">
-                      <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider font-sans">
+                    <div className="bg-card border border-border/80 p-2 rounded-xl flex flex-col gap-0.5 shadow-2xs">
+                      <span className="text-[8.5px] font-bold text-muted-foreground uppercase tracking-wider font-sans">
                         Số dòng dữ liệu
                       </span>
-                      <span className="text-xs font-bold text-foreground tabular-nums leading-none">
+                      <span className="text-xs font-black text-foreground tabular-nums leading-tight">
                         {(appData.BankExport?.data || []).length}
                       </span>
                     </div>
@@ -2977,26 +2983,21 @@ export function BulkPayment({
 
       {/* Right Panel - Data View */}
       <div
-        className={`bulk-payment-data-panel master-theme-panel flex-1 border rounded-none flex flex-col overflow-hidden min-h-0 shadow-xs relative pb-0 h-full ${rightPanelTab !== "visuals" ? "unified-table-frame" : ""}`}
+        className="bulk-payment-data-panel unified-table-frame table-container flex-1 flex flex-col min-h-0 bg-card border border-border shadow-xs relative overflow-hidden pb-0 h-full p-0"
         style={{
-          borderRadius: "0px",
-          borderWidth: rightPanelTab === "visuals" ? "0px" : "0.5px",
-          borderColor: "var(--grid-line-color, var(--border))",
-          marginLeft: "0px",
-          paddingTop: "0px",
-          paddingLeft: "0px",
-          paddingRight: "0px",
-          paddingBottom: "0px",
+          borderRadius: "var(--table-radius, 12px)",
+          borderWidth: "1px",
+          borderColor: "var(--table-frame-border, var(--border))",
+          padding: 0,
         }}
       >
-        {/* ANALYSIS owns its own table header; the shared selector bar is removed. */}
+        {/* Table header matching Timesheet unified-table-frame-header */}
         {rightPanelTab !== "visuals" && (
         <div
-          className="master-panel-header unified-table-frame-header px-3 flex flex-row items-center justify-between w-full gap-3 shrink-0 select-none box-border"
+          className="unified-table-frame-header px-3 py-2 flex flex-row items-center justify-between w-full gap-3 shrink-0 select-none box-border border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
           style={{
-            height: "73px",
-            minHeight: "73px",
-            maxHeight: "73px",
+            backgroundColor: "var(--table-header-bg, #FAF3E8)",
+            minHeight: "56px",
           }}
         >
           <div className="flex min-w-0 flex-1 items-center gap-0.5">

@@ -248,18 +248,18 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
                   onMouseDown={startNoColumnResize}
                 />
               </th>
-              <th hidden={hiddenColumns.has("business")} className="min-w-[140px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-primary">
+              <th hidden={hiddenColumns.has("business")} className="min-w-[140px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-2.5 text-left text-[10.5px] font-bold uppercase tracking-wider text-primary">
                 BUSINESS
               </th>
-              <th hidden={hiddenColumns.has("chargeToCenterMkt")} className="min-w-[180px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-left text-[10px] font-bold uppercase tracking-wider text-primary">
+              <th hidden={hiddenColumns.has("chargeToCenterMkt")} className="min-w-[180px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-2.5 text-left text-[10.5px] font-bold uppercase tracking-wider text-primary">
                 L07
               </th>
               {visibleTypes.map((type) => (
-                <th key={type} className="min-w-[120px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-primary">
+                <th key={type} className="min-w-[125px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-2.5 text-right text-[10.5px] font-bold uppercase tracking-wider text-primary">
                   {type}
                 </th>
               ))}
-              <th hidden={hiddenColumns.has("__total")} className="min-w-[150px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-1 text-right text-[10px] font-bold uppercase tracking-wider text-primary">
+              <th hidden={hiddenColumns.has("__total")} className="min-w-[155px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-2.5 text-right text-[10.5px] font-bold uppercase tracking-wider text-primary">
                 GRAND TOTAL
               </th>
             </tr>
@@ -280,21 +280,21 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
 
                 return (
                 <React.Fragment key={rowKeyOf(row)}>
-                <tr className="group border-b border-border transition-colors">
+                <tr className="group border-b border-border transition-colors hover:bg-muted/30">
                   <td
                     hidden={hiddenColumns.has("__no")}
-                    className="pivot-timesheet-no-cell whitespace-nowrap border-r border-b border-border px-2 py-1.5 text-center text-[10px] font-bold normal-nums text-muted-foreground transition-colors"
+                    className="pivot-timesheet-no-cell whitespace-nowrap border-r border-b border-border px-2.5 py-2.5 text-center text-[10px] font-bold normal-nums text-muted-foreground transition-colors"
                     style={{ width: noColumnWidth, minWidth: noColumnWidth, maxWidth: noColumnWidth }}
                     data-column-type="text"
                   >
                     {String(startIdx + idx + 1)}
                   </td>
-                  <td hidden={hiddenColumns.has("business")} className="min-w-[140px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[11px] font-semibold uppercase text-foreground transition-colors">
+                  <td hidden={hiddenColumns.has("business")} className="min-w-[140px] whitespace-nowrap border-r border-b border-border px-4 py-2.5 text-[11px] font-semibold uppercase text-foreground transition-colors">
                     {row.business || "NORTH"}
                   </td>
                   <td
                     hidden={hiddenColumns.has("chargeToCenterMkt")}
-                    className="min-w-[180px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-[10.5px] font-medium uppercase text-muted-foreground transition-colors"
+                    className="min-w-[180px] whitespace-nowrap border-r border-b border-border px-4 py-2.5 text-[11px] font-medium uppercase text-muted-foreground transition-colors"
                     onDoubleClick={() => startEditing(row, "chargeToCenterMkt", row.chargeToCenterMkt)}
                     title={onCellChange ? "Double-click to edit L07" : undefined}
                   >
@@ -310,7 +310,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
                   {visibleTypes.map((type) => (
                     <td 
                       key={type} 
-                      className={`min-w-[120px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-right text-[11px] font-normal tabular-nums transition-colors ${row.values[type] ? "text-foreground" : "text-muted-foreground/40"}`}
+                      className={`min-w-[125px] whitespace-nowrap border-r border-b border-border px-4 py-2.5 text-right text-[11px] font-normal tabular-nums transition-colors ${row.values[type] ? "text-foreground" : "text-muted-foreground/40"}`}
                       onDoubleClick={() => startEditing(row, type, row.values[type] || 0)}
                       title={onCellChange ? `Double-click to edit ${type}` : undefined}
                     >
@@ -325,27 +325,27 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
                       )}
                     </td>
                   ))}
-                  <td hidden={hiddenColumns.has("__total")} className="min-w-[150px] whitespace-nowrap border-r border-b border-border px-3.5 py-1.5 text-right text-[11px] font-semibold tabular-nums text-foreground transition-colors">
+                  <td hidden={hiddenColumns.has("__total")} className="min-w-[155px] whitespace-nowrap border-r border-b border-border px-4 py-2.5 text-right text-[11px] font-semibold tabular-nums text-foreground transition-colors">
                     {formatMoneyVND(row.total).replace(" ₫", "")}
                   </td>
                 </tr>
                 {showBusinessSubtotal && subtotal && (
-                  <tr className="pivot-bu-subtotal-row total-row font-black uppercase tracking-wider text-[10.5px]">
+                  <tr className="pivot-bu-subtotal-row total-row font-black uppercase tracking-wider text-[10.5px] bg-primary/5">
                     <td
                       colSpan={Math.max(1, identityColumnCount)} hidden={identityColumnCount === 0}
-                      className="border-r border-b px-3.5 py-2 text-primary whitespace-nowrap"
+                      className="border-r border-b px-4 py-3 text-primary whitespace-nowrap"
                     >
                       {business} SUBTOTAL
                     </td>
                     {visibleTypes.map((type) => (
                       <td
                         key={type}
-                        className="border-r border-b px-3.5 py-2 text-right tabular-nums text-primary whitespace-nowrap min-w-[120px]"
+                        className="border-r border-b px-4 py-3 text-right tabular-nums text-primary whitespace-nowrap min-w-[125px]"
                       >
                         {formatMoneyVND(subtotal.totals[type] || 0).replace(" ₫", "")}
                       </td>
                     ))}
-                    <td hidden={hiddenColumns.has("__total")} className="border-r border-b px-3.5 py-2 text-right tabular-nums text-primary whitespace-nowrap min-w-[150px]">
+                    <td hidden={hiddenColumns.has("__total")} className="border-r border-b px-4 py-3 text-right tabular-nums text-primary whitespace-nowrap min-w-[155px]">
                       {formatMoneyVND(subtotal.grandTotal).replace(" ₫", "")}
                     </td>
                   </tr>
@@ -359,16 +359,16 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
             <tr className="total-row font-black uppercase tracking-wider text-[11px]">
               <td 
                 colSpan={Math.max(1, identityColumnCount)} hidden={identityColumnCount === 0}
-                className="min-w-[370px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 font-black text-primary"
+                className="min-w-[370px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-3 font-black text-primary"
               >
                 GRAND TOTAL
               </td>
               {visibleTypes.map((type) => (
-                <td key={type} className="min-w-[120px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 text-right text-[11px] font-black tabular-nums text-primary">
+                <td key={type} className="min-w-[125px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-3 text-right text-[11px] font-black tabular-nums text-primary">
                   {formatMoneyVND(grandTotals.totals[type] || 0).replace(" ₫", "")}
                 </td>
               ))}
-              <td hidden={hiddenColumns.has("__total")} className="min-w-[150px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-3.5 py-2 text-right text-[11px] font-black tabular-nums text-primary">
+              <td hidden={hiddenColumns.has("__total")} className="min-w-[155px] whitespace-nowrap border-r border-b border-border bg-[var(--table-column-header-bg,#F4ECD8)] px-4 py-3 text-right text-[11px] font-black tabular-nums text-primary">
                 {formatMoneyVND(grandTotals.grandTotal).replace(" ₫", "")}
               </td>
             </tr>

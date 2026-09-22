@@ -2171,15 +2171,23 @@ export function HoldAddDashboard() {
   ]);
 
   return (
-    <div className="trial-balance-frame unified-table-frame h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent w-full" style={{ borderRadius: "0px" }}>
+    <div 
+      className="trial-balance-frame unified-table-frame table-container h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-card w-full border border-border shadow-xs" 
+      style={{ 
+        borderRadius: "var(--table-radius, 12px)",
+        borderWidth: "1px",
+        borderColor: "var(--table-frame-border, var(--border))",
+        padding: 0 
+      }}
+    >
       {/* Toolbar */}
       <div
-        className="trial-balance-header unified-table-frame-header flex-shrink-0 py-0 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)]"
-        style={{ height: "62.9735px", minHeight: "62.9735px", paddingTop: "0px", paddingBottom: "0px", paddingLeft: "12px", paddingRight: "12px", borderRadius: "0px", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+        className="trial-balance-header unified-table-frame-header flex-shrink-0 py-0 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)] border-b border-border"
+        style={{ minHeight: "56px", paddingTop: "0px", paddingBottom: "0px", paddingLeft: "12px", paddingRight: "12px", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
       >
-        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-2 h-full" style={{ borderRadius: "0px" }}>
+        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-2 h-full">
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
-          <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ borderRadius: "0px", minHeight: "38px" }}>
+          <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ minHeight: "38px" }}>
             <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-0 inline-flex items-center gap-0.5">
               <TableInitialMark label="TRIAL BALANCE" className="shrink-0 text-primary" />
               <TableTitleRemainder label="TRIAL BALANCE" />

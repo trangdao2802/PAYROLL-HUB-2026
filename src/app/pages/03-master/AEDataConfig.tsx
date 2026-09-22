@@ -637,14 +637,23 @@ export function AEDataConfig({
       initial="hidden"
       animate="visible"
       className="page-master-config flex-1 flex flex-col min-h-0 bg-transparent m-0 gap-0 w-full h-full overflow-hidden"
-      style={{ padding: "0px" }}
+      style={{ padding: "10px 12px 12px 12px", boxSizing: "border-box" }}
     >
       {/* One shared frame for title, data area and pagination. */}
-      <div className="unified-table-frame bg-card text-card-foreground flex-1 flex flex-col min-h-0 w-full max-w-full relative overflow-hidden rounded-xl border border-border shadow-sm">
+      <div 
+        className="unified-table-frame table-container bg-card text-card-foreground flex-1 flex flex-col min-h-0 w-full max-w-full relative overflow-hidden border border-border shadow-xs"
+        style={{
+          borderRadius: "var(--table-radius, 12px)",
+          borderWidth: "1px",
+          borderColor: "var(--table-frame-border, var(--border))",
+          padding: 0,
+        }}
+      >
 
         {/* Integrated Header & Controls */}
         <div 
-          className="master-config-header unified-table-frame-header relative z-10 flex w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-2 px-4 md:flex-row md:items-center border-b border-border bg-card/90 backdrop-blur-xs"
+          className="master-config-header unified-table-frame-header relative z-10 flex min-h-[56px] w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-2 px-3 py-2 md:flex-row md:items-center border-b border-border bg-[var(--table-header-bg,#FAF3E8)]"
+          style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)", minHeight: "56px" }}
         >
           <div className="relative z-10 flex min-w-0 flex-1 items-center gap-0.5">
             <button

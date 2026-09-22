@@ -915,7 +915,13 @@ export function MasterAE() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
-            className="flex-1 flex flex-col min-h-0 gap-4 relative overflow-hidden bg-transparent w-full px-1.5 pb-1.5 pt-0"
+            className="flex-1 flex flex-col min-h-0 gap-0 relative overflow-hidden bg-transparent w-full p-0"
+            style={{
+              paddingLeft: "0px",
+              paddingRight: "0px",
+              paddingTop: "0px",
+              paddingBottom: "0px",
+            }}
           >
             {/* Inner Content Area holding Table */}
             <div className="flex-1 min-h-0 relative overflow-hidden w-full h-full">
@@ -946,7 +952,13 @@ export function MasterAE() {
                       }}
                     />
                   )}
-                  <div className="flex-1 flex flex-col min-h-0 w-full h-full overflow-hidden" style={{ display: activeTab === "Pivot" ? "flex" : "none" }}>
+                  <div 
+                    className="flex-1 flex flex-col min-h-0 w-full h-full overflow-hidden" 
+                    style={{ 
+                      display: activeTab === "Pivot" ? "flex" : "none",
+                      padding: "0px",
+                    }}
+                  >
                     <PivotSheet />
                   </div>
                   {activeTab !== "BulkPayment" && activeTab !== "Pivot" && (
@@ -988,12 +1000,18 @@ export function MasterAE() {
                         </div>
                       ) : (
                         <div 
-                          className="unified-table-frame flex-1 flex flex-col min-h-0 w-full h-full px-0 py-0 m-0 relative overflow-hidden gap-0 bg-card border border-border shadow-xs z-10"
+                          className="unified-table-frame table-container flex-1 flex flex-col min-h-0 w-full h-full px-0 py-0 m-0 relative overflow-hidden gap-0 bg-card border border-border shadow-xs z-10"
+                          style={{
+                            borderRadius: "var(--table-radius, 12px)",
+                            borderWidth: "1px",
+                            borderColor: "var(--table-frame-border, var(--border))",
+                            padding: 0,
+                          }}
                         >
                           {/* Top Toolbar Header with Settings Button */}
                           <div 
-                            className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none"
-                            style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
+                            className="unified-table-frame-header flex min-h-[56px] items-center justify-between gap-3 bg-[var(--table-header-bg,#FAF3E8)] px-3 py-2 shrink-0 select-none border-b border-border"
+                            style={{ backgroundColor: "var(--table-header-bg, #FAF3E8)", minHeight: "56px" }}
                           >
                             <div className="app-table-title-lockup min-w-0">
                               <div className="app-table-title-line">
@@ -1246,12 +1264,10 @@ export function MasterAE() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute inset-0 flex w-full flex-col p-0"
+            className="absolute inset-0 flex w-full flex-col"
             style={{
-              paddingLeft: "18px",
-              paddingRight: "12px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
+              padding: "0px",
+              boxSizing: "border-box",
             }}
           >
             <AEDataConfig onSwitchToFinal={() => { setActiveTab("Sheet1_AE"); setView("list"); }} />
