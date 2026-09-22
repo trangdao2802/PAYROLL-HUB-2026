@@ -491,9 +491,15 @@ html body #root .trial-balance-frame {
   border-radius: 0 !important;
 }
 
+/* Apply the title's 12px inset exactly once at its content row. */
 html body #root .trial-balance-frame > .trial-balance-header {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+html body #root .trial-balance-frame .trial-balance-header-content {
   padding-left: 12px !important;
   padding-right: 12px !important;
+  column-gap: 24px !important;
 }
 
 html body #root .trial-balance-frame #trial-balance-summary,
@@ -534,18 +540,28 @@ html body #root .trial-balance-frame #trial-balance-summary > span {
     font-size: 13px !important;
   }
 
-  /* Original py-2.5 and py-1.5, not the global 4px compact header padding.
-     Sticky vertical separators are painted inside th with a 1px inset shadow. */
-  html body #root #trial-balance-table-body .trial-balance-table > thead > tr > th {
+  /* Sticky the WHOLE thead: individual th at top:0 would overlap the
+     second header row and rowSpan=2 cells while scrolling. */
+  html body #root #trial-balance-table-body .trial-balance-table > thead {
     position: sticky !important;
     top: 0 !important;
+    z-index: 20 !important;
+    background: var(--table-column-header-bg, var(--table-header-bg, #FAF3E8)) !important;
+  }
+
+  /* Restore py-2.5 / py-1.5 and remove the physical bottom borders.
+     Inset shadows maintain horizontal/vertical dividers in sticky mode. */
+  html body #root #trial-balance-table-body .trial-balance-table > thead > tr > th {
+    position: static !important;
+    top: auto !important;
     height: auto !important;
+    background: var(--table-column-header-bg, var(--table-header-bg, #FAF3E8)) !important;
     border-bottom: 0 !important;
     border-bottom-width: 0 !important;
     padding-top: 10px !important;
     padding-bottom: 10px !important;
     border-right-color: #dfd0d6 !important;
-    box-shadow: inset -1px 0 0 #dfd0d6 !important;
+    box-shadow: inset -1px 0 0 #dfd0d6, inset 0 -1px 0 #dfd0d6 !important;
   }
 
   html body #root #trial-balance-table-body .trial-balance-table > thead > tr:nth-child(2) > th {
@@ -553,10 +569,11 @@ html body #root .trial-balance-frame #trial-balance-summary > span {
     padding-bottom: 6px !important;
   }
 
-  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:first-child > th:last-child {
+  html body #root #trial-balance-table-body .trial-balance-table > thead > tr:first-child > th.note-column-header {
     border-left: 0 !important;
     border-right: 0 !important;
-    box-shadow: none !important;
+    /* The previous column draws NOTE's left line; the frame draws its right. */
+    box-shadow: inset 0 -1px 0 #dfd0d6 !important;
   }
 
   /* Exactly one 1px separator per internal edge, never a double outer line. */
@@ -569,7 +586,7 @@ html body #root .trial-balance-frame #trial-balance-summary > span {
     border-bottom: 0 !important;
   }
 
-  html body #root #trial-balance-table-body .trial-balance-table > :is(tbody, tfoot) > tr > td:last-child {
+  html body #root #trial-balance-table-body .trial-balance-table > :is(tbody, tfoot) > tr > td.note-column-cell {
     border-left: 0 !important;
     border-right: 0 !important;
   }
@@ -581,6 +598,11 @@ html body #root .trial-balance-frame #trial-balance-summary > span {
 
 /* The flex frame already bounds the table body to the available viewport. */
 html body #root .trial-balance-frame > div#trial-balance-table-body {
+  /* Flex computes the available height after the toolbar and footer.
+     An absolute 100vh - 250px would clip wrapped summary titles and footers. */
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: auto !important;
   max-height: 100% !important;
   overflow-x: auto !important;
   overflow-y: auto !important;

@@ -121,3 +121,18 @@ test("Trial Balance title and header rules are isolated from other tables", () =
   assert.match(trial, /className="trial-balance-header[^"]*py-2/);
   assert.doesNotMatch(trial, /trial-balance-header[^\n]*paddingBottom: "0px"/);
 });
+
+test("Trial Balance keeps both thead rows sticky as one unit with single NOTE dividers", () => {
+  const trial = readSource("src/app/pages/04-balance/components/HoldAddDashboard.tsx");
+  const styles = readSource("src/table-border-zero.css");
+
+  assert.match(trial, /<thead className="sticky top-0 z-20/);
+  assert.match(styles, /\.trial-balance-table > thead\s*\{[^}]*position:\s*sticky\s*!important/s);
+  assert.match(styles, /\.trial-balance-table > thead > tr > th\s*\{[^}]*position:\s*static\s*!important/s);
+  assert.match(styles, /inset -1px 0 0 #dfd0d6, inset 0 -1px 0 #dfd0d6/);
+  assert.match(trial, /note-column-header/);
+  assert.equal((trial.match(/note-column-cell/g) || []).length, 4);
+  assert.match(styles, /\.trial-balance-header-content\s*\{[^}]*padding-left:\s*12px\s*!important/s);
+  assert.match(styles, /\.trial-balance-frame > div#trial-balance-table-body\s*\{[^}]*height:\s*auto\s*!important/s);
+  assert.doesNotMatch(styles, /height:\s*calc\(100vh\s*-\s*250px\)/);
+});

@@ -2189,7 +2189,7 @@ export function HoldAddDashboard() {
         className="trial-balance-header unified-table-frame-header flex-shrink-0 py-2 flex items-center justify-between bg-[var(--table-header-bg,#FAF3E8)] border-b border-border"
         style={{ minHeight: "56px", paddingLeft: "12px", paddingRight: "12px", backgroundColor: "var(--table-header-bg, #FAF3E8)" }}
       >
-        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-3 py-0 h-full">
+        <div className="trial-balance-header-content w-full flex items-center justify-between flex-wrap gap-6 py-0 h-full">
           {/* Summary Pills on Top Header Bar (Replacing Payroll Hub title & icon) */}
           <div id="trial-balance-summary" className="flex items-center gap-2 flex-wrap" style={{ minHeight: "38px" }}>
             <span className="text-[12px] font-black tracking-widest uppercase text-[#600032] dark:text-rose-300 font-sans mr-0 inline-flex items-center gap-0.5">
@@ -2425,7 +2425,7 @@ export function HoldAddDashboard() {
                   Số dư CK
                 </th>
                 <th
-                  className="border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[200px]"
+                  className="note-column-header border-r border-b border-[#e7dbdc] dark:border-slate-800 px-3 py-2.5 text-center font-sans font-bold text-[12px] uppercase tracking-wider bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)] whitespace-nowrap min-w-[200px]"
                   rowSpan={2}
                 >
                   Note
@@ -2525,7 +2525,7 @@ export function HoldAddDashboard() {
                         {fmt(remainingHoldByMonth[mk]?.total || 0)}
                       </td>
 
-                      <td className="border-r border-b border-[#e7dbdc] dark:border-slate-800 min-w-[200px] !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
+                      <td className="note-column-cell border-r border-b border-[#e7dbdc] dark:border-slate-800 min-w-[200px] !bg-[#FAF9F6]/80 dark:!bg-slate-800/60"></td>
                     </tr>,
 
                     // Detail rows
@@ -2707,7 +2707,7 @@ export function HoldAddDashboard() {
                                   </td>
 
                                   <td
-                                    className={`border-r border-b ${
+                                    className={`note-column-cell border-r border-b ${
                                       !isDetail ? "border-[#ded2d3] dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[12px]" : "border-[#e7dbdc] dark:border-slate-800 text-muted-foreground/80 text-[11px] italic"
                                     } p-2 text-left min-w-[200px]`}
                                     title={e.ghiChu}
@@ -2744,7 +2744,7 @@ export function HoldAddDashboard() {
                                   {fmt(remainingHoldByMonth[mk]?.byBu[bu] || 0)}
                                 </td>
 
-                                <td className="border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
+                                <td className="note-column-cell border-r border-b border-[#d6c7b2] dark:border-slate-700 p-2 !bg-[#F2EADB] dark:!bg-slate-800/90"></td>
                               </tr>
                             );
                             
@@ -2794,7 +2794,7 @@ export function HoldAddDashboard() {
                   {fmt(monthKeys.reduce((sum, mk) => sum + (remainingHoldByMonth[mk]?.total || 0), 0))}
                 </td>
                 <td 
-                  className="border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
+                  className="note-column-cell border-r border-b border-[#bfae98] dark:border-slate-700 min-w-[200px] bg-[var(--table-column-header-bg,#E8DEC8)] sticky bottom-0 z-20"
                 />
               </tr>
             </tfoot>
