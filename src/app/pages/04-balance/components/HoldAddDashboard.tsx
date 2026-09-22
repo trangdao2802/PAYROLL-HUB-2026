@@ -2172,11 +2172,15 @@ export function HoldAddDashboard() {
 
   return (
     <div 
-      className="trial-balance-frame unified-table-frame table-container h-full flex-1 flex flex-col min-h-0 overflow-hidden bg-card w-full border border-border shadow-xs" 
+      className="trial-balance-frame unified-table-frame table-container h-full flex-1 flex flex-col min-h-0 min-w-0 max-w-full overflow-hidden bg-card w-full border border-border shadow-xs" 
       style={{ 
         borderRadius: "var(--table-radius, 12px)",
         borderWidth: "1px",
         borderColor: "var(--table-frame-border, var(--border))",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
         padding: 0 
       }}
     >
@@ -2337,16 +2341,38 @@ export function HoldAddDashboard() {
       </div>
       <div
         id="trial-balance-table-body"
-        className="table-body-region flex-1 min-h-0 overflow-auto custom-scrollbar border-0 shadow-none"
-        style={{ borderRadius: "0px" }}
+        className="table-body-region flex-1 min-h-0 min-w-0 max-w-full overflow-y-auto overflow-x-hidden custom-scrollbar border-0 shadow-none"
+        style={{
+          borderRadius: "0px",
+          width: "100%",
+          maxWidth: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+        }}
       >
           <table
-            className="trial-balance-table w-full border-separate border-spacing-0 table-auto bg-white dark:bg-card"
+            className="trial-balance-table w-full min-w-0 max-w-full border-separate border-spacing-0 table-fixed bg-white dark:bg-card"
             style={{
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              tableLayout: "fixed",
+              boxSizing: "border-box",
               fontFamily: uiSettings.tableFont || "var(--font-main)",
               fontSize: uiSettings.fontSize || "13px",
             }}
           >
+            <colgroup>
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
+            </colgroup>
             <thead className="sticky top-0 z-20 shadow-sm border-b-2 border-[#e7dbdc] dark:border-slate-700 bg-[var(--table-column-header-bg,#F4F2EE)] text-[var(--table-column-header-text-color,#1e293b)]">
               <tr>
                 <th
