@@ -267,7 +267,8 @@ export function colorToHex7(color: string | undefined | null, fallback = "#00000
   return fallback;
 }
 
-export const defaultSettings: UiSettings = {
+// Defaults also supply every required field of the registered theme preset.
+export const defaultSettings: UiSettings & Omit<TastePreset, "id" | "name"> = {
   bg: "#FAF8F5",
   bgImage: "",
   bgImageStyle: "cover",
@@ -1518,7 +1519,7 @@ export function applyUiSettings(settings: UiSettings, previewRule?: Partial<Cust
 export async function loadUiSettings(): Promise<UiSettings> {
   const sanitize = (s: unknown): UiSettings => {
     const sObj = (s && typeof s === "object" ? s : {}) as Partial<UiSettings>;
-    let result = { ...defaultSettings, ...sObj };
+    let result: UiSettings = { ...defaultSettings, ...sObj };
     result = migrateCocoaBlushContrast(result);
     result = migrateFrenchMatchaPalette(result);
     result = migrateSoftMatchaPalette(result);
