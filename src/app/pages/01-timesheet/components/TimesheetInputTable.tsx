@@ -218,7 +218,7 @@ export function TimesheetInputTable({
         paddingRight: "0px",
       } as React.CSSProperties}
     >
-      <div className="relative flex flex-col flex-1 min-h-0 bg-card p-0">
+      <div className="unified-table-frame table-container relative flex flex-col flex-1 min-h-0 bg-card p-0">
         {/* Synchronization Panel Visual Indicator Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-muted/40 border-b border-border text-xs">
           <div className="flex items-center gap-2 flex-wrap">
