@@ -154,3 +154,116 @@ html body #root :is(
   contain: strict;
   box-sizing: border-box;
 }
+
+
+/* --------------------------------------------------------------------------
+   2026-09-22 visual isolation fixes
+   Scope these rules to the three reported layouts only.
+   -------------------------------------------------------------------------- */
+
+/* MASTER > Bulk Payment: the split workspace itself must never paint a seam
+   between the left control card and the right table frame. Each child keeps
+   its own outline; the 12px gap remains visually empty. */
+html body #root .master-ae-table-wrapper[data-split-panels="true"],
+html body #root .master-ae-table-wrapper[data-split-panels="true"] > .bulk-payment-layout,
+html body #root .bulk-payment-layout {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  background-image: none !important;
+}
+
+html body #root .master-ae-table-wrapper[data-split-panels="true"]::before,
+html body #root .master-ae-table-wrapper[data-split-panels="true"]::after,
+html body #root .bulk-payment-layout::before,
+html body #root .bulk-payment-layout::after {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* TRIAL BALANCE: isolate the wide grid to its own scroll viewport so this
+   table can be wider than the content area without widening the page or any
+   sibling table. */
+html body #root .trial-balance-frame {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  contain: inline-size paint;
+}
+
+html body #root .trial-balance-frame > #trial-balance-table-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+html body #root .trial-balance-frame .trial-balance-table {
+  width: 100% !important;
+  min-width: 1120px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+  margin: 0 !important;
+}
+
+/* Stable column geometry keeps the table readable on laptops; below 1120px
+   only Trial Balance scrolls horizontally. */
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(1) { width: 56px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(2) { width: 175px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(3) { width: 150px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(4) { width: 120px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(5) { width: 145px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(6) { width: 145px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(7) { width: 125px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(8) { width: 145px; }
+html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(9) { width: 190px; }
+
+html body #root .trial-balance-frame .trial-balance-table :is(th, td) {
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html body #root .trial-balance-frame .trial-balance-table th {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+/* MASTER/DataTable: when DataTable lives inside a unified frame, the unified
+   frame owns the outside outline. The inner header+rows viewport must not draw
+   a second rectangle. */
+html body #root .unified-table-frame > #table-card.data-table-wrapper,
+html body #root .unified-table-frame > .data-table-wrapper,
+html body #root .unified-table-frame .table-body-region {
+  box-shadow: none !important;
+}
+
+html body #root .unified-table-frame > #table-card.data-table-wrapper,
+html body #root .unified-table-frame > .data-table-wrapper {
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 0 !important;
+}
+
+html body #root .unified-table-frame > #table-card.data-table-wrapper > .table-body-region,
+html body #root .unified-table-frame > .data-table-wrapper > .table-body-region {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* The outer unified frame is the only perimeter. Grid cells draw internal
+   separators only, preventing doubled left/right/top/bottom edges. */
+html body #root .unified-table-frame > #table-card.data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+html body #root .unified-table-frame > .data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
+  border-left-width: 0 !important;
+}
+
+html body #root .unified-table-frame > #table-card.data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child,
+html body #root .unified-table-frame > .data-table-wrapper table > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
+  border-right-width: 0 !important;
+}
