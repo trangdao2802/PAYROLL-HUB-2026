@@ -183,54 +183,81 @@ html body #root .bulk-payment-layout::after {
   box-shadow: none !important;
 }
 
-/* TRIAL BALANCE: isolate the wide grid to its own scroll viewport so this
-   table can be wider than the content area without widening the page or any
-   sibling table. */
+/* TRIAL BALANCE ONLY: the full frame must stay inside its parent viewport.
+   Unlike the other payroll grids, Trial Balance uses proportional columns so
+   it never increases the page's intrinsic width. */
 html body #root .trial-balance-frame {
+  inline-size: 100% !important;
   width: 100% !important;
+  max-inline-size: 100% !important;
   max-width: 100% !important;
+  min-inline-size: 0 !important;
   min-width: 0 !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
   overflow: hidden !important;
-  contain: inline-size paint;
+  contain: layout paint;
 }
 
 html body #root .trial-balance-frame > #trial-balance-table-body {
+  inline-size: 100% !important;
   width: 100% !important;
+  max-inline-size: 100% !important;
   max-width: 100% !important;
+  min-inline-size: 0 !important;
   min-width: 0 !important;
-  overflow-x: auto !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
 }
 
 html body #root .trial-balance-frame .trial-balance-table {
+  inline-size: 100% !important;
   width: 100% !important;
-  min-width: 1120px !important;
-  max-width: none !important;
+  max-inline-size: 100% !important;
+  max-width: 100% !important;
+  min-inline-size: 0 !important;
+  min-width: 0 !important;
   table-layout: fixed !important;
+  box-sizing: border-box !important;
   margin: 0 !important;
 }
 
-/* Stable column geometry keeps the table readable on laptops; below 1120px
-   only Trial Balance scrolls horizontally. */
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(1) { width: 56px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(2) { width: 175px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(3) { width: 150px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(4) { width: 120px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(5) { width: 145px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(6) { width: 145px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(7) { width: 125px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(8) { width: 145px; }
-html body #root .trial-balance-frame .trial-balance-table > :is(thead, tbody, tfoot) > tr > :nth-child(9) { width: 190px; }
+/* Proportional visual columns. These selectors are scoped to Trial Balance,
+   so no DataTable, Master, Timesheet or Audit column sizing is changed.
+   The first header row contains colspans, therefore widths are assigned by
+   logical first-row cells and the second-row movement/result cells. */
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(1) { width: 6% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(2) { width: 19% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(3) { width: 16.5% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(4) { width: 13.5% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(5) { width: 16% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(6) { width: 16% !important; }
+html body #root .trial-balance-frame .trial-balance-table > thead > tr:first-child > :nth-child(7) { width: 13% !important; }
 
 html body #root .trial-balance-frame .trial-balance-table :is(th, td) {
+  min-inline-size: 0 !important;
   min-width: 0 !important;
+  max-width: none !important;
   box-sizing: border-box !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 html body #root .trial-balance-frame .trial-balance-table th {
   white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+html body #root .trial-balance-frame .trial-balance-table td {
+  white-space: nowrap;
+}
+
+html body #root .trial-balance-frame .trial-balance-table td:last-child {
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
