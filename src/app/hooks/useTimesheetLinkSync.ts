@@ -26,7 +26,7 @@ export function useTimesheetLinkSync() {
     if (pendingSources.has(id)) return null;
     pendingSources.add(id);
     return runTimesheetImport(async () => {
-      updateAppData((previous) => ({
+      if (!silentSuccess) updateAppData((previous) => ({
         ...previous,
         Timesheet_InputList: previous.Timesheet_InputList.map((row) => row.id === id ? {
           ...row, status: "processing", ...(urlOverride ? { url: urlOverride } : {}),

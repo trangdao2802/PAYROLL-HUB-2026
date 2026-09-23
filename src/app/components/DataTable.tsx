@@ -3436,7 +3436,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
               title={col.sortable !== false ? "Nhấp để thêm cấp sort (Tăng dần → Giảm dần → Hủy); cột bấm trước được ưu tiên trước" : undefined}
             >
               <span className={`whitespace-normal break-words leading-normal pt-0.5 ${headerTextAlign} max-w-full min-w-0 block font-bold text-inherit`}>
-                {col.label}
+                {/^NO\.$/i.test(col.label) ? "No." : col.label}
               </span>
               {col.sortable !== false && activeSort && (
                 <div className="inline-flex items-center gap-0.5 ml-0.5 shrink-0">

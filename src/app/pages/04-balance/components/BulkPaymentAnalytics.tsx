@@ -961,7 +961,7 @@ export function BulkPaymentAnalytics({
       "",
     ];
     const columnHeaders = [
-      "NO.",
+      "No.",
       "BU",
       "THÁNG PHÁT SINH HOLD",
       "TỔNG SỐ DƯ HOLD",

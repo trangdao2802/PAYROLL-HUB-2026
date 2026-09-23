@@ -3021,7 +3021,7 @@ export function BulkPayment({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-baseline bg-transparent pb-0 pr-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-r-lg"
+                    className="inline-flex w-max max-w-none shrink-0 items-baseline bg-transparent pb-0 pr-1.5 text-primary hover:bg-primary/[0.05] transition-all active:scale-95 cursor-pointer select-none border-none shadow-none outline-none rounded-r-lg"
                     title="Chuyển bảng"
                   >
                     <TableTitleRemainder
