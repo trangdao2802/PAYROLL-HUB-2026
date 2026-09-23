@@ -2034,7 +2034,7 @@ export function BulkPayment({
                         PHÁT SINH THEO BU
                       </span>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+<div className="flex items-center gap-1.5 shrink-0">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -2096,51 +2096,7 @@ export function BulkPayment({
                             })}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <button
-                          onClick={() => {
-                            const biz = selectedBUGroup;
-                            const isAll = biz === "ALL";
-                            const targetBUs = ["AHN", "AHP", "ATH", "ATN", "APT", "Other"];
-                            const sheet1Val = isAll
-                              ? targetBUs.reduce((sum, b) => sum + (dynamicReportStats.sheet1Totals[b] || 0), 0)
-                              : (dynamicReportStats.sheet1Totals[biz] || 0);
-                            const holdAddItems = isAll
-                              ? (dynamicReportStats.holdAddItems || [])
-                              : (dynamicReportStats.holdAddItems || []).filter((i) => i.biz === biz);
-                            const holdOnly = holdAddItems.filter((i) => i.type === "HOLD").reduce((sum, i) => sum + i.amount, 0);
-                            const addOnly = holdAddItems.filter((i) => i.type === "ADD").reduce((sum, i) => sum + i.amount, 0);
-                            const bonusOnly = holdAddItems.filter((i) => i.type === "BONUS").reduce((sum, i) => sum + i.amount, 0);
-                            const cancelOnly = holdAddItems.filter((i) => i.type === "CANCEL").reduce((sum, i) => sum + i.amount, 0);
-                            // CANCEL is displayed but excluded from card calculation
-                            const deductionsSum = holdAddItems.reduce((sum, item) => sum + item.contribution, 0);
-                            const finalTotal = isAll
-                              ? targetBUs.reduce((sum, b) => {
-                                  const s1 = dynamicReportStats.sheet1Totals[b] || 0;
-                                  const items = (dynamicReportStats.holdAddItems || []).filter((i) => i.biz === b);
-                                  const h = items.filter((i) => i.type === "HOLD").reduce((acc, i) => acc + i.amount, 0);
-                                  const a = items.filter((i) => i.type === "ADD").reduce((acc, i) => acc + i.amount, 0);
-                                  const bo = items.filter((i) => i.type === "BONUS").reduce((acc, i) => acc + i.amount, 0);
-                                  return sum + (dynamicReportStats.finalTotals[b] ?? (s1 + h + a + bo));
-                                }, 0)
-                              : (dynamicReportStats.finalTotals[biz] ?? (sheet1Val + deductionsSum));
-                            
-                            const text =
-                              (isAll ? "" : `BU:\t${biz}\n`) +
-                              `GROSS PAY\t${formatMoneyVND(sheet1Val).replace(" ₫", "")}\n` +
-                              `DEDUCTIONS\t${deductionsSum >= 0 ? "+" : ""}${formatMoneyVND(deductionsSum).replace(" ₫", "")}\n` +
-                              `  HOLD\t${holdOnly !== 0 ? `-${formatMoneyVND(Math.abs(holdOnly)).replace(" ₫", "")}` : "0"}\n` +
-                              `  ADD\t${addOnly !== 0 ? `+${formatMoneyVND(Math.abs(addOnly)).replace(" ₫", "")}` : "0"}\n` +
-                              `  CANCEL\t${cancelOnly !== 0 ? `-${formatMoneyVND(Math.abs(cancelOnly)).replace(" ₫", "")}` : "0"}\n` +
-                              `NET PAY\t${formatMoneyVND(finalTotal).replace(" ₫", "")}`;
-                            
-                            navigator.clipboard.writeText(text);
-                            toast.success(isAll ? "Đã sao chép tổng hợp tất cả BU" : `Đã sao chép tổng hợp BU ${biz}`);
-                          }}
-                          className="master-square-action text-muted-foreground hover:text-primary transition-colors cursor-pointer active:scale-[0.98]"
-                          title="Sao chép thông tin"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
+
                       </div>
                     </div>
 
@@ -3030,7 +2986,7 @@ export function BulkPayment({
                         rightPanelTab === "table"
                           ? "BATCH PAYMENT TRANSACTION REGISTER"
                           : rightPanelTab === "reconcile"
-                            ? "PAYROLL PAYMENT RECONCILIATION"
+                            ? "RECONCILIATION OF PAYROLL PAYMENTS"
                             : "ACCOUNTS PAYABLE AGING"
                       }
                     />

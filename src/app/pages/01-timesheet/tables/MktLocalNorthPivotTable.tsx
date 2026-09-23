@@ -217,7 +217,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
             {visibleTypes.map((type) => <col key={`col-${type}`} />)}
             {!hiddenColumns.has("__total") && <col style={{ width: 150 }} />}
           </colgroup>
-          <thead className="sticky top-0 z-[110] bg-[var(--table-column-header-bg,#F4ECD8)]">
+          <thead className="bg-[var(--table-column-header-bg,#F4ECD8)]">
             <tr>
               <th
                 hidden={hiddenColumns.has("__no")}
@@ -275,7 +275,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               paginatedRows.map((row, idx) => {
                 const business = row.business || "NORTH";
                 const nextRow = rows[startIdx + idx + 1];
-                const showBusinessSubtotal = Boolean(nextRow && (nextRow.business || "NORTH") !== business);
+                const showBusinessSubtotal = !nextRow || (nextRow.business || "NORTH") !== business;
                 const subtotal = businessSubtotals.get(business);
 
                 return (
@@ -355,7 +355,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               })
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20 bg-[var(--table-column-header-bg,#F4ECD8)] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          <tfoot className="bg-[var(--table-column-header-bg,#F4ECD8)]">
             <tr className="total-row font-black uppercase tracking-wider text-[11px]">
               <td 
                 colSpan={Math.max(1, identityColumnCount)} hidden={identityColumnCount === 0}

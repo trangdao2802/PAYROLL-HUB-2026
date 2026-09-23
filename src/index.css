@@ -4543,3 +4543,20 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > main:nth-of-
     font-size: 17px !important;
   }
 }
+
+/* Pin the Pivot Timesheet column labels and grand total inside its own scroll region.
+   Cell-level stickiness keeps BU subtotals in the scrolling body. */
+.pivot-table-container .table-body-region table.pivot-timesheet-table thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  background: var(--table-column-header-bg, #F4ECD8) !important;
+}
+.pivot-table-container .table-body-region table.pivot-timesheet-table tfoot td {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 50 !important;
+  background: var(--table-column-header-bg, #F4ECD8) !important;
+  background-color: var(--table-column-header-bg, #F4ECD8) !important;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, .08);
+}
