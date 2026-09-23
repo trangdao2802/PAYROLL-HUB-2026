@@ -16,6 +16,7 @@ interface Props {
   onOpenReport: () => void;
   onReplaceRows: (rows: TransactionRow[]) => void;
   hasPendingEdits: boolean;
+  syncRevision?: number;
   onReportStateChange?: (hasExceptions: boolean, viewingSource: boolean) => void;
 }
 interface Report extends TransactionCheckSource {
@@ -41,7 +42,7 @@ const markedDocumentId = (value: string, syncNote: string) => (
   value ? `${value}${syncNote ? '!' : ''}` : '—'
 );
 
-export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, onReportStateChange }: Props) {
+export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, syncRevision = 0, onReportStateChange }: Props) {
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,7 +58,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const authIdentity = useRef('');
   const retry = useRef<{context: string; requestId: string} | null>(null);
   // Fingerprint all source rows, not just visible/filtered Transaction rows.
-  const context = useMemo(() => JSON.stringify([month, rows, userId, hasPendingEdits, defaultBank]), [month, rows, userId, hasPendingEdits, defaultBank]);
+  const context = useMemo(() => JSON.stringify([month, rows, userId, hasPendingEdits, defaultBank, syncRevision]), [month, rows, userId, hasPendingEdits, defaultBank, syncRevision]);
   const currentContext = useRef(context);
   useEffect(() => { currentContext.current = context; }, [context]);
   useEffect(() => {
@@ -118,6 +119,13 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   async function refreshReport(started: string) {
     const source = await loadTransactionCheckSource(supabase, month);
     if (currentContext.current !== started) return false;
+    // A local sync can update Batch Payment without publishing a new monthly
+    // version. Never silently check an older cloud snapshot in that case.
+    if (!sameTransactionSnapshot(rows, source.currentVersion.rows, month)) {
+      throw new HistorySaveConflictError(
+        'Batch Payment trên máy khác phiên bản tháng mới nhất trên Supabase. Bấm Lưu tháng rồi Check STK & ID lại; không dùng dữ liệu cũ để đối chiếu.',
+      );
+    }
     setReport({
       context: started,
       ...source,

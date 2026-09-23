@@ -3277,6 +3277,7 @@ export function BulkPayment({
         <div hidden={rightPanelTab === "visuals"}>
           <TransactionHistoryPanel
             hasPendingEdits={hasPendingTransactionEdits}
+            syncRevision={appData.TransactionActivity?.saveVersion || 0}
             rows={appData.BankExport?.data || []}
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}
@@ -3523,15 +3524,26 @@ export function BulkPayment({
                     </div>
 
                     <div className="flex items-center gap-2.5 text-[10.5px] font-medium ml-auto shrink-0 whitespace-nowrap">
-                      <span className="tabular-nums text-muted-foreground">
-                        {reconcileSelectedBU !== "ALL" ? (
-                          <span>
-                            <strong className="text-primary font-bold">{filteredTransactionAudits.length}</strong> / {reconciliationAudit.transactionAuditList.length} GD
-                          </span>
-                        ) : (
-                          <span>{filteredTransactionAudits.length} GD</span>
-                        )}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-400 bg-amber-50 text-[11px] font-black text-amber-800 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                            aria-label="Các bước đồng bộ, lưu tháng và Check STK & ID"
+                          >
+                            !
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" sideOffset={8} className="max-w-[280px] border border-amber-200 bg-white p-3 text-left text-[11px] leading-relaxed text-slate-800 shadow-lg">
+                          <p className="font-bold">Thứ tự Check STK & ID</p>
+                          <ol className="mt-1 list-inside list-decimal space-y-1">
+                            <li>Đồng bộ STK, tên và ID nếu có cảnh báo.</li>
+                            <li>Nếu có sửa trực tiếp bảng Batch Payment, bấm Lưu sửa.</li>
+                            <li>Bấm Lưu tháng để ghi phiên bản mới lên Supabase.</li>
+                            <li>Bấm Check STK & ID để đọc lại phiên bản mới nhất.</li>
+                          </ol>
+                        </TooltipContent>
+                      </Tooltip>
                       {reconcileSelectedBU !== "ALL" && (
                         <button
                           type="button"
