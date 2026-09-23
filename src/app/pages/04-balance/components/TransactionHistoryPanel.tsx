@@ -17,6 +17,7 @@ interface Props {
   onReplaceRows: (rows: TransactionRow[]) => void;
   hasPendingEdits: boolean;
   syncRevision?: number;
+  syncSaveRequest?: number;
   onReportStateChange?: (hasExceptions: boolean, viewingSource: boolean) => void;
 }
 interface Report extends TransactionCheckSource {
@@ -42,7 +43,7 @@ const markedDocumentId = (value: string, syncNote: string) => (
   value ? `${value}${syncNote ? '!' : ''}` : '—'
 );
 
-export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, syncRevision = 0, onReportStateChange }: Props) {
+export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, syncRevision = 0, syncSaveRequest = 0, onReportStateChange }: Props) {
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,6 +56,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
   const [page, setPage] = useState(1);
   const [defaultBank, setDefaultBank] = useState('VCB');
   const operation = useRef(false);
+  const handledSyncSave = useRef(0);
   const authIdentity = useRef('');
   const retry = useRef<{context: string; requestId: string} | null>(null);
   // Fingerprint all source rows, not just visible/filtered Transaction rows.
@@ -135,7 +137,7 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     return true;
   }
 
-  async function run(action: 'save' | 'check' | 'load') {
+  async function run(action: 'save' | 'sync-save' | 'check' | 'load') {
     if (operation.current || hasPendingEdits) return;
     operation.current = true;
     setBusy(true);
@@ -145,8 +147,21 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
     const started = context;
     try {
       if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase URL và publishable/anon key.');
-      if (action === 'save') {
+      if (action === 'save' || action === 'sync-save') {
         const selected = selectPeriodRows(rows, month);
+        if (action === 'sync-save') {
+          const latestBefore = await loadLatestVersion(supabase, month);
+          requireUnchangedContext(started);
+          if (latestBefore && sameTransactionSnapshot(selected, latestBefore.rows, month)) {
+            const confirmedLatest = await loadLatestVersion(supabase, month);
+            requireUnchangedContext(started);
+            if (!confirmedLatest || confirmedLatest.id !== latestBefore.id) {
+              throw new HistorySaveConflictError('Phiên bản tháng trên Supabase vừa thay đổi. Bấm Đồng bộ lại để kiểm tra bản mới nhất.');
+            }
+            setMessage(`Supabase đã có phiên bản mới nhất của tháng ${month} (#${confirmedLatest.id}); không tạo phiên bản trùng. Bấm Check STK & ID để đối chiếu.`);
+            return;
+          }
+        }
         if (retry.current?.context !== started) retry.current = {context: started, requestId: crypto.randomUUID()};
         const id = await saveVersion(supabase, month, selected, retry.current.requestId);
         retry.current = null;
@@ -177,6 +192,20 @@ export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport,
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!syncSaveRequest || handledSyncSave.current === syncSaveRequest || operation.current || busy) return;
+    handledSyncSave.current = syncSaveRequest;
+    if (hasPendingEdits) {
+      setMessage('Bấm Lưu sửa trong Batch Payment trước khi ghi phiên bản tháng lên Supabase.');
+    } else if (!userId) {
+      setSettingsOpen(true);
+      setLoginOpen(true);
+      setMessage('Đã đồng bộ trên máy. Đăng nhập kho rồi bấm Lưu tháng để cập nhật Supabase.');
+    } else {
+      void run('sync-save');
+    }
+  }, [syncSaveRequest, rows, userId, hasPendingEdits, busy]);
 
   async function login() {
     if (operation.current) return;

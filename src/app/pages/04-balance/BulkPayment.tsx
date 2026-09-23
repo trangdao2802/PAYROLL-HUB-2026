@@ -293,6 +293,7 @@ export function BulkPayment({
     isMonthInStrComp,
   } = useBulkPaymentLogic();
 
+  const [syncSaveRequest, setSyncSaveRequest] = useState(0);
   const [activeBalanceSection, setActiveBalanceSection] = useState<string>("I");
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm =
@@ -1715,77 +1716,60 @@ export function BulkPayment({
   }, [filteredTransactionAudits, safePage, itemsPerPage, reconcileRowsPerPage]);
 
   const handleSyncTransactionFieldsToTables = useCallback(() => {
-    // Transaction is the authoritative source for this action. Do not pass
-    // RAWDATA_TIMESHEET here: that source is only used by the row-level
-    // Reconcile repair flow and could otherwise overwrite a saved Transaction
-    // edit before copying it to Gross Pay/Deductions.
-    const visibleTransactionRows = bankExportData || [];
+    if (hasPendingTransactionEdits) {
+      toast.warning("Bấm Lưu sửa trong Batch Payment trước khi đồng bộ STK và ID.");
+      return;
+    }
 
-    updateAppData((prev) => {
-      const savedTransactionRows = prev.BankExport?.data || [];
-      const useBankExport =
-        visibleTransactionRows.length > 0 || savedTransactionRows.length > 0;
-      const transactionRows = visibleTransactionRows.length > 0
-        ? visibleTransactionRows
-        : useBankExport
-          ? savedTransactionRows
-          : prev.Bank_North_AE?.data || [];
-      const transactionDraftNeedsSaving =
-        useBankExport && transactionRows !== savedTransactionRows;
-      const transactionRowsForSync = transactionDraftNeedsSaving
-        ? transactionRows.map(protectSavedTransactionIdentity)
-        : transactionRows;
+    // Use the committed Transaction rows only. A draft cannot be published or
+    // compared to the latest cloud version until its edits have been saved.
+    const useBankExport = (appData.BankExport?.data || []).length > 0;
+    const transactionRows = useBankExport
+      ? appData.BankExport.data
+      : appData.Bank_North_AE?.data || [];
+    if (!transactionRows.length) {
+      toast.info("Chưa có dữ liệu Batch Payment để đồng bộ.");
+      return;
+    }
 
-      if (transactionRowsForSync.length === 0) {
-        toast.info("Chưa có dữ liệu Transaction để đồng bộ.");
-        return prev;
-      }
+    const result = applyTransactionReferenceSync({
+      grossRows: appData.Sheet1_AE?.data || [],
+      deductionRows: appData.Hold_AE?.data || [],
+      transactionRows,
+      // Transaction is authoritative for the bulk action. RAWDATA repairs
+      // require the separate row-level Reconciliation action.
+      rawTimesheetRows: [],
+      reportMonth: appData.globalMonth,
+    });
 
-      const result = applyTransactionReferenceSync({
-        grossRows: prev.Sheet1_AE?.data || [],
-        deductionRows: prev.Hold_AE?.data || [],
-        transactionRows: transactionRowsForSync,
-        // This button intentionally copies FROM Transaction TO the other
-        // tables. It must not repair Transaction from another source.
-        rawTimesheetRows: [],
-        reportMonth: prev.globalMonth,
-      });
-
-      if (result.correctedCells === 0 && !transactionDraftNeedsSaving) {
-        toast.info(
-          "Tên, STK và ID Number ở Gross Pay/Deductions đã khớp Transaction.",
-        );
-        return prev;
-      }
-
-      if (result.correctedCells > 0) {
-        toast.success(
-          `Đã đồng bộ Tên, STK và ID Number: ${result.correctedCells} ô trên ${result.correctedRows} dòng.`,
-        );
-      } else {
-        toast.success("Đã lưu Transaction trước khi đồng bộ.");
-      }
-
-      const next = {
-        ...prev,
-        Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
-        Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
-        TransactionActivity: markTransactionSaved(prev),
-      };
-      return useBankExport
-        ? {
-            ...next,
-            BankExport: { ...prev.BankExport, data: result.transactionRows },
-          }
-        : {
-            ...next,
-            Bank_North_AE: {
-              ...prev.Bank_North_AE,
-              data: result.transactionRows,
-            },
-          };
-    }, true, true);
-  }, [bankExportData, updateAppData]);
+    if (result.correctedCells > 0 || result.transactionCorrectedCells > 0) {
+      updateAppData((prev) => {
+        if (prev.BankExport?.data !== appData.BankExport?.data ||
+            prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
+            prev.Sheet1_AE?.data !== appData.Sheet1_AE?.data ||
+            prev.Hold_AE?.data !== appData.Hold_AE?.data ||
+            prev.globalMonth !== appData.globalMonth) {
+          toast.warning("Dữ liệu đã đổi trong lúc đồng bộ. Bấm Đồng bộ lại.");
+          return prev;
+        }
+        const next = {
+          ...prev,
+          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+          Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
+          TransactionActivity: markTransactionSaved(prev),
+        };
+        return useBankExport
+          ? { ...next, BankExport: { ...prev.BankExport, data: result.transactionRows } }
+          : { ...next, Bank_North_AE: { ...prev.Bank_North_AE, data: result.transactionRows } };
+      }, true, true);
+      toast.success(`Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng. Đang kiểm tra phiên bản tháng trên Supabase.`);
+    } else {
+      toast.info("Tên, STK và ID ở Gross Pay/Deductions đã khớp Batch Payment. Đang kiểm tra phiên bản tháng trên Supabase.");
+    }
+    // React commits the local update before TransactionHistoryPanel handles
+    // the request; it then compares and publishes the committed snapshot.
+    setSyncSaveRequest((value) => value + 1);
+  }, [appData, hasPendingTransactionEdits, updateAppData]);
 
   const reconcileTotals = useMemo(() => {
     return filteredTransactionAudits.reduce(
@@ -3278,7 +3262,8 @@ export function BulkPayment({
           <TransactionHistoryPanel
             hasPendingEdits={hasPendingTransactionEdits}
             syncRevision={appData.TransactionActivity?.saveVersion || 0}
-            rows={appData.BankExport?.data || []}
+            syncSaveRequest={syncSaveRequest}
+            rows={appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || []}
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}
             onOpenReport={() => setRightPanelTab("reconcile")}
@@ -3539,7 +3524,7 @@ export function BulkPayment({
                           <ol className="mt-1 list-inside list-decimal space-y-1">
                             <li>Đồng bộ STK, tên và ID nếu có cảnh báo.</li>
                             <li>Nếu có sửa trực tiếp bảng Batch Payment, bấm Lưu sửa.</li>
-                            <li>Bấm Lưu tháng để ghi phiên bản mới lên Supabase.</li>
+                            <li>Đồng bộ sẽ tự kiểm tra và lưu tháng lên Supabase nếu đã đăng nhập. Nếu chưa đăng nhập, đăng nhập rồi bấm Lưu tháng.</li>
                             <li>Bấm Check STK & ID để đọc lại phiên bản mới nhất.</li>
                           </ol>
                         </TooltipContent>
