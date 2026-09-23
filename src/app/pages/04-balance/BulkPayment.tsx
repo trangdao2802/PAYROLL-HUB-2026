@@ -785,6 +785,24 @@ export function BulkPayment({
     });
   }, [bankExportData, appData.Sheet1_AE?.data, appData.Hold_AE?.data]);
 
+  const reconciliationNeedsSync = useMemo(() => {
+    if (rightPanelTab !== "reconcile") return false;
+    const transactionRows = (bankExportData || []).length > 0
+      ? bankExportData
+      : appData.BankExport?.data?.length
+        ? appData.BankExport.data
+        : appData.Bank_North_AE?.data || [];
+    if (!transactionRows.length) return false;
+    // Match the settings action: Transaction is the source, without RAWDATA repairs.
+    return applyTransactionReferenceSync({
+      grossRows: appData.Sheet1_AE?.data || [],
+      deductionRows: appData.Hold_AE?.data || [],
+      transactionRows,
+      rawTimesheetRows: [],
+      reportMonth: appData.globalMonth,
+    }).correctedCells > 0;
+  }, [rightPanelTab, bankExportData, appData.BankExport?.data, appData.Bank_North_AE?.data, appData.Sheet1_AE?.data, appData.Hold_AE?.data, appData.globalMonth]);
+
   const analysAnalytics = useMemo(() => {
     if (rightPanelTab !== "visuals" || displayBankExportData.length === 0) {
       return null;
@@ -3154,6 +3172,7 @@ export function BulkPayment({
                 </button>
               </div>
             )}
+            <div className="relative shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -3239,6 +3258,18 @@ export function BulkPayment({
                     </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+              {rightPanelTab === "reconcile" && reconciliationNeedsSync && (
+                <button
+                  type="button"
+                  onClick={handleSyncTransactionFieldsToTables}
+                  className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-amber-400 text-amber-950 shadow-sm transition-transform hover:scale-110 active:scale-95"
+                  title="Cần đồng bộ Tên, STK và ID theo Batch Payment"
+                  aria-label="Đồng bộ Tên, STK và ID cho Reconciliation"
+                >
+                  <Zap className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
         )}

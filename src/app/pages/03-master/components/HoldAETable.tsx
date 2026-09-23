@@ -1028,6 +1028,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
             </div>
 
             {/* Nút Cài đặt (Settings Button) */}
+            <div className="relative shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1098,6 +1099,19 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+              {pendingSync && (
+                <button
+                  type="button"
+                  onClick={handleBulkSyncFromReconcile}
+                  disabled={isCurrentMonthLocked}
+                  className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-amber-400 text-amber-950 shadow-sm transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={isCurrentMonthLocked ? "Mở khóa tháng để đồng bộ Deductions" : "Cần đồng bộ Deductions từ Reconciliation"}
+                  aria-label="Đồng bộ Deductions từ Reconciliation"
+                >
+                  <Zap className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
