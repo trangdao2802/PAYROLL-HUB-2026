@@ -143,7 +143,7 @@ function processTimesheetMktLogic(row: any) {
   return { bu, l07 };
 }
 
-function processNorthLogic(rawCenter: string) {
+function processNorthLogic(rawCenter: string): { bu: string; l07: string } {
   const cleaned = rawCenter ? String(rawCenter).trim() : "";
   if (!cleaned) return { bu: "", l07: "" };
 
@@ -531,3 +531,4 @@ if (typeof window === "undefined" && typeof self !== "undefined") {
     }
   };
 }
+
