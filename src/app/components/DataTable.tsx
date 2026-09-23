@@ -330,6 +330,7 @@ interface DataTableProps {
   defaultItemsPerPage?: number | typeof Infinity;
   /** When true, suppresses the built-in BU quick filter bar above the table header. */
   hideBuFilter?: boolean;
+  alwaysHiddenColumns?: string[];
   /** Optional compact action rendered beside the table save status. */
   footerActionContent?: React.ReactNode;
   /** Replaces the generic saved-time badge in the table footer. */
@@ -1124,6 +1125,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
       hideColumnVisibilityToggle = false,
       defaultItemsPerPage,
       hideBuFilter = false,
+      alwaysHiddenColumns = [],
       footerActionContent,
       footerStatusContent,
       hideSaveStatus = false,
@@ -1286,7 +1288,9 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         try {
           const savedHidden = localStorage.getItem(`dt_hidden_${storageKey}`);
           if (savedHidden) {
-            return new Set(JSON.parse(savedHidden));
+            const hidden = new Set<string>(JSON.parse(savedHidden));
+            columns.forEach((col) => { if (col.hidden) hidden.add(col.key); });
+            return hidden;
           }
         } catch (e) {
           console.error(e);
@@ -1562,6 +1566,7 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
         const savedHidden = localStorage.getItem(`dt_hidden_${storageKey}`);
         if (savedHidden && !ignoreSavedHiddenColumns) {
           initStates.hiddenColumns = new Set(JSON.parse(savedHidden));
+          columns.forEach((col) => { if (col.hidden) initStates.hiddenColumns.add(col.key); });
         } else {
           columns.forEach((c: any) => {
             if (c.hidden) {
@@ -1717,11 +1722,12 @@ export const DataTable = React.forwardRef<DataTableRef, DataTableProps>(
 
     const effectiveHiddenColumns = useMemo(() => {
       const next = new Set(hiddenColumns);
+      alwaysHiddenColumns.forEach((key) => next.add(key));
       autoHiddenColumns.forEach((key) => {
         if (!shownAutoHiddenColumns.has(key)) next.add(key);
       });
       return next;
-    }, [hiddenColumns, autoHiddenColumns, shownAutoHiddenColumns]);
+    }, [hiddenColumns, autoHiddenColumns, shownAutoHiddenColumns, alwaysHiddenColumns]);
 
     const noColKey = useMemo(() => {
       const found = columns.find((c: any) => isNoCol(c.key) || isNoCol(c.label));

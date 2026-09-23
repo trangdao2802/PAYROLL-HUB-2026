@@ -353,7 +353,7 @@ export function BulkPaymentAnalytics({
 
   useEffect(() => registerTableExport("master-analysis", () => ({
     schema: { columns: [
-      ["No.", "NO."], ["BU", "BU"], ["Tháng HOLD", "THÁNG PHÁT SINH HOLD"],
+      ["No.", "No."], ["BU", "BU"], ["Tháng HOLD", "THÁNG PHÁT SINH HOLD"],
       ["Tổng số dư HOLD", "TỔNG SỐ DƯ HOLD"], ["Số dư HOLD đầu kỳ", "SỐ DƯ TRƯỚC KỲ BÁO CÁO"],
       ["HOLD phát sinh", "HOLD PHÁT SINH"], ["Thanh toán HOLD tại kỳ", "THANH TOÁN HOLD"],
       ["CANCEL tại kỳ", "CANCEL"], ["Các tháng đã thanh toán", "LỊCH SỬ THANH TOÁN HOLD"],
@@ -619,7 +619,7 @@ export function BulkPaymentAnalytics({
     () => [
       {
         key: "No.",
-        label: "NO.",
+        label: "No.",
         group: CONTEXT_GROUP,
         groupHeaderClassName: CONTEXT_GROUP_STYLE,
         type: "number",
@@ -1193,7 +1193,7 @@ export function BulkPaymentAnalytics({
                   className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <Table2 className="h-4 w-4 shrink-0 text-slate-600 dark:text-slate-300" />
-                  <span>Transaction</span>
+                  <span>Batch Payment</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onViewChange("reconcile")}
@@ -1340,7 +1340,7 @@ export function BulkPaymentAnalytics({
               </DropdownMenuLabel>
               <DropdownMenuItem onClick={() => onViewChange("table")}>
                 <Table2 className="h-4 w-4 shrink-0 text-slate-600" />
-                <span>Transaction</span>
+                <span>Batch Payment</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onViewChange("reconcile")}>
                 <Scale className="h-4 w-4 shrink-0 text-sky-600" />
@@ -1551,10 +1551,10 @@ export function BulkPaymentAnalytics({
                           onDrilldownToTransaction(bu, month);
                         }}
                         className="flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary transition-all cursor-pointer"
-                        title="Mở trong Transaction"
+                        title="Mở trong Batch Payment"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
-                        <span>Transaction</span>
+                        <span>Batch Payment</span>
                       </button>
                     )}
                   </div>

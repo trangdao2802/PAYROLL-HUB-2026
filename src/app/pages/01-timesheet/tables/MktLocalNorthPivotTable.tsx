@@ -275,7 +275,7 @@ const MktLocalNorthPivotTableComponent: React.FC<MktLocalNorthPivotTableProps> =
               paginatedRows.map((row, idx) => {
                 const business = row.business || "NORTH";
                 const nextRow = rows[startIdx + idx + 1];
-                const showBusinessSubtotal = !nextRow || (nextRow.business || "NORTH") !== business;
+                const showBusinessSubtotal = Boolean(nextRow && (nextRow.business || "NORTH") !== business);
                 const subtotal = businessSubtotals.get(business);
 
                 return (

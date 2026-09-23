@@ -2,7 +2,6 @@ import React from "react";
 import { Link2 } from "lucide-react";
 import { formatTime12Hour } from "../../lib/utils/data-utils";
 import { formatVNRobust } from "../../lib/utils/format-utils";
-import { getL07FromChargeToCenterMkt, mapL07 } from "../../lib/utils/center-utils";
 
 export const ROSTER_RAW_COLUMNS = [
   { key: "business", label: "Business", type: "text" as const, width: 100 },
@@ -18,7 +17,7 @@ export const ROSTER_RAW_COLUMNS = [
     render: (val: unknown) => {
       if (val === undefined || val === null || val === "") return "";
       const str = String(val).trim();
-      return getL07FromChargeToCenterMkt(str) || mapL07(str) || str;
+      return str;
     }
   },
   { key: "ma_nv", label: "ID Number", type: "text" as const, width: 120 },

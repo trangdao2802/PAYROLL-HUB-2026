@@ -1,6 +1,10 @@
 import { getCenterInfoByL07, mapL07 } from "./center-utils";
 
 type RosterRow = Record<string, unknown>;
+// Imported rows are immutable between syncs. Cache their normalized identities
+// so adding another center does not reparse every previously imported row.
+const businessKeyCache = new WeakMap<RosterRow, string>();
+const centerCache = new WeakMap<RosterRow, string>();
 
 const INTERNAL_ROW_KEYS = new Set([
   "_uuid",
@@ -83,6 +87,8 @@ function stableSerialize(row: RosterRow): string {
 }
 
 export function getCanonicalTimesheetCenter(row: RosterRow): string {
+  const cached = centerCache.get(row);
+  if (cached !== undefined) return cached;
   const values = [
     row.l07,
     row.center,
@@ -100,12 +106,16 @@ export function getCanonicalTimesheetCenter(row: RosterRow): string {
     if (!source) continue;
     const mapped = mapL07(source);
     if (getCenterInfoByL07(mapped) || normalizeText(mapped).includes("MKT LOCAL")) {
-      return normalizeText(mapped);
+      const center = normalizeText(mapped);
+      centerCache.set(row, center);
+      return center;
     }
   }
 
   const fallback = values.find((value) => String(value ?? "").trim() !== "");
-  return normalizeText(fallback);
+  const center = normalizeText(fallback);
+  centerCache.set(row, center);
+  return center;
 }
 
 function getCanonicalChargeCenter(row: RosterRow): string {
@@ -125,6 +135,8 @@ function getCanonicalChargeCenter(row: RosterRow): string {
  * idempotent even when a legacy version generated new UUIDs on every import.
  */
 export function getTimesheetRosterBusinessKey(row: RosterRow): string {
+  const cached = businessKeyCache.get(row);
+  if (cached !== undefined) return cached;
   const employee = normalizeText(firstValue(row, [
     "ma_nv", "employeeId", "ID Number", "Mã NV", "Teacher ID", "Emp ID",
   ]));
@@ -156,7 +168,9 @@ export function getTimesheetRosterBusinessKey(row: RosterRow): string {
   ].join("|");
   const populatedCoreFields = [center, employee, date, from, to, type, classCode]
     .filter(Boolean).length;
-  return populatedCoreFields >= 3 ? core : `${core}|${stableSerialize(row)}`;
+  const key = populatedCoreFields >= 3 ? core : `${core}|${stableSerialize(row)}`;
+  businessKeyCache.set(row, key);
+  return key;
 }
 
 function hashString(value: string): string {
@@ -242,11 +256,17 @@ export function replaceTimesheetRosterRows<T extends RosterRow>(
       .filter(Boolean),
   );
 
+  // Incoming rows are parsed afresh on each link refresh. Deduplicate that
+  // small batch once, then retain unrelated centers without rehashing the
+  // entire roster on every file in a multi-link update.
+  const uniqueIncoming = dedupeTimesheetRosterRows(incomingRows);
+  const incomingKeys = new Set(uniqueIncoming.map(getTimesheetRosterBusinessKey));
   const retainedRows = existingRows.filter((row) => {
     if (sourceRowIds.has(String(row._rowId ?? ""))) return false;
     const rowCenter = getCanonicalTimesheetCenter(row);
-    return !rowCenter || !targetCenters.has(rowCenter);
+    if (rowCenter && targetCenters.has(rowCenter)) return false;
+    return !incomingKeys.has(getTimesheetRosterBusinessKey(row));
   });
 
-  return dedupeTimesheetRosterRows([...retainedRows, ...incomingRows]);
+  return [...retainedRows, ...uniqueIncoming];
 }

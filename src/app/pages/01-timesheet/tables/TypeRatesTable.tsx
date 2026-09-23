@@ -684,7 +684,8 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
             className="w-full text-left border-collapse"
             style={{
               fontFamily: "var(--font-table, var(--font-main))",
-              tableLayout: isAutoFit ? "auto" : "fixed",
+              tableLayout: isAutoFit ? "fixed" : "auto",
+              minWidth: isAutoFit ? "max-content" : undefined,
             }}
           >
             {/* Header with Super Headers */}
@@ -694,7 +695,7 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {/* Column 1: No. with integrated Auto-fit button */}
                 <th
                   rowSpan={2}
-                  className="px-2 py-2 text-center border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] w-14 min-w-[56px]"
+                  className="px-2 py-2 text-center border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] w-16 min-w-[64px] whitespace-nowrap"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>No.</span>

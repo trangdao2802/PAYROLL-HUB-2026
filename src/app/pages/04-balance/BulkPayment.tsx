@@ -1914,12 +1914,17 @@ export function BulkPayment({
 
       return {
         key: header,
-        label: header,
+        label: /^NO\.$/i.test(header) ? "No." : header,
         type,
         align: type === "currency" ? ("right" as const) : ("left" as const),
       };
     });
   }, [appData.BankExport?.headers, displayBankExportData]);
+
+  const useMemoHiddenBuColumns = useMemo(
+    () => columns.filter((column) => column.key.toUpperCase() === "BU").map((column) => column.key),
+    [columns],
+  );
 
   useEffect(() => registerTableExport("master-transaction", () => ({
     schema: {
@@ -1949,7 +1954,7 @@ export function BulkPayment({
       {/* Left Panel - Actions & Info (Unified Scrollable Card) */}
       {showLeftCard && (
         <div
-          className="bulk-payment-side-panel timesheet-control-panel w-[275px] sm:w-[290px] shrink-0 flex flex-col h-full select-none bg-card border border-border rounded-none p-2.5 overflow-hidden z-20 shadow-2xs"
+          className="bulk-payment-side-panel timesheet-control-panel w-[275px] sm:w-[290px] shrink-0 flex flex-col h-full select-none bg-card border border-border rounded-none p-3.5 overflow-hidden z-20 shadow-2xs"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-border/70 shrink-0 box-border bg-card">
@@ -1962,15 +1967,7 @@ export function BulkPayment({
               </h2>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={handleCopyReport}
-                className="h-7 w-7 rounded-lg border border-border bg-muted/40 hover:bg-muted text-muted-foreground hover:text-primary transition-all active:scale-[0.98] shrink-0 flex items-center justify-center cursor-pointer shadow-2xs"
-                title="Sao chép toàn bộ thông tin"
-              >
-                <Copy className="w-3.5 h-3.5" />
-              </button>
-            </div>
+
           </div>
 
           <div className="flex items-center gap-1 py-2 border-b border-border/70 shrink-0">
@@ -2201,9 +2198,7 @@ export function BulkPayment({
                                 </span>
                                 <span>TÓM TẮT THANH TOÁN</span>
                               </div>
-                              <span className="bu-payroll-ribbon-chip">
-                                {isAll ? "ALL BU" : biz.toUpperCase()}
-                              </span>
+                              {isAll ? <button type="button" onClick={handleCopyReport} className="inline-flex items-center justify-center p-1 text-muted-foreground hover:text-primary active:scale-[0.98]" title="Sao chép toàn bộ thông tin" aria-label="Sao chép toàn bộ thông tin"><Copy className="h-3.5 w-3.5" /></button> : <span className="bu-payroll-ribbon-chip">{biz.toUpperCase()}</span>}
                             </div>
 
                             <div className="bu-payroll-primary-group">
@@ -3033,9 +3028,9 @@ export function BulkPayment({
                       className="app-table-title-remainder--expanded"
                       label={
                         rightPanelTab === "table"
-                          ? "BATCH PAYMENT"
+                          ? "BATCH PAYMENT TRANSACTION REGISTER"
                           : rightPanelTab === "reconcile"
-                            ? "RECONCILIATION"
+                            ? "PAYROLL PAYMENT RECONCILIATION"
                             : "ACCOUNTS PAYABLE AGING"
                       }
                     />
@@ -3091,7 +3086,7 @@ export function BulkPayment({
                 </DropdownMenuContent>
               </DropdownMenu>
               </div>
-              <p className="app-table-title-meta max-w-[320px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
+              <p className="app-table-title-meta max-w-[520px] truncate text-[10px] font-medium leading-3.5 text-muted-foreground">
                 {rightPanelTab === "table"
                   ? `${displayBankExportData.length} giao dịch • Tổng tiền: ${formatMoneyVND(bankExportTotal)}`
                   : rightPanelTab === "reconcile"
@@ -3375,6 +3370,8 @@ export function BulkPayment({
                     externalSearchTerm={searchTerm}
                     onExternalSearchChange={setSearchTerm}
                     storageKey="bulk_payment"
+                    alwaysHiddenColumns={useMemoHiddenBuColumns}
+                    hideBuFilter
                     ignoreSavedHiddenColumns={false}
                     showFooter={true}
                     hideSearch={true}
