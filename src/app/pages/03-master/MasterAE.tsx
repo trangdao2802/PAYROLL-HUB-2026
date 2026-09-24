@@ -1146,21 +1146,23 @@ export function MasterAE() {
                                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                                   >
                                     <RefreshCw className="w-4 h-4 text-primary" />
-                                    <span className="text-xs font-bold text-slate-700">Làm mới dữ liệu</span>
+                                    <span className="text-xs font-bold text-slate-700">Reset to default</span>
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      if (tableRef?.current?.resetTableConfig) {
-                                        tableRef.current.resetTableConfig();
-                                      } else {
-                                        toast.error("Không tìm thấy cấu hình bảng");
-                                      }
-                                    }}
-                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
-                                  >
-                                    <RefreshCw className="w-4 h-4 text-amber-600 animate-pulse" />
-                                    <span className="text-xs font-bold text-slate-700">Khôi phục bố cục bảng</span>
-                                  </DropdownMenuItem>
+                                  {activeTab !== "Sheet1_AE" && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        if (tableRef?.current?.resetTableConfig) {
+                                          tableRef.current.resetTableConfig();
+                                        } else {
+                                          toast.error("Không tìm thấy cấu hình bảng");
+                                        }
+                                      }}
+                                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
+                                    >
+                                      <RefreshCw className="w-4 h-4 text-amber-600 animate-pulse" />
+                                      <span className="text-xs font-bold text-slate-700">Khôi phục bố cục bảng</span>
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() => window.dispatchEvent(new Event("open-ui-settings"))}
                                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
