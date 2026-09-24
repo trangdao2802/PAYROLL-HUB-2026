@@ -358,6 +358,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
           status: row.status,
           count: row.count,
           date: row.date,
+          lastSyncedAt: row.lastSyncedAt || target.lastSyncedAt,
           columnMapping: row.columnMapping || target.columnMapping,
           legacyRowIds: Array.from(
             new Set([
@@ -416,6 +417,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
             }
             if (["l07", "url", "fileName", "sheetName"].some((key) => updated[key] !== r[key])) {
               updated.status = "pending";
+              updated.lastSyncedAt = undefined;
             }
             return updated;
           }
@@ -441,6 +443,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
               status: "pending",
               count: undefined,
               date: undefined,
+              lastSyncedAt: undefined,
               columnMapping: undefined,
               legacyRowIds: [],
             }
@@ -484,6 +487,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
         status: "pending",
         count: undefined,
         date: undefined,
+        lastSyncedAt: undefined,
         columnMapping: undefined,
         legacyRowIds: [],
       })),
@@ -766,6 +770,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
           count: result.parsed?.rows.length || 0,
           fileName: result.file.name,
           date: dateLabel,
+          lastSyncedAt: result.error ? input.lastSyncedAt : dateLabel,
           legacyRowIds: result.parsed ? [] : input.legacyRowIds,
         };
       });
@@ -864,6 +869,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
             next.Q_Cache = next.Q_Cache.concat(allRows);
 
           const d = new Date();
+          const syncedAt = formatTimesheetSyncDate(d);
           const bu =
             targetRow?.bus ||
             centerInfo?.bus ||
@@ -880,7 +886,8 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
                   fileName: file.name,
                   url: sourceMetadata?.url || input.url,
                   date:
-                    sourceMetadata?.uploadDate || formatTimesheetSyncDate(d),
+                    sourceMetadata?.uploadDate || syncedAt,
+                  lastSyncedAt: syncedAt,
                   legacyRowIds: [],
                 }
               : input
@@ -964,7 +971,7 @@ export default function TimesheetSummaryPage({ onBack }: TimesheetSummaryPagePro
       toast?.error("Không có dữ liệu");
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(activeData.map((row, index) => ({"No.": index + 1, "L07": row.l07 || "", "AE Code": row.aeCode || "", "Business": row.bus || "", "File / Link": row.name || row.url || "", "Upload Date": row.uploadDate || "", "Status": row.status || "", "Actions": ""})));
+    const ws = XLSX.utils.json_to_sheet(activeData.map((row, index) => ({"No.": index + 1, "L07": row.l07 || "", "AE Code": row.aeCode || "", "Business": row.bus || "", "File / Link": row.name || row.url || "", "Upload Date": row.lastSyncedAt || row.date || "", "Status": row.status || "", "Actions": ""})));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, activeTab);
     XLSX.writeFile(wb, `Timesheet_Export_${activeTab}.xlsx`);
