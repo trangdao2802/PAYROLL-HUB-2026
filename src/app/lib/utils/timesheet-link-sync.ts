@@ -36,7 +36,7 @@ export function applyTimesheetLinkResult(
   previous: AppData,
   input: TimesheetLinkInput,
   rows: Record<string, unknown>[],
-  source: { url: string; fileName: string; date: string },
+  source: { url: string; fileName: string; date: string; lastSyncedAt?: string },
 ): AppData {
   const currentInput = previous.Timesheet_InputList.find((row) => row.id === input.id);
   // A deleted or reassigned source must not reappear when its request finishes.
