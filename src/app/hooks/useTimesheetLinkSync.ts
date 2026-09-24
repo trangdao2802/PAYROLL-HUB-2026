@@ -37,10 +37,12 @@ export function useTimesheetLinkSync() {
         const file = await fetchGoogleSheetAsFile(source.url, input.sheetName || "Sheet1");
         if (!file) throw new Error("Không lấy được nội dung file.");
         const parsed = await parseExcelInWorker(file, { fileId: id, mode: "roster" });
+        const syncedAt = formatTimesheetSyncDate(new Date());
         updateAppData((previous) => applyTimesheetLinkResult(previous, input, parsed.rows, {
           url: source.url,
           fileName: file.name,
-          date: customUploadDate || source.date || formatTimesheetSyncDate(new Date()),
+          date: customUploadDate || source.date || syncedAt,
+          lastSyncedAt: syncedAt,
         }), false);
         if (!silentSuccess) toast.success(`Đã đồng bộ ${input.l07}: ${parsed.rows.length} dòng (Đã ghi đè dữ liệu cũ).`);
         return parsed.rows.length;
