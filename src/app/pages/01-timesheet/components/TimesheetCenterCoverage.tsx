@@ -39,7 +39,7 @@ export function TimesheetCenterSettings({ coverage }: { coverage: MissingTimeshe
         <DropdownMenuItem disabled={coverage.isRefreshing || coverage.centers.length === 0}
           onSelect={() => { void coverage.refreshMissing(); }} className="gap-2 cursor-pointer whitespace-nowrap">
           <RefreshCw className={`h-3.5 w-3.5 ${coverage.isRefreshing ? "animate-spin" : ""}`} />
-          {coverage.isRefreshing ? "Đang làm mới dữ liệu link…" : "Làm mới dữ liệu link"}
+          {coverage.isRefreshing ? "Refreshing Links TIMESHEET…" : "Refresh Links TIMESHEET"}
         </DropdownMenuItem>
         <div className="mx-2 mt-1 rounded-lg border border-border bg-muted/35 px-2.5 py-2">
           <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
