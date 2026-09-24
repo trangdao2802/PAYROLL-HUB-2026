@@ -1726,9 +1726,47 @@ export function BulkPayment({
       return;
     }
 
+    const transactionRows =
+      appData.BankExport?.data?.length > 0
+        ? appData.BankExport.data
+        : appData.Bank_North_AE?.data || [];
+
+    if (!transactionRows.length) {
+      toast.info("Chưa có dữ liệu Batch Payment để đồng bộ.");
+      return;
+    }
+
+    let grossRows = appData.Sheet1_AE?.data || [];
+    let deductionRows = appData.Hold_AE?.data || [];
     let syncedRows = 0;
     let syncedCells = 0;
 
+    for (const transactionKey of pendingTransactionKeys) {
+      const result = applyTransactionReferenceSync({
+        grossRows,
+        deductionRows,
+        transactionRows,
+        rawTimesheetRows: [],
+        reportMonth: appData.globalMonth,
+        transactionKeys: [transactionKey],
+      });
+
+      if (result.correctedCells > 0) {
+        grossRows = result.grossRows;
+        deductionRows = result.deductionRows;
+        syncedCells += result.correctedCells;
+        syncedRows += result.correctedRows;
+      }
+    }
+
+    if (syncedCells === 0) {
+      toast.info("Không còn dòng Reconciliation nào cần Process Sync.");
+      setSyncSaveRequest((value) => value + 1);
+      return;
+    }
+
+    const nextGrossRows = grossRows;
+    const nextDeductionRows = deductionRows;
     updateAppData((prev) => {
       if (prev.BankExport?.data !== appData.BankExport?.data ||
           prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
@@ -1739,51 +1777,16 @@ export function BulkPayment({
         return prev;
       }
 
-      const transactionRows =
-        prev.BankExport?.data?.length > 0
-          ? prev.BankExport.data
-          : prev.Bank_North_AE?.data || [];
-
-      if (!transactionRows.length) {
-        toast.info("Chưa có dữ liệu Batch Payment để đồng bộ.");
-        return prev;
-      }
-
-      let grossRows = prev.Sheet1_AE?.data || [];
-      let deductionRows = prev.Hold_AE?.data || [];
-
-      for (const transactionKey of pendingTransactionKeys) {
-        const result = applyTransactionReferenceSync({
-          grossRows,
-          deductionRows,
-          transactionRows,
-          rawTimesheetRows: [],
-          reportMonth: prev.globalMonth,
-          transactionKeys: [transactionKey],
-        });
-
-        if (result.correctedCells > 0) {
-          grossRows = result.grossRows;
-          deductionRows = result.deductionRows;
-          syncedCells += result.correctedCells;
-          syncedRows += result.correctedRows;
-        }
-      }
-
-      if (syncedCells === 0) return prev;
-
       return {
         ...prev,
         // Batch Payment stays authoritative and untouched. This is exactly the
         // row Process Sync operation repeated for every pending row.
-        Sheet1_AE: { ...prev.Sheet1_AE, data: grossRows },
-        Hold_AE: { ...prev.Hold_AE, data: deductionRows },
+        Sheet1_AE: { ...prev.Sheet1_AE, data: nextGrossRows },
+        Hold_AE: { ...prev.Hold_AE, data: nextDeductionRows },
       };
     }, true, true);
 
-    if (syncedCells > 0) {
-      toast.success(`Đã đồng bộ ${syncedCells} ô trên ${syncedRows} dòng bằng cùng logic Process Sync. Đang kiểm tra phiên bản tháng trên Supabase.`);
-    }
+    toast.success(`Đã đồng bộ ${syncedCells} ô trên ${syncedRows} dòng bằng cùng logic Process Sync. Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý.`);
 
     // After the local state is committed, Reconciliation recomputes. Resolved
     // rows become MATCHED and the default "ALL issues" view removes them.
