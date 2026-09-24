@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { build } from "esbuild";
 import { INITIAL_APP_DATA } from "../src/app/constants/initial-data";
 import type { AppData } from "../src/app/types";
@@ -94,6 +95,11 @@ test("refresh uses Settings sync for only missing links, handles file-only sourc
   assert.deepEqual(requests, [], "showing missing centers never starts a refresh");
   await Promise.all([before.refreshMissing(), before.refreshMissing()]);
   assert.deepEqual(requests, ["missing-link", "https://docs.google.com/spreadsheets/d/new-file/edit"]);
+  const missingSyncedAt = String(harness.getData().Timesheet_InputList.find((row) => row.id === "missing")?.lastSyncedAt || "");
+  const fileSyncedAt = String(harness.getData().Timesheet_InputList.find((row) => row.id === "file")?.lastSyncedAt || "");
+  assert.match(missingSyncedAt, /^\\d{2}:\\d{2} \\d{2}\\/\\d{2}\\/\\d{4}$/);
+  assert.match(fileSyncedAt, /^\\d{2}:\\d{2} \\d{2}\\/\\d{2}\\/\\d{4}$/);
+  assert.ok([missingSyncedAt, fileSyncedAt].includes(harness.render().latestSyncAt));
   assert.equal(harness.getData().Timesheet_Roster.length, 3);
   assert.equal(harness.getData().Timesheet_Roster[0].ma_nv, "UNCHANGED");
   assert.deepEqual(harness.render().centers, []);
@@ -104,9 +110,15 @@ test("refresh uses Settings sync for only missing links, handles file-only sourc
   await harness.render().syncRow("missing");
   assert.equal(harness.getData().Timesheet_Roster.length, 3);
   const storedRows = harness.getData().Timesheet_Roster;
+  const successfulSyncAt = harness.getData().Timesheet_InputList.find((row) => row.id === "missing")?.lastSyncedAt;
   failing = true;
   assert.equal(await harness.render().syncRow("missing"), null);
   assert.deepEqual(harness.getData().Timesheet_Roster, storedRows, "failed refresh retains that source's previously imported rows");
+  assert.equal(
+    harness.getData().Timesheet_InputList.find((row) => row.id === "missing")?.lastSyncedAt,
+    successfulSyncAt,
+    "a failed retry must not pretend that a new successful sync happened",
+  );
 
   requests.length = 0;
   harness.setData(initial());
@@ -166,4 +178,14 @@ test("refresh uses Settings sync for only missing links, handles file-only sourc
   assert.deepEqual(requests, ["missing-link"], "do not repeatedly fetch a successful source with no matching L07");
   await harness.render().syncRow("missing");
   assert.equal(requests.length, 2, "Settings Actions remains available for an explicit full resync");
+});
+
+
+test("Settings Timesheet displays the latest successful link-sync time in both Upload Date and table refresh menu", () => {
+  const inputTable = readFileSync(new URL("../src/app/pages/01-timesheet/components/TimesheetInputTable.tsx", import.meta.url), "utf8");
+  const coverageMenu = readFileSync(new URL("../src/app/pages/01-timesheet/components/TimesheetCenterCoverage.tsx", import.meta.url), "utf8");
+  assert.match(inputTable, /row\.lastSyncedAt \|\| row\.date/);
+  assert.match(inputTable, /Upload Date: lần đồng bộ\/nạp dữ liệu thành công gần nhất/);
+  assert.match(coverageMenu, /Cập nhật gần nhất/);
+  assert.match(coverageMenu, /coverage\.latestSyncAt/);
 });
