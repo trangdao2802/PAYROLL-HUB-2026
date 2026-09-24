@@ -369,8 +369,8 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
     setIsAutoFit((prev) => !prev);
     toast.info(
       !isAutoFit
-        ? "Auto-fit column widths enabled"
-        : "Expanded column widths enabled"
+        ? "Đã căn cột theo nội dung. Cuộn ngang để xem các cột còn lại."
+        : "Đã thu gọn cột và xuống dòng tiêu đề."
     );
   };
 
@@ -454,8 +454,8 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
   }, [academicColumns, adminColumns, filteredScales, getEffectiveRate]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent border-0">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-transparent overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-transparent border-0">
         {/* Unified Table Frame Header */}
         <div className="unified-table-frame-header table-header flex items-center justify-between shrink-0 w-full min-h-[50px] px-3.5 py-2 border-b border-border bg-[var(--table-header-bg,#FAF3E8)]">
           <div className="app-table-title-lockup min-w-0">
@@ -679,15 +679,27 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
         </div>
 
         {/* Main Table Viewport */}
-        <div className="flex-1 overflow-auto bg-card relative">
+        <div className="flex-1 min-h-0 min-w-0 overflow-auto bg-card relative">
           <table
-            className="w-full text-left border-collapse"
+            className="unit-rate-type-table text-left border-collapse tabular-nums"
+            data-column-layout={isAutoFit ? "content" : "compact"}
             style={{
               fontFamily: "var(--font-table, var(--font-main))",
-              tableLayout: isAutoFit ? "fixed" : "auto",
-              minWidth: isAutoFit ? "max-content" : undefined,
+              // Intrinsic layout respects every leaf header, including those below
+              // a colspan. Fixed layout squeezes them into equal viewport slices.
+              tableLayout: "auto",
+              width: isAutoFit ? "max-content" : "100%",
+              minWidth: "100%",
             }}
           >
+            <colgroup>
+              <col style={{ width: 72 }} />
+              <col style={{ width: 112 }} />
+              <col style={{ width: 260 }} />
+              {[...displayAcademicCols, ...displayAdminCols].map((col) => (
+                <col key={col.key} style={{ width: 140 }} />
+              ))}
+            </colgroup>
             {/* Header with Super Headers */}
             <thead className="sticky top-0 z-30">
               {/* Row 1: Super Headers */}
@@ -695,10 +707,10 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {/* Column 1: No. with integrated Auto-fit button */}
                 <th
                   rowSpan={2}
-                  className="px-2 py-2 text-center border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] w-16 min-w-[64px] whitespace-nowrap"
+                  className="px-2 py-2 text-center border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] min-w-[72px] whitespace-nowrap"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <span>No.</span>
+                    <span style={{ textTransform: "none" }}>No.</span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -710,8 +722,9 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                           ? "text-primary hover:bg-primary/20 bg-primary/10"
                           : "text-muted-foreground/70 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10"
                       }`}
-                      title={isAutoFit ? "Auto-fit: Đang bật (Click để tắt)" : "Auto-fit: Đang tắt (Click để bật)"}
-                      aria-label="Toggle Auto-fit column widths"
+                      title={isAutoFit ? "Thu gọn cột, xuống dòng tiêu đề" : "Căn độ rộng cột theo nội dung, cuộn ngang để xem tất cả"}
+                      aria-label="Căn độ rộng cột theo nội dung"
+                      aria-pressed={isAutoFit}
                     >
                       <ArrowLeftRight className="w-3 h-3" />
                     </button>
@@ -721,7 +734,7 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {/* Column 2: Scale Code */}
                 <th
                   rowSpan={2}
-                  className="px-3.5 py-2 border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] min-w-[90px]"
+                  className="px-3.5 py-2 border-r border-b-2 border-border bg-[var(--table-column-header-bg,#F4ECD8)] min-w-[112px]"
                 >
                   Scale Code
                 </th>
@@ -729,7 +742,7 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {/* Column 3: Scale Description */}
                 <th
                   rowSpan={2}
-                  className="px-3.5 py-2 border-r border-b-2 border-border min-w-[180px]"
+                  className="px-3.5 py-2 border-r border-b-2 border-border min-w-[260px]"
                 >
                   Scale Description
                 </th>
@@ -767,12 +780,13 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {displayAcademicCols.map((col, cIdx) => (
                   <th
                     key={`ac-col-${col.key}`}
-                    className={`px-2.5 py-2 text-right border-r border-border min-w-[110px] whitespace-nowrap bg-amber-500/5 ${
+                    className={`px-2.5 py-2 text-right border-r border-border min-w-[140px] bg-amber-500/5 ${
                       cIdx === displayAcademicCols.length - 1 && displayAdminCols.length > 0
                         ? "border-r-2 border-r-amber-500/40"
                         : ""
                     }`}
                     title={col.desc}
+                    style={{ whiteSpace: isAutoFit ? "nowrap" : "normal", overflowWrap: "anywhere" }}
                   >
                     <div className="font-extrabold text-foreground">{col.label}</div>
                   </th>
@@ -782,10 +796,11 @@ export function TypeRatesTable({ showSidebar = true, onToggleSidebar }: TypeRate
                 {displayAdminCols.map((col, cIdx) => (
                   <th
                     key={`ad-col-${col.key}`}
-                    className={`px-2.5 py-2 text-right border-r border-border min-w-[110px] whitespace-nowrap bg-sky-500/5 ${
+                    className={`px-2.5 py-2 text-right border-r border-border min-w-[140px] bg-sky-500/5 ${
                       cIdx === displayAdminCols.length - 1 ? "border-r-0" : ""
                     }`}
                     title={col.desc}
+                    style={{ whiteSpace: isAutoFit ? "nowrap" : "normal", overflowWrap: "anywhere" }}
                   >
                     <div className="font-extrabold text-foreground">{col.label}</div>
                   </th>

@@ -70,6 +70,7 @@ export const CENTER_COLUMNS = [
     label: "Total Salary",
     type: "currency" as const,
     width: 160,
+    headerClassName: "roster-center-total-header",
     cellClassName: "font-black text-indigo-700 bg-indigo-50/50"
   },
 ];
