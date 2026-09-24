@@ -42,6 +42,7 @@ export interface TimesheetInputRow {
   status: "pending" | "processing" | "success" | "error";
   count?: number;
   date?: string;
+  lastSyncedAt?: string;
   columnMapping?: Record<string, string>;
   legacyRowIds?: string[];
 }
@@ -128,7 +129,7 @@ export function TimesheetInputTable({
     let unsynced = 0;
 
     rows.forEach((r) => {
-      const info = getSyncDateInfo(r.date);
+      const info = getSyncDateInfo(r.lastSyncedAt || r.date);
       if (info.status === "fresh") fresh++;
       else if (info.status === "recent") recent++;
       else if (info.status === "warning" || info.status === "outdated") outdated++;
@@ -252,7 +253,7 @@ export function TimesheetInputTable({
             </div>
           </div>
           <div className="text-[10px] text-muted-foreground font-medium hidden sm:block">
-            Google Sheet: ngày cập nhật file nguồn • File tải lên: ngày nạp lên web
+            Upload Date: lần đồng bộ/nạp dữ liệu thành công gần nhất • Mốc nguồn vẫn được giữ để đối chiếu
           </div>
         </div>
 
@@ -563,6 +564,7 @@ export function TimesheetInputTable({
                                   onUpdateRow(row.id, "fileName", "");
                                   onUpdateRow(row.id, "status", "pending");
                                   onUpdateRow(row.id, "date", "");
+                                  onUpdateRow(row.id, "lastSyncedAt", "");
                                 }}
                                 className="text-muted-foreground hover:text-rose-600 p-0.5 rounded hover:bg-card shrink-0 transition-colors cursor-pointer"
                                 title="Xóa file"
@@ -618,13 +620,21 @@ export function TimesheetInputTable({
                     }}
                   >
                     {(() => {
-                      const syncInfo = getSyncDateInfo(row.date);
+                      const displayedSyncDate = row.lastSyncedAt || row.date;
+                      const syncInfo = getSyncDateInfo(displayedSyncDate);
                       return (
                         <div className="flex flex-col items-center justify-center gap-1">
-                          <span className="text-[11px] font-medium text-foreground">
-                            {row.date || "---"}
+                          <span
+                            className="text-[11px] font-medium text-foreground"
+                            title={
+                              row.lastSyncedAt
+                                ? `Lần đồng bộ/nạp dữ liệu thành công: ${row.lastSyncedAt}${row.date && row.date !== row.lastSyncedAt ? ` • Mốc nguồn: ${row.date}` : ""}`
+                                : "Mốc dữ liệu cũ; hãy đồng bộ để ghi nhận thời gian cập nhật mới nhất."
+                            }
+                          >
+                            {displayedSyncDate || "---"}
                           </span>
-                          {row.date && (
+                          {displayedSyncDate && (
                             <span
                               className={`inline-flex items-center gap-1 text-[9.5px] px-2 py-0.5 rounded-full border shadow-2xs ${syncInfo.badgeClass}`}
                               title={
@@ -687,7 +697,7 @@ export function TimesheetInputTable({
                   >
                     <div className="flex items-center justify-center gap-1.5">
                       {onSyncRow && (() => {
-                        const syncInfo = getSyncDateInfo(row.date);
+                        const syncInfo = getSyncDateInfo(row.lastSyncedAt || row.date);
                         return (
                           <button
                             onClick={() => {
