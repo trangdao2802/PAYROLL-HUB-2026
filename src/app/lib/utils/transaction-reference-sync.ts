@@ -725,14 +725,21 @@ export function applyTransactionReferenceSync({
     grossRows,
     deductionRows,
     transactionRows,
-    rawTimesheetRows,
+    // Scoped actions are downstream-only. When targetTable is set,
+    // Transaction/Batch Payment remains the authoritative source and must not
+    // be repaired from RAWDATA_TIMESHEET as a side effect.
+    rawTimesheetRows: targetTable ? [] : rawTimesheetRows,
     reportMonth,
   });
   const allowedKeys = transactionKeys ? new Set(transactionKeys) : null;
   const selectedMatches = plan.matches.map(match => ({
     ...match,
-    corrections: targetTable ? match.corrections.filter(c => c.table === targetTable) : match.corrections,
-    transactionCorrections: targetTable && !match.corrections.some(c => c.table === targetTable) ? [] : match.transactionCorrections,
+    corrections: targetTable
+      ? match.corrections.filter(c => c.table === targetTable)
+      : match.corrections,
+    // targetTable is a hard mutation boundary: scoped actions may only write
+    // the requested downstream table, never Transaction/Batch Payment.
+    transactionCorrections: targetTable ? [] : match.transactionCorrections,
   })).filter(
     (match) =>
       (match.corrections.length > 0 ||
