@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAppData } from "../lib/contexts/AppDataContext";
 import { getMissingTimesheetCenters, type TimesheetCoverageDateRange } from "../lib/utils/timesheet-center-coverage";
+import { parseTimesheetSyncDate } from "../lib/utils/timesheet-sync-date";
 import { useTimesheetLinkSync } from "./useTimesheetLinkSync";
 
 export function useMissingTimesheetCenters(
@@ -20,6 +21,22 @@ export function useMissingTimesheetCenters(
     }) : { centers: [], inputs: [], expectedCount: 0 },
     [enabled, appData.Timesheet_InputList, appData.Timesheet_Roster, rows, mode, from, to, preferredYear],
   );
+  const latestSyncAt = useMemo(() => {
+    let latestLabel = "";
+    let latestTime = Number.NEGATIVE_INFINITY;
+    for (const input of appData.Timesheet_InputList || []) {
+      const label = String(input.lastSyncedAt || "").trim();
+      if (!label) continue;
+      const parsed = parseTimesheetSyncDate(label);
+      const time = parsed?.getTime();
+      if (time !== undefined && time !== null && Number.isFinite(time) && time > latestTime) {
+        latestTime = time;
+        latestLabel = label;
+      }
+    }
+    return latestLabel;
+  }, [appData.Timesheet_InputList]);
+
   // Persisted Settings statuses may outlive a request and do not indicate that
   // this table's refresh button is running. Only an explicit click starts it.
   const isRefreshing = refreshing;
@@ -48,7 +65,7 @@ export function useMissingTimesheetCenters(
     }
   }, [coverage.inputs, isRefreshing, syncRow]);
 
-  return { ...coverage, isRefreshing, refreshMissing };
+  return { ...coverage, isRefreshing, refreshMissing, latestSyncAt };
 }
 
 export type MissingTimesheetCenters = ReturnType<typeof useMissingTimesheetCenters>;
