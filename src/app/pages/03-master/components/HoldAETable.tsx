@@ -64,7 +64,6 @@ import {
   getTransactionReferenceField,
   type TransactionReferenceAuditEntry,
 } from "../../../lib/utils/transaction-reference-sync";
-import { markTransactionSaved } from "../../../lib/utils/transaction-activity";
 
 const HOLD_HIDDEN_COLS = [
   "TÊN FILE",
@@ -749,7 +748,8 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       grossRows: appData.Sheet1_AE?.data || [],
       deductionRows: appData.Hold_AE?.data || [],
       transactionRows: appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || [],
-      rawTimesheetRows: [...(appData.Timesheet_Roster || []), ...(appData.Q_Staff || [])],
+      // Batch Payment/Transaction is the source of truth for Deductions sync.
+      rawTimesheetRows: [],
       reportMonth: appData.globalMonth,
     }).correctedCells > 0, [appData.Sheet1_AE, appData.Hold_AE, appData.BankExport, appData.Bank_North_AE, appData.Timesheet_Roster, appData.Q_Staff, appData.globalMonth]);
 
@@ -760,42 +760,28 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
           ? prev.BankExport.data
           : prev.Bank_North_AE?.data || [];
         const result = applyTransactionReferenceSync({
+          targetTable: "Hold_AE",
           grossRows: prev.Sheet1_AE?.data || [],
           deductionRows: prev.Hold_AE?.data || [],
           transactionRows,
-          rawTimesheetRows: [
-            ...(prev.Timesheet_Roster || []),
-            ...(prev.Q_Staff || []),
-          ],
+          // Deductions is downstream-only: never repair Batch Payment from raw data.
+          rawTimesheetRows: [],
           reportMonth: prev.globalMonth,
         });
 
         if (result.correctedCells === 0) {
-          toast.info("Deductions đã khớp dữ liệu Reconcile trong kỳ hiện tại.");
+          toast.info("Deductions đã khớp Batch Payment trong kỳ hiện tại.");
           return prev;
         }
 
         toast.success(
-          `Đã đồng bộ một lần ${result.correctedCells} ô trên ${result.correctedRows} dòng và lưu ngay.`,
+          `Đã cập nhật ${result.correctedCells} ô trên ${result.correctedRows} dòng Deductions và lưu ngay.`,
         );
-        const next = {
+        return {
           ...prev,
-          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+          // Batch Payment/Transaction and Gross Pay are intentionally untouched.
           Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
-          TransactionActivity: markTransactionSaved(prev),
         };
-        return useBankExport
-          ? {
-              ...next,
-              BankExport: { ...prev.BankExport, data: result.transactionRows },
-            }
-          : {
-              ...next,
-              Bank_North_AE: {
-                ...prev.Bank_North_AE,
-                data: result.transactionRows,
-              },
-            };
       }, true, true);
     }, [updateAppData]);
 
