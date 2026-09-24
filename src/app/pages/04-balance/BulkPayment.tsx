@@ -688,10 +688,8 @@ export function BulkPayment({
           grossRows: prev.Sheet1_AE?.data || [],
           deductionRows: prev.Hold_AE?.data || [],
           transactionRows,
-          rawTimesheetRows: [
-            ...(prev.Timesheet_Roster || []),
-            ...(prev.Q_Staff || []),
-          ],
+          // Same rule as the bulk lightning/menu action: Batch Payment is source.
+          rawTimesheetRows: [],
           reportMonth: prev.globalMonth,
           transactionKeys: [item.referenceTransactionKey],
         });
@@ -705,24 +703,12 @@ export function BulkPayment({
           `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng theo Transaction.`,
         );
 
-        const next = {
+        return {
           ...prev,
+          // Process Sync publishes confirmed Batch Payment identity downstream only.
           Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
           Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
-          TransactionActivity: markTransactionSaved(prev),
         };
-        return prev.BankExport?.data?.length > 0
-          ? {
-              ...next,
-              BankExport: { ...prev.BankExport, data: result.transactionRows },
-            }
-          : {
-              ...next,
-              Bank_North_AE: {
-                ...prev.Bank_North_AE,
-                data: result.transactionRows,
-              },
-            };
       }, true, true);
     },
     [updateAppData],
@@ -885,10 +871,9 @@ export function BulkPayment({
       grossRows: sheet1Rows,
       deductionRows: holdRows,
       transactionRows: bankExportRows,
-      rawTimesheetRows: [
-        ...(appData.Timesheet_Roster || []),
-        ...(appData.Q_Staff || []),
-      ],
+      // Reconciliation Process Sync uses confirmed Batch Payment as the
+      // authoritative identity source. RAWDATA must never repair Transaction here.
+      rawTimesheetRows: [],
       reportMonth: appData.globalMonth,
     });
     const accountById = buildBankAccountIndex([
@@ -1742,7 +1727,7 @@ export function BulkPayment({
       reportMonth: appData.globalMonth,
     });
 
-    if (result.correctedCells > 0 || result.transactionCorrectedCells > 0) {
+    if (result.correctedCells > 0) {
       updateAppData((prev) => {
         if (prev.BankExport?.data !== appData.BankExport?.data ||
             prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
@@ -1752,15 +1737,13 @@ export function BulkPayment({
           toast.warning("Dữ liệu đã đổi trong lúc đồng bộ. Bấm Đồng bộ lại.");
           return prev;
         }
-        const next = {
+        return {
           ...prev,
+          // Bulk sync is the all-row version of Process Sync: publish the
+          // confirmed Batch Payment identity to Gross Pay + Deductions only.
           Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
           Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
-          TransactionActivity: markTransactionSaved(prev),
         };
-        return useBankExport
-          ? { ...next, BankExport: { ...prev.BankExport, data: result.transactionRows } }
-          : { ...next, Bank_North_AE: { ...prev.Bank_North_AE, data: result.transactionRows } };
       }, true, true);
       toast.success(`Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng. Đang kiểm tra phiên bản tháng trên Supabase.`);
     } else {
@@ -3639,9 +3622,7 @@ export function BulkPayment({
                               item.id.startsWith("unmatched-");
                             const canSync =
                               !isUnmatched &&
-                              ((item.referenceCorrections?.length || 0) > 0 ||
-                                (item.referenceTransactionCorrections?.length ||
-                                  0) > 0);
+                              (item.referenceCorrections?.length || 0) > 0;
                             const totalTargetBankAcc =
                               item.sheet1Amount + item.holdAmount;
 
