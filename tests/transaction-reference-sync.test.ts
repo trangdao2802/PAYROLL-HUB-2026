@@ -234,6 +234,71 @@ test("Transaction sync copies ID, name, and bank account to both target tables",
   assert.deepEqual(result.transactionRows, transactionRows);
 });
 
+test("Deductions target-only sync never mutates Batch Payment or Gross Pay", () => {
+  const grossRows = [
+    {
+      "Tháng báo cáo": month,
+      "ID Number": "ID-A",
+      "Full name": "WRONG GROSS NAME",
+      "Bank Account Number": "WRONG-GROSS-ACC",
+      "TOTAL PAYMENT": 100_000,
+    },
+  ];
+  const deductionRows = [
+    {
+      "Tháng báo cáo": month,
+      "ID Number": "ID-A",
+      "Full name": "WRONG DEDUCTION NAME",
+      "Bank Account Number": "WRONG-DEDUCTION-ACC",
+      "TOTAL PAYMENT": -10_000,
+      "Nghiệp vụ": "Hold",
+    },
+  ];
+  const transactionRows = [
+    {
+      id: "tx-confirmed",
+      "Tháng báo cáo": month,
+      "Document ID": "ID-A",
+      "Beneficiary Name": "CONFIRMED NAME",
+      "Beneficiary Account No.": "CONFIRMED-ACC",
+      "Payment Amount": 90_000,
+      "Payment details": "CONFIRMED PAYMENT DATA",
+      _paymentAudit: { source: "batch-payment" },
+    },
+  ];
+  const rawTimesheetRows = [
+    {
+      "ID NUMBER": "RAW-ID",
+      "FULL NAME": "RAW NAME",
+      "BANK ACCOUNT NUMBER": "RAW-ACC",
+    },
+  ];
+
+  const result = applyTransactionReferenceSync({
+    targetTable: "Hold_AE",
+    grossRows,
+    deductionRows,
+    transactionRows,
+    rawTimesheetRows,
+    reportMonth: month,
+  });
+
+  assert.deepEqual(result.transactionRows, transactionRows);
+  assert.deepEqual(result.grossRows, grossRows);
+  assert.equal(result.transactionCorrectedCells, 0);
+  assert.equal(result.deductionRows[0]["ID Number"], "ID-A");
+  assert.equal(result.deductionRows[0]["Full name"], "CONFIRMED NAME");
+  assert.equal(
+    result.deductionRows[0]["Bank Account Number"],
+    "CONFIRMED-ACC",
+  );
+  assert.equal(result.transactionRows[0]["Payment Amount"], 90_000);
+  assert.equal(
+    result.transactionRows[0]["Payment details"],
+    "CONFIRMED PAYMENT DATA",
+  );
+});
+
 test("one click resolves duplicate Transaction identity from RAWDATA_TIMESHEET", () => {
   const transactionRows = [
     {
