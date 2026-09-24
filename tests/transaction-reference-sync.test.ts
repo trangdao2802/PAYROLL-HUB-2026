@@ -510,6 +510,24 @@ test("bulk Reconciliation sync repeats row Process Sync sequentially and hides r
   );
 });
 
+test("bulk Reconciliation lightning sync cannot report success without applying downstream state", () => {
+  const bulkPayment = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const start = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");
+  const end = bulkPayment.indexOf("const reconcileTotals", start);
+  const handler = bulkPayment.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(handler, /Sheet1_AE:\s*\{ \.\.\.prev\.Sheet1_AE, data: nextGrossRows \}/);
+  assert.match(handler, /Hold_AE:\s*\{ \.\.\.prev\.Hold_AE, data: nextDeductionRows \}/);
+  assert.doesNotMatch(handler, /prev\.BankExport\?\.data !== appData\.BankExport\?\.data/);
+  assert.doesNotMatch(handler, /setSyncSaveRequest/);
+  assert.match(handler, /all-row form of Process Sync/);
+});
+
 test("Transaction table exposes authoritative identity sync action", () => {
   const bulkPayment = readFileSync(
     new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
