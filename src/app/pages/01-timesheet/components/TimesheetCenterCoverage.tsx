@@ -1,4 +1,4 @@
-import { RefreshCw, Settings } from "lucide-react";
+import { Clock, RefreshCw, Settings } from "lucide-react";
 import type { MissingTimesheetCenters } from "../../../hooks/useMissingTimesheetCenters";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -41,6 +41,17 @@ export function TimesheetCenterSettings({ coverage }: { coverage: MissingTimeshe
           <RefreshCw className={`h-3.5 w-3.5 ${coverage.isRefreshing ? "animate-spin" : ""}`} />
           {coverage.isRefreshing ? "Đang làm mới dữ liệu link…" : "Làm mới dữ liệu link"}
         </DropdownMenuItem>
+        <div className="mx-2 mt-1 rounded-lg border border-border bg-muted/35 px-2.5 py-2">
+          <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              Cập nhật gần nhất
+            </span>
+            <span className="normal-case tracking-normal text-foreground tabular-nums">
+              {coverage.latestSyncAt || "Chưa ghi nhận"}
+            </span>
+          </div>
+        </div>
         <p className="px-2 py-1 text-xs leading-relaxed text-muted-foreground">
           Chỉ đồng bộ khi bạn bấm nút. Bỏ qua L07 đã đồng bộ thành công nhưng không có trong bảng, hoặc chỉ có dữ liệu ngoài thời gian đang lọc.
         </p>
