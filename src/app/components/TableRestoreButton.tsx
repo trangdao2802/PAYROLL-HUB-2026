@@ -7,7 +7,7 @@ export function TableRestoreButton({ fields, onRestore, placement = 'settings' }
   const restore = useTableRestore();
   const action = onRestore || (() => restore(fields || []));
   const title = onRestore ? 'Tính lại bảng từ dữ liệu nguồn, bỏ chỉnh sửa riêng của bảng.' : 'Khôi phục toàn bộ dữ liệu của bảng trước chỉnh sửa (tất cả tháng), gồm dòng đã thêm hoặc xóa. Có thể Hoàn tác.';
-  const content = <><RefreshCw className="h-3.5 w-3.5 shrink-0" /><span className="truncate flex-1 text-left font-semibold">Làm mới dữ liệu</span></>;
+  const content = <><RefreshCw className="h-3.5 w-3.5 shrink-0" /><span className="truncate flex-1 text-left font-semibold">Reset to default</span></>;
   const className = 'flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-xs text-primary hover:bg-muted cursor-pointer';
   if (placement === 'plain') return <button type="button" onClick={action} title={title} className={className}>{content}</button>;
   const item = <DropdownMenuItem onSelect={action} title={title} className={className}>{content}</DropdownMenuItem>;
