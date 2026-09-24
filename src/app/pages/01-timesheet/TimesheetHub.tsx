@@ -2236,10 +2236,10 @@ export function TimesheetHub() {
                           type="button"
                           onClick={() => restoreTable(["Timesheet_Roster"])}
                           className="h-7.5 px-2 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98]"
-                          title="Tải lại bảng Timesheet_Roster"
+                          title="Khôi phục Timesheet_Roster về dữ liệu mặc định chưa chỉnh sửa"
                         >
                           <RefreshCw className="w-3 h-3 text-primary" />
-                          <span>Làm mới</span>
+                          <span>Reset to default</span>
                         </button>
                       </div>
                     </div>
@@ -2289,7 +2289,7 @@ export function TimesheetHub() {
                             className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer text-foreground hover:bg-muted"
                           >
                             <RefreshCw className="w-3.5 h-3.5 text-primary" />
-                            <span>Làm mới dữ liệu</span>
+                            <span>Reset to default</span>
                           </DropdownMenuItem>
 
                           {/* Export Excel */}
