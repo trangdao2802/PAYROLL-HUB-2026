@@ -473,6 +473,43 @@ test("Reconciliation row sync and bulk lightning sync share the same authoritati
   assert.match(deductions, /rawTimesheetRows:\s*\[\]/);
 });
 
+test("bulk Reconciliation sync repeats row Process Sync sequentially and hides resolved rows", () => {
+  const bulkPayment = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const bulkStart = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");
+  const bulkEnd = bulkPayment.indexOf("const reconcileTotals", bulkStart);
+  const bulkHandler = bulkPayment.slice(bulkStart, bulkEnd);
+
+  assert.ok(bulkStart >= 0 && bulkEnd > bulkStart);
+  assert.match(
+    bulkHandler,
+    /for \(const transactionKey of pendingTransactionKeys\)/,
+  );
+  assert.match(
+    bulkHandler,
+    /transactionKeys:\s*\[transactionKey\]/,
+  );
+  assert.match(
+    bulkHandler,
+    /grossRows\s*=\s*result\.grossRows/,
+  );
+  assert.match(
+    bulkHandler,
+    /deductionRows\s*=\s*result\.deductionRows/,
+  );
+  assert.match(
+    bulkPayment,
+    /reconciliationAudit\.missingInfoCount > 0 \? "MISSING_INFO"[\s\S]*?: "ALL"\)/,
+  );
+  assert.match(
+    bulkHandler,
+    /Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý/,
+  );
+});
+
 test("Transaction table exposes authoritative identity sync action", () => {
   const bulkPayment = readFileSync(
     new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
