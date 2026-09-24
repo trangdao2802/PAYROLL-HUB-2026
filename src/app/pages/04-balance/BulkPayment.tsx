@@ -1641,7 +1641,7 @@ export function BulkPayment({
     : (reconciliationAudit.varianceCount > 0 ? "VARIANCE" 
        : reconciliationAudit.duplicateCount > 0 ? "DUPLICATE" 
        : reconciliationAudit.missingInfoCount > 0 ? "MISSING_INFO" 
-       : "MATCHED");
+       : "ALL");
 
   const filteredTransactionAudits = useMemo(() => {
     return reconciliationAudit.transactionAuditList.filter((item) => {
@@ -1706,53 +1706,94 @@ export function BulkPayment({
       return;
     }
 
-    // Use the committed Transaction rows only. A draft cannot be published or
-    // compared to the latest cloud version until its edits have been saved.
-    const useBankExport = (appData.BankExport?.data || []).length > 0;
-    const transactionRows = useBankExport
-      ? appData.BankExport.data
-      : appData.Bank_North_AE?.data || [];
-    if (!transactionRows.length) {
-      toast.info("Chưa có dữ liệu Batch Payment để đồng bộ.");
+    // The bulk lightning/menu action must be behaviorally identical to pressing
+    // Process Sync on every pending Reconciliation row. Run each Transaction key
+    // sequentially against the evolving Gross Pay/Deductions state so later rows
+    // see corrections already applied by earlier rows.
+    const pendingTransactionKeys = Array.from(new Set(
+      reconciliationAudit.transactionAuditList
+        .filter((item) =>
+          !item.id.startsWith("unmatched-") &&
+          Boolean(item.referenceTransactionKey) &&
+          (item.referenceCorrections?.length || 0) > 0
+        )
+        .map((item) => item.referenceTransactionKey),
+    ));
+
+    if (pendingTransactionKeys.length === 0) {
+      toast.info("Tên, STK và ID ở Gross Pay/Deductions đã khớp Batch Payment. Đang kiểm tra phiên bản tháng trên Supabase.");
+      setSyncSaveRequest((value) => value + 1);
       return;
     }
 
-    const result = applyTransactionReferenceSync({
-      grossRows: appData.Sheet1_AE?.data || [],
-      deductionRows: appData.Hold_AE?.data || [],
-      transactionRows,
-      // Transaction is authoritative for the bulk action. RAWDATA repairs
-      // require the separate row-level Reconciliation action.
-      rawTimesheetRows: [],
-      reportMonth: appData.globalMonth,
-    });
+    let syncedRows = 0;
+    let syncedCells = 0;
 
-    if (result.correctedCells > 0) {
-      updateAppData((prev) => {
-        if (prev.BankExport?.data !== appData.BankExport?.data ||
-            prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
-            prev.Sheet1_AE?.data !== appData.Sheet1_AE?.data ||
-            prev.Hold_AE?.data !== appData.Hold_AE?.data ||
-            prev.globalMonth !== appData.globalMonth) {
-          toast.warning("Dữ liệu đã đổi trong lúc đồng bộ. Bấm Đồng bộ lại.");
-          return prev;
+    updateAppData((prev) => {
+      if (prev.BankExport?.data !== appData.BankExport?.data ||
+          prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
+          prev.Sheet1_AE?.data !== appData.Sheet1_AE?.data ||
+          prev.Hold_AE?.data !== appData.Hold_AE?.data ||
+          prev.globalMonth !== appData.globalMonth) {
+        toast.warning("Dữ liệu đã đổi trong lúc đồng bộ. Bấm Đồng bộ lại.");
+        return prev;
+      }
+
+      const transactionRows =
+        prev.BankExport?.data?.length > 0
+          ? prev.BankExport.data
+          : prev.Bank_North_AE?.data || [];
+
+      if (!transactionRows.length) {
+        toast.info("Chưa có dữ liệu Batch Payment để đồng bộ.");
+        return prev;
+      }
+
+      let grossRows = prev.Sheet1_AE?.data || [];
+      let deductionRows = prev.Hold_AE?.data || [];
+
+      for (const transactionKey of pendingTransactionKeys) {
+        const result = applyTransactionReferenceSync({
+          grossRows,
+          deductionRows,
+          transactionRows,
+          rawTimesheetRows: [],
+          reportMonth: prev.globalMonth,
+          transactionKeys: [transactionKey],
+        });
+
+        if (result.correctedCells > 0) {
+          grossRows = result.grossRows;
+          deductionRows = result.deductionRows;
+          syncedCells += result.correctedCells;
+          syncedRows += result.correctedRows;
         }
-        return {
-          ...prev,
-          // Bulk sync is the all-row version of Process Sync: publish the
-          // confirmed Batch Payment identity to Gross Pay + Deductions only.
-          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
-          Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
-        };
-      }, true, true);
-      toast.success(`Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng. Đang kiểm tra phiên bản tháng trên Supabase.`);
-    } else {
-      toast.info("Tên, STK và ID ở Gross Pay/Deductions đã khớp Batch Payment. Đang kiểm tra phiên bản tháng trên Supabase.");
+      }
+
+      if (syncedCells === 0) return prev;
+
+      return {
+        ...prev,
+        // Batch Payment stays authoritative and untouched. This is exactly the
+        // row Process Sync operation repeated for every pending row.
+        Sheet1_AE: { ...prev.Sheet1_AE, data: grossRows },
+        Hold_AE: { ...prev.Hold_AE, data: deductionRows },
+      };
+    }, true, true);
+
+    if (syncedCells > 0) {
+      toast.success(`Đã đồng bộ ${syncedCells} ô trên ${syncedRows} dòng bằng cùng logic Process Sync. Đang kiểm tra phiên bản tháng trên Supabase.`);
     }
-    // React commits the local update before TransactionHistoryPanel handles
-    // the request; it then compares and publishes the committed snapshot.
+
+    // After the local state is committed, Reconciliation recomputes. Resolved
+    // rows become MATCHED and the default "ALL issues" view removes them.
     setSyncSaveRequest((value) => value + 1);
-  }, [appData, hasPendingTransactionEdits, updateAppData]);
+  }, [
+    appData,
+    hasPendingTransactionEdits,
+    reconciliationAudit.transactionAuditList,
+    updateAppData,
+  ]);
 
   const reconcileTotals = useMemo(() => {
     return filteredTransactionAudits.reduce(
