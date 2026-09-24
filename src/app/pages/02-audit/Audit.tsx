@@ -297,8 +297,8 @@ export function Audit() {
     updateAppData((prev) => ({ ...prev, AuditClearedTables: { ...prev.AuditClearedTables, [activeTab]: false } }));
     setTimeout(() => {
       setIsRefreshing(false);
-      toast.success("Đã làm mới dữ liệu", {
-        description: "Dữ liệu AUDIT đã được làm mới thành công.",
+      toast.success("Đã Reset to default", {
+        description: "Dữ liệu AUDIT đã được khôi phục về trạng thái mặc định.",
       });
     }, 600);
   };
@@ -1798,7 +1798,7 @@ export function Audit() {
                   >
                     <RefreshCw className={`w-4 h-4 text-[#d1435b] ${isRefreshing ? "animate-spin" : ""}`} />
                     <span className="text-xs font-bold text-slate-700">
-                      Làm mới dữ liệu đối soát
+                      Reset to default
                     </span>
                   </DropdownMenuItem>
 
