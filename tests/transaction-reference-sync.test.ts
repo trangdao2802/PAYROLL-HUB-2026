@@ -430,6 +430,49 @@ test("bulk sync is available in Deductions and persists immediately", () => {
   assert.match(context, /persistImmediately \? 0 : 3000/);
 });
 
+test("Reconciliation row sync and bulk lightning sync share the same authoritative Batch Payment direction", () => {
+  const bulkPayment = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+  const deductions = readFileSync(
+    new URL("../src/app/pages/03-master/components/HoldAETable.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const rowStart = bulkPayment.indexOf("const handleAutoFillMissingAccount");
+  const rowEnd = bulkPayment.indexOf("const handleReplaceTransactionHistoryRows", rowStart);
+  const rowHandler = bulkPayment.slice(rowStart, rowEnd);
+
+  const bulkStart = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");
+  const bulkEnd = bulkPayment.indexOf("const reconcileTotals", bulkStart);
+  const bulkHandler = bulkPayment.slice(bulkStart, bulkEnd);
+
+  assert.ok(rowStart >= 0 && rowEnd > rowStart);
+  assert.ok(bulkStart >= 0 && bulkEnd > bulkStart);
+
+  assert.match(rowHandler, /rawTimesheetRows:\s*\[\]/);
+  assert.doesNotMatch(rowHandler, /Timesheet_Roster|Q_Staff/);
+  assert.doesNotMatch(rowHandler, /BankExport:\s*\{/);
+  assert.doesNotMatch(rowHandler, /Bank_North_AE:\s*\{/);
+  assert.doesNotMatch(rowHandler, /markTransactionSaved/);
+
+  assert.match(bulkHandler, /rawTimesheetRows:\s*\[\]/);
+  assert.doesNotMatch(bulkHandler, /BankExport:\s*\{/);
+  assert.doesNotMatch(bulkHandler, /Bank_North_AE:\s*\{/);
+  assert.doesNotMatch(bulkHandler, /markTransactionSaved/);
+
+  assert.equal(
+    (bulkPayment.match(/onClick=\{handleSyncTransactionFieldsToTables\}/g) || []).length,
+    2,
+    "settings menu and glowing lightning icon must call the same bulk handler",
+  );
+  assert.match(bulkPayment, /handleAutoFillMissingAccount\(item\)/);
+
+  assert.match(deductions, /targetTable:\s*"Hold_AE"/);
+  assert.match(deductions, /rawTimesheetRows:\s*\[\]/);
+});
+
 test("Transaction table exposes authoritative identity sync action", () => {
   const bulkPayment = readFileSync(
     new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
