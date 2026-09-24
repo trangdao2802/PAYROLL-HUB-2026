@@ -1047,7 +1047,7 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors"
                 >
                   <RefreshCw className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Làm mới dữ liệu</span>
+                  <span className="text-xs font-bold text-slate-700 truncate flex-1">Reset to default</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleBulkSyncFromReconcile}
