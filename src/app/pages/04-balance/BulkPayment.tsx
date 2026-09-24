@@ -1721,8 +1721,7 @@ export function BulkPayment({
     ));
 
     if (pendingTransactionKeys.length === 0) {
-      toast.info("Tên, STK và ID ở Gross Pay/Deductions đã khớp Batch Payment. Đang kiểm tra phiên bản tháng trên Supabase.");
-      setSyncSaveRequest((value) => value + 1);
+      toast.info("Không có dòng Reconciliation nào cần Process Sync.");
       return;
     }
 
@@ -1761,36 +1760,25 @@ export function BulkPayment({
 
     if (syncedCells === 0) {
       toast.info("Không còn dòng Reconciliation nào cần Process Sync.");
-      setSyncSaveRequest((value) => value + 1);
       return;
     }
 
     const nextGrossRows = grossRows;
     const nextDeductionRows = deductionRows;
-    updateAppData((prev) => {
-      if (prev.BankExport?.data !== appData.BankExport?.data ||
-          prev.Bank_North_AE?.data !== appData.Bank_North_AE?.data ||
-          prev.Sheet1_AE?.data !== appData.Sheet1_AE?.data ||
-          prev.Hold_AE?.data !== appData.Hold_AE?.data ||
-          prev.globalMonth !== appData.globalMonth) {
-        toast.warning("Dữ liệu đã đổi trong lúc đồng bộ. Bấm Đồng bộ lại.");
-        return prev;
-      }
-
-      return {
-        ...prev,
-        // Batch Payment stays authoritative and untouched. This is exactly the
-        // row Process Sync operation repeated for every pending row.
-        Sheet1_AE: { ...prev.Sheet1_AE, data: nextGrossRows },
-        Hold_AE: { ...prev.Hold_AE, data: nextDeductionRows },
-      };
-    }, true, true);
+    updateAppData((prev) => ({
+      ...prev,
+      // Do not use an object-identity guard here. The previous guard could abort
+      // the state write after the calculation had already reported success,
+      // which made the lightning icon appear to work while leaving all rows visible.
+      // Batch Payment stays authoritative and untouched.
+      Sheet1_AE: { ...prev.Sheet1_AE, data: nextGrossRows },
+      Hold_AE: { ...prev.Hold_AE, data: nextDeductionRows },
+    }), true, true);
 
     toast.success(`Đã đồng bộ ${syncedCells} ô trên ${syncedRows} dòng bằng cùng logic Process Sync. Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý.`);
 
-    // After the local state is committed, Reconciliation recomputes. Resolved
-    // rows become MATCHED and the default "ALL issues" view removes them.
-    setSyncSaveRequest((value) => value + 1);
+    // This action is only the all-row form of Process Sync. Saving/checking the
+    // monthly Batch Payment snapshot remains the job of "Lưu tháng" / "Check STK & ID".
   }, [
     appData,
     hasPendingTransactionEdits,
