@@ -9,6 +9,7 @@ export interface TimesheetLinkInput {
   sheetName?: string;
   aeCode?: string;
   date?: string;
+  lastSyncedAt?: string;
   legacyRowIds?: string[];
   status?: string;
 }
