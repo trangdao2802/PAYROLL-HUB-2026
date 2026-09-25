@@ -120,8 +120,10 @@ import { BulkPaymentAnalytics } from "./components/BulkPaymentAnalytics";
 import { buildBulkPaymentAnalytics } from "../../lib/utils/bulk-payment-analytics";
 import { markTransactionSaved } from "../../lib/utils/transaction-activity";
 import {
+  applyBulkReconciliationReferenceSync,
   applyTransactionReferenceSync,
   buildTransactionReferenceSyncPlan,
+  hasPendingReconciliationReferenceSync,
   type TransactionReferenceCorrection,
   type TransactionRawTimesheetCorrection,
 } from "../../lib/utils/transaction-reference-sync";
@@ -778,22 +780,19 @@ export function BulkPayment({
   }, [bankExportData, appData.Sheet1_AE?.data, appData.Hold_AE?.data]);
 
   const reconciliationNeedsSync = useMemo(() => {
-    if (rightPanelTab !== "reconcile") return false;
     const transactionRows = (bankExportData || []).length > 0
       ? bankExportData
       : appData.BankExport?.data?.length
         ? appData.BankExport.data
         : appData.Bank_North_AE?.data || [];
     if (!transactionRows.length) return false;
-    // Match the settings action: Transaction is the source, without RAWDATA repairs.
-    return applyTransactionReferenceSync({
+    return hasPendingReconciliationReferenceSync({
       grossRows: appData.Sheet1_AE?.data || [],
       deductionRows: appData.Hold_AE?.data || [],
       transactionRows,
-      rawTimesheetRows: [],
       reportMonth: appData.globalMonth,
-    }).correctedCells > 0;
-  }, [rightPanelTab, bankExportData, appData.BankExport?.data, appData.Bank_North_AE?.data, appData.Sheet1_AE?.data, appData.Hold_AE?.data, appData.globalMonth]);
+    });
+  }, [bankExportData, appData.BankExport?.data, appData.Bank_North_AE?.data, appData.Sheet1_AE?.data, appData.Hold_AE?.data, appData.globalMonth]);
 
   const analysAnalytics = useMemo(() => {
     if (rightPanelTab !== "visuals" || displayBankExportData.length === 0) {
@@ -1711,25 +1710,6 @@ export function BulkPayment({
       return;
     }
 
-    // The bulk lightning/menu action must be behaviorally identical to pressing
-    // Process Sync on every pending Reconciliation row. Run each Transaction key
-    // sequentially against the evolving Gross Pay/Deductions state so later rows
-    // see corrections already applied by earlier rows.
-    const pendingTransactionKeys = Array.from(new Set(
-      reconciliationAudit.transactionAuditList
-        .filter((item) =>
-          !item.id.startsWith("unmatched-") &&
-          Boolean(item.referenceTransactionKey) &&
-          (item.referenceCorrections?.length || 0) > 0
-        )
-        .map((item) => item.referenceTransactionKey),
-    ));
-
-    if (pendingTransactionKeys.length === 0) {
-      toast.info("Không có dòng Reconciliation nào cần Process Sync.");
-      return;
-    }
-
     const transactionRows =
       appData.BankExport?.data?.length > 0
         ? appData.BankExport.data
@@ -1740,54 +1720,40 @@ export function BulkPayment({
       return;
     }
 
-    let grossRows = appData.Sheet1_AE?.data || [];
-    let deductionRows = appData.Hold_AE?.data || [];
-    let syncedRows = 0;
-    let syncedCells = 0;
+    // Canonical shared action: the yellow Reconciliation lightning and every
+    // "Đồng bộ từ Reconcile" entry point execute this exact same pipeline.
+    const result = applyBulkReconciliationReferenceSync({
+      grossRows: appData.Sheet1_AE?.data || [],
+      deductionRows: appData.Hold_AE?.data || [],
+      transactionRows,
+      reportMonth: appData.globalMonth,
+    });
 
-    for (const transactionKey of pendingTransactionKeys) {
-      const result = applyTransactionReferenceSync({
-        grossRows,
-        deductionRows,
-        transactionRows,
-        rawTimesheetRows: [],
-        reportMonth: appData.globalMonth,
-        transactionKeys: [transactionKey],
-      });
-
-      if (result.correctedCells > 0) {
-        grossRows = result.grossRows;
-        deductionRows = result.deductionRows;
-        syncedCells += result.correctedCells;
-        syncedRows += result.correctedRows;
-      }
-    }
-
-    if (syncedCells === 0) {
+    if (result.correctedCells === 0) {
       toast.info("Không còn dòng Reconciliation nào cần Process Sync.");
       return;
     }
 
-    const nextGrossRows = grossRows;
-    const nextDeductionRows = deductionRows;
     updateAppData((prev) => ({
       ...prev,
-      // Do not use an object-identity guard here. The previous guard could abort
-      // the state write after the calculation had already reported success,
-      // which made the lightning icon appear to work while leaving all rows visible.
-      // Batch Payment stays authoritative and untouched.
-      Sheet1_AE: { ...prev.Sheet1_AE, data: nextGrossRows },
-      Hold_AE: { ...prev.Hold_AE, data: nextDeductionRows },
+      // Batch Payment remains authoritative and untouched.
+      Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
+      Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
     }), true, true);
 
-    toast.success(`Đã đồng bộ ${syncedCells} ô trên ${syncedRows} dòng bằng cùng logic Process Sync. Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý.`);
+    toast.success(
+      `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng bằng cùng logic Process Sync. Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý.`,
+    );
 
-    // This action is only the all-row form of Process Sync. Saving/checking the
-    // monthly Batch Payment snapshot remains the job of "Lưu tháng" / "Check STK & ID".
+    // Saving/checking the monthly Batch Payment snapshot remains the job of
+    // "Lưu tháng" / "Check STK & ID".
   }, [
-    appData,
     hasPendingTransactionEdits,
-    reconciliationAudit.transactionAuditList,
+    appData.BankExport?.data,
+    appData.Bank_North_AE?.data,
+    appData.Sheet1_AE?.data,
+    appData.Hold_AE?.data,
+    appData.globalMonth,
     updateAppData,
   ]);
 

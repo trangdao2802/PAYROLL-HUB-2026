@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  applyBulkReconciliationReferenceSync,
   applyTransactionReferenceSync,
+  hasPendingReconciliationReferenceSync,
   buildTransactionReferenceSyncPlan,
   getTransactionReferenceMatchAmounts,
 } from "../src/app/lib/utils/transaction-reference-sync";
@@ -406,6 +408,44 @@ test("missing Transaction fields are written to its existing bank columns", () =
   assert.equal("Bank Account Number" in result.transactionRows[0], false);
 });
 
+test("shared Reconciliation sync updates Gross Pay and Deductions and clears pending state", () => {
+  const grossRows = [{
+    "Tháng báo cáo": "03.2026",
+    "ID Number": "ID-001",
+    "Full name": "WRONG GROSS",
+    "Bank Account Number": "ACC-001",
+  }];
+  const deductionRows = [{
+    "Tháng báo cáo": "03.2026",
+    "ID Number": "ID-001",
+    "Full name": "WRONG DEDUCTION",
+    "Bank Account Number": "ACC-001",
+  }];
+  const transactionRows = [{
+    "Tháng báo cáo": "03.2026",
+    "Document ID": "ID-001",
+    "Beneficiary Name": "RIGHT NAME",
+    "Beneficiary Account No.": "ACC-001",
+  }];
+
+  assert.equal(hasPendingReconciliationReferenceSync({
+    grossRows, deductionRows, transactionRows, reportMonth: "03.2026",
+  }), true);
+
+  const result = applyBulkReconciliationReferenceSync({
+    grossRows, deductionRows, transactionRows, reportMonth: "03.2026",
+  });
+  assert.equal(result.grossRows[0]["Full name"], "RIGHT NAME");
+  assert.equal(result.deductionRows[0]["Full name"], "RIGHT NAME");
+  assert.ok(result.correctedCells >= 2);
+  assert.equal(hasPendingReconciliationReferenceSync({
+    grossRows: result.grossRows,
+    deductionRows: result.deductionRows,
+    transactionRows,
+    reportMonth: "03.2026",
+  }), false);
+});
+
 test("bulk sync is available in Deductions and persists immediately", () => {
   const deductions = readFileSync(
     new URL(
@@ -425,8 +465,9 @@ test("bulk sync is available in Deductions and persists immediately", () => {
 
   assert.match(deductions, /Đồng bộ từ Reconcile/);
   assert.match(deductions, /handleBulkSyncFromReconcile/);
-  assert.match(reconcile, /reconciliationAudit\.transactionAuditList\.filter/);
-  assert.match(reconcile, /rawTimesheetRows/);
+  assert.match(deductions, /applyBulkReconciliationReferenceSync/);
+  assert.match(reconcile, /applyBulkReconciliationReferenceSync/);
+  assert.match(reconcile, /hasPendingReconciliationReferenceSync/);
   assert.match(context, /persistImmediately \? 0 : 3000/);
 });
 
@@ -457,7 +498,7 @@ test("Reconciliation row sync and bulk lightning sync share the same authoritati
   assert.doesNotMatch(rowHandler, /Bank_North_AE:\s*\{/);
   assert.doesNotMatch(rowHandler, /markTransactionSaved/);
 
-  assert.match(bulkHandler, /rawTimesheetRows:\s*\[\]/);
+  assert.match(bulkHandler, /applyBulkReconciliationReferenceSync/);
   assert.doesNotMatch(bulkHandler, /BankExport:\s*\{/);
   assert.doesNotMatch(bulkHandler, /Bank_North_AE:\s*\{/);
   assert.doesNotMatch(bulkHandler, /markTransactionSaved/);
@@ -469,63 +510,67 @@ test("Reconciliation row sync and bulk lightning sync share the same authoritati
   );
   assert.match(bulkPayment, /handleAutoFillMissingAccount\(item\)/);
 
-  assert.match(deductions, /targetTable:\s*"Hold_AE"/);
-  assert.match(deductions, /rawTimesheetRows:\s*\[\]/);
+  assert.match(deductions, /applyBulkReconciliationReferenceSync/);
+  assert.match(deductions, /Sheet1_AE:\s*\{ \.\.\.prev\.Sheet1_AE, data: result\.grossRows \}/);
+  assert.match(deductions, /Hold_AE:\s*\{ \.\.\.prev\.Hold_AE, data: result\.deductionRows \}/);
+  assert.doesNotMatch(deductions, /targetTable:\s*"Hold_AE"/);
 });
 
-test("bulk Reconciliation sync repeats row Process Sync sequentially and hides resolved rows", () => {
+test("shared bulk Reconciliation sync repeats Process Sync sequentially and clears both UI pending states", () => {
+  const source = readFileSync(
+    new URL("../src/app/lib/utils/transaction-reference-sync.ts", import.meta.url),
+    "utf8",
+  );
   const bulkPayment = readFileSync(
     new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+  const deductions = readFileSync(
+    new URL("../src/app/pages/03-master/components/HoldAETable.tsx", import.meta.url),
+    "utf8",
+  );
+
+  const start = source.indexOf("export function applyBulkReconciliationReferenceSync");
+  const end = source.indexOf("export function getTransactionReferenceAudit", start);
+  const handler = source.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(handler, /for \(const transactionKey of pendingTransactionKeys\)/);
+  assert.match(handler, /transactionKeys:\s*\[transactionKey\]/);
+  assert.match(handler, /nextGrossRows = result\.grossRows/);
+  assert.match(handler, /nextDeductionRows = result\.deductionRows/);
+  assert.match(bulkPayment, /hasPendingReconciliationReferenceSync/);
+  assert.match(deductions, /hasPendingReconciliationReferenceSync/);
+  assert.match(deductions, /disabled=\{!pendingSync\}/);
+  assert.match(bulkPayment, /Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý/);
+});
+
+test("both Reconciliation sync entry points apply the same Gross Pay and Deductions state write", () => {
+  const bulkPayment = readFileSync(
+    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
+    "utf8",
+  );
+  const deductions = readFileSync(
+    new URL("../src/app/pages/03-master/components/HoldAETable.tsx", import.meta.url),
     "utf8",
   );
 
   const bulkStart = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");
   const bulkEnd = bulkPayment.indexOf("const reconcileTotals", bulkStart);
   const bulkHandler = bulkPayment.slice(bulkStart, bulkEnd);
+  const deductionStart = deductions.indexOf("const handleBulkSyncFromReconcile");
+  const deductionEnd = deductions.indexOf("const handleExportExcel", deductionStart);
+  const deductionHandler = deductions.slice(deductionStart, deductionEnd);
 
   assert.ok(bulkStart >= 0 && bulkEnd > bulkStart);
-  assert.match(
-    bulkHandler,
-    /for \(const transactionKey of pendingTransactionKeys\)/,
-  );
-  assert.match(
-    bulkHandler,
-    /transactionKeys:\s*\[transactionKey\]/,
-  );
-  assert.match(
-    bulkHandler,
-    /grossRows\s*=\s*result\.grossRows/,
-  );
-  assert.match(
-    bulkHandler,
-    /deductionRows\s*=\s*result\.deductionRows/,
-  );
-  assert.match(
-    bulkPayment,
-    /reconciliationAudit\.missingInfoCount > 0 \? "MISSING_INFO"[\s\S]*?: "ALL"\)/,
-  );
-  assert.match(
-    bulkHandler,
-    /Các dòng đã khớp sẽ tự biến mất khỏi danh sách cần xử lý/,
-  );
-});
-
-test("bulk Reconciliation lightning sync cannot report success without applying downstream state", () => {
-  const bulkPayment = readFileSync(
-    new URL("../src/app/pages/04-balance/BulkPayment.tsx", import.meta.url),
-    "utf8",
-  );
-
-  const start = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");
-  const end = bulkPayment.indexOf("const reconcileTotals", start);
-  const handler = bulkPayment.slice(start, end);
-
-  assert.ok(start >= 0 && end > start);
-  assert.match(handler, /Sheet1_AE:\s*\{ \.\.\.prev\.Sheet1_AE, data: nextGrossRows \}/);
-  assert.match(handler, /Hold_AE:\s*\{ \.\.\.prev\.Hold_AE, data: nextDeductionRows \}/);
-  assert.doesNotMatch(handler, /prev\.BankExport\?\.data !== appData\.BankExport\?\.data/);
-  assert.doesNotMatch(handler, /setSyncSaveRequest/);
-  assert.match(handler, /all-row form of Process Sync/);
+  assert.ok(deductionStart >= 0 && deductionEnd > deductionStart);
+  assert.match(bulkHandler, /applyBulkReconciliationReferenceSync/);
+  assert.match(deductionHandler, /applyBulkReconciliationReferenceSync/);
+  assert.match(bulkHandler, /Sheet1_AE:\s*\{ \.\.\.prev\.Sheet1_AE, data: result\.grossRows \}/);
+  assert.match(bulkHandler, /Hold_AE:\s*\{ \.\.\.prev\.Hold_AE, data: result\.deductionRows \}/);
+  assert.match(deductionHandler, /Sheet1_AE:\s*\{ \.\.\.prev\.Sheet1_AE, data: result\.grossRows \}/);
+  assert.match(deductionHandler, /Hold_AE:\s*\{ \.\.\.prev\.Hold_AE, data: result\.deductionRows \}/);
+  assert.doesNotMatch(bulkHandler, /setSyncSaveRequest/);
 });
 
 test("Transaction table exposes authoritative identity sync action", () => {

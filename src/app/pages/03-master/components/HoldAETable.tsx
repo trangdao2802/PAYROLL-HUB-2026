@@ -60,8 +60,9 @@ import {
 } from "../../../lib/utils/deductions-sheet-source";
 import { TransactionReferenceCell } from "../../../components/TransactionReferenceCell";
 import {
-  applyTransactionReferenceSync,
+  applyBulkReconciliationReferenceSync,
   getTransactionReferenceField,
+  hasPendingReconciliationReferenceSync,
   type TransactionReferenceAuditEntry,
 } from "../../../lib/utils/transaction-reference-sync";
 
@@ -743,43 +744,37 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
       }), true, true);
       toast.success("Đã khôi phục toàn bộ Deductions từ dữ liệu file gốc");
     };
-    const pendingSync = useMemo(() => applyTransactionReferenceSync({
-      targetTable: "Hold_AE",
+    const pendingSync = useMemo(() => hasPendingReconciliationReferenceSync({
       grossRows: appData.Sheet1_AE?.data || [],
       deductionRows: appData.Hold_AE?.data || [],
       transactionRows: appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || [],
-      // Batch Payment/Transaction is the source of truth for Deductions sync.
-      rawTimesheetRows: [],
       reportMonth: appData.globalMonth,
-    }).correctedCells > 0, [appData.Sheet1_AE, appData.Hold_AE, appData.BankExport, appData.Bank_North_AE, appData.Timesheet_Roster, appData.Q_Staff, appData.globalMonth]);
+    }), [appData.Sheet1_AE, appData.Hold_AE, appData.BankExport, appData.Bank_North_AE, appData.globalMonth]);
 
     const handleBulkSyncFromReconcile = useCallback(() => {
       updateAppData((prev: any) => {
-        const useBankExport = (prev.BankExport?.data || []).length > 0;
-        const transactionRows = useBankExport
+        const transactionRows = (prev.BankExport?.data || []).length > 0
           ? prev.BankExport.data
           : prev.Bank_North_AE?.data || [];
-        const result = applyTransactionReferenceSync({
-          targetTable: "Hold_AE",
+        const result = applyBulkReconciliationReferenceSync({
           grossRows: prev.Sheet1_AE?.data || [],
           deductionRows: prev.Hold_AE?.data || [],
           transactionRows,
-          // Deductions is downstream-only: never repair Batch Payment from raw data.
-          rawTimesheetRows: [],
           reportMonth: prev.globalMonth,
         });
 
         if (result.correctedCells === 0) {
-          toast.info("Deductions đã khớp Batch Payment trong kỳ hiện tại.");
+          toast.info("Gross Pay và Deductions đã khớp Batch Payment trong kỳ hiện tại.");
           return prev;
         }
 
         toast.success(
-          `Đã cập nhật ${result.correctedCells} ô trên ${result.correctedRows} dòng Deductions và lưu ngay.`,
+          `Đã đồng bộ ${result.correctedCells} ô trên ${result.correctedRows} dòng bằng cùng logic Reconciliation.`,
         );
         return {
           ...prev,
-          // Batch Payment/Transaction and Gross Pay are intentionally untouched.
+          // Exact same state write as the Reconciliation yellow lightning action.
+          Sheet1_AE: { ...prev.Sheet1_AE, data: result.grossRows },
           Hold_AE: { ...prev.Hold_AE, data: result.deductionRows },
         };
       }, true, true);
@@ -1051,10 +1046,10 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleBulkSyncFromReconcile}
-                  disabled={!pendingSync || isCurrentMonthLocked}
+                  disabled={!pendingSync}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-amber-50 transition-colors data-[disabled]:bg-muted data-[disabled]:text-muted-foreground"
                 >
-                  <Zap className={`w-4 h-4 shrink-0 ${pendingSync && !isCurrentMonthLocked ? "text-amber-600" : "text-muted-foreground"}`} />
+                  <Zap className={`w-4 h-4 shrink-0 ${pendingSync ? "text-amber-600" : "text-muted-foreground"}`} />
                   <span className="text-xs font-bold text-slate-700 truncate flex-1">
                     Đồng bộ từ Reconcile
                   </span>
@@ -1089,10 +1084,9 @@ export const HoldAETable = forwardRef<any, HoldAETableProps>(
                 <button
                   type="button"
                   onClick={handleBulkSyncFromReconcile}
-                  disabled={isCurrentMonthLocked}
-                  className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-amber-400 text-amber-950 shadow-sm transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                  title={isCurrentMonthLocked ? "Mở khóa tháng để đồng bộ Deductions" : "Cần đồng bộ Deductions từ Reconciliation"}
-                  aria-label="Đồng bộ Deductions từ Reconciliation"
+                  className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-amber-400 text-amber-950 shadow-sm transition-transform hover:scale-110 active:scale-95"
+                  title="Cần đồng bộ Gross Pay và Deductions từ Reconciliation"
+                  aria-label="Đồng bộ Gross Pay và Deductions từ Reconciliation"
                 >
                   <Zap className="h-3 w-3" />
                 </button>

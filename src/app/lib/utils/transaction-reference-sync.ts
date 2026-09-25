@@ -831,6 +831,103 @@ export function applyTransactionReferenceSync({
   };
 }
 
+export interface BulkReconciliationReferenceSyncResult {
+  grossRows: any[];
+  deductionRows: any[];
+  correctedCells: number;
+  correctedRows: number;
+  pendingTransactionKeys: string[];
+}
+
+export function getPendingReconciliationReferenceSyncKeys({
+  grossRows,
+  deductionRows,
+  transactionRows,
+  reportMonth,
+}: {
+  grossRows: any[];
+  deductionRows: any[];
+  transactionRows: any[];
+  reportMonth?: string;
+}): string[] {
+  const plan = buildTransactionReferenceSyncPlan({
+    grossRows,
+    deductionRows,
+    transactionRows,
+    // Reconciliation sync always treats confirmed Batch Payment as source.
+    rawTimesheetRows: [],
+    reportMonth,
+  });
+  return Array.from(new Set(
+    plan.matches
+      .filter((match) => match.corrections.length > 0)
+      .map((match) => match.transactionKey),
+  ));
+}
+
+export function hasPendingReconciliationReferenceSync(args: {
+  grossRows: any[];
+  deductionRows: any[];
+  transactionRows: any[];
+  reportMonth?: string;
+}): boolean {
+  return getPendingReconciliationReferenceSyncKeys(args).length > 0;
+}
+
+/**
+ * Canonical all-row Reconciliation sync.
+ * This intentionally repeats the same per-Transaction-key Process Sync against
+ * the evolving Gross Pay / Deductions state so every UI entry point behaves
+ * identically and resolved rows disappear after either action is used.
+ */
+export function applyBulkReconciliationReferenceSync({
+  grossRows,
+  deductionRows,
+  transactionRows,
+  reportMonth,
+}: {
+  grossRows: any[];
+  deductionRows: any[];
+  transactionRows: any[];
+  reportMonth?: string;
+}): BulkReconciliationReferenceSyncResult {
+  const pendingTransactionKeys = getPendingReconciliationReferenceSyncKeys({
+    grossRows,
+    deductionRows,
+    transactionRows,
+    reportMonth,
+  });
+
+  let nextGrossRows = grossRows;
+  let nextDeductionRows = deductionRows;
+  let correctedCells = 0;
+  let correctedRows = 0;
+
+  for (const transactionKey of pendingTransactionKeys) {
+    const result = applyTransactionReferenceSync({
+      grossRows: nextGrossRows,
+      deductionRows: nextDeductionRows,
+      transactionRows,
+      rawTimesheetRows: [],
+      reportMonth,
+      transactionKeys: [transactionKey],
+    });
+    if (result.correctedCells === 0) continue;
+    nextGrossRows = result.grossRows;
+    nextDeductionRows = result.deductionRows;
+    correctedCells += result.correctedCells;
+    correctedRows += result.correctedRows;
+  }
+
+  return {
+    grossRows: nextGrossRows,
+    deductionRows: nextDeductionRows,
+    correctedCells,
+    correctedRows,
+    pendingTransactionKeys,
+  };
+}
+
 export function getTransactionReferenceAudit(
   row: any,
   field: TransactionReferenceField,
