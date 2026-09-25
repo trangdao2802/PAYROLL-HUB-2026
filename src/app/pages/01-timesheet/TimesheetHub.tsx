@@ -2221,25 +2221,26 @@ export function TimesheetHub() {
                       </div>
 
                       {/* Quick Sync & Reload Actions */}
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
                         <button
                           type="button"
                           disabled={isSyncing}
                           onClick={handleSyncToSupabase}
-                          className="h-7.5 px-2 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+                          className="h-7.5 px-2 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground font-bold text-[10px] flex items-center justify-center gap-1.5 whitespace-nowrap transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
                           title="Đồng bộ dữ liệu lên Supabase"
                         >
-                          <Check className="w-3 h-3 text-emerald-600" />
+                          <Check className="w-3 h-3 shrink-0 text-emerald-600" />
                           <span>{isSyncing ? "Đang lưu..." : "Sync Cloud"}</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => restoreTable(["Timesheet_Roster"])}
-                          className="h-7.5 px-2 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground font-bold text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-[0.98]"
-                          title="Khôi phục Timesheet_Roster về dữ liệu mặc định chưa chỉnh sửa"
+                          className="h-7.5 px-2 rounded-lg border border-border bg-muted/40 hover:bg-muted text-foreground font-bold text-[10px] flex items-center justify-center gap-1.5 whitespace-nowrap transition-all cursor-pointer active:scale-[0.98]"
+                          title="Reset to default — Khôi phục Timesheet_Roster về dữ liệu mặc định chưa chỉnh sửa"
+                          aria-label="Reset to default"
                         >
-                          <RefreshCw className="w-3 h-3 text-primary" />
-                          <span>Reset to default</span>
+                          <RefreshCw className="w-3 h-3 shrink-0 text-primary" />
+                          <span>Reset</span>
                         </button>
                       </div>
                     </div>
