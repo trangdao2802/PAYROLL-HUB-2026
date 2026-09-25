@@ -10,6 +10,11 @@ import {
   withCanonicalTransactionDocumentId,
   type TransactionRow,
 } from "../../lib/utils/transaction-history";
+import {
+  getSavedLocalTransactionSnapshots,
+  replaceTransactionSnapshotsInAppData,
+  type TransactionSnapshotLike,
+} from "../../lib/utils/transaction-snapshot";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
@@ -715,12 +720,12 @@ export function BulkPayment({
   );
 
   const handleReplaceTransactionHistoryRows = useCallback(
-    (nextRows: TransactionRow[]) => {
-      updateAppData((prev) => ({
-        ...prev,
-        BankExport: {...prev.BankExport, data: nextRows},
-        TransactionActivity: markTransactionSaved(prev),
-      }), true, true);
+    (snapshots: TransactionSnapshotLike[]) => {
+      updateAppData(
+        (prev) => replaceTransactionSnapshotsInAppData(prev, snapshots),
+        true,
+        true,
+      );
     },
     [updateAppData],
   );
@@ -3279,6 +3284,7 @@ export function BulkPayment({
             syncRevision={appData.TransactionActivity?.saveVersion || 0}
             syncSaveRequest={syncSaveRequest}
             rows={appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || []}
+            localSavedSnapshots={getSavedLocalTransactionSnapshots(appData, appData.globalMonth || "")}
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}
             onOpenReport={() => setRightPanelTab("reconcile")}

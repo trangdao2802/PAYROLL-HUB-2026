@@ -4,6 +4,11 @@ import { INITIAL_APP_DATA } from '../src/app/constants/initial-data';
 import { syncReportingMonthReconciliation } from '../src/app/lib/utils/reconciliation-sync';
 import { applyTransactionDraftCellEdit, saveTransactionDraft } from '../src/app/lib/utils/transaction-draft';
 import { clearMasterPageData, clearMasterTableData } from '../src/app/lib/utils/data-clear-scopes';
+import {
+  findMismatchedTransactionHistoryPeriods,
+  getSavedLocalTransactionSnapshots,
+  replaceTransactionSnapshotsInAppData,
+} from '../src/app/lib/utils/transaction-snapshot';
 
 function editedMonth() {
   const app = structuredClone(INITIAL_APP_DATA);
@@ -66,4 +71,49 @@ test('an untouched generated month can still refresh from updated Bank AE source
   const refreshed = syncReportingMonthReconciliation(generated, '08.2026');
   assert.equal(refreshed.BankExport.data[0]['Beneficiary Account No.'], '0099887766');
   assert.equal(refreshed.BankExport.data[0]['Payment Amount'], 120_000);
+});
+
+
+test('saved local history must match the latest Supabase snapshot before Check STK & ID', () => {
+  const saved = editedMonth();
+  const september = syncReportingMonthReconciliation({...saved, globalMonth: '09.2026'}, '09.2026');
+  const localHistory = getSavedLocalTransactionSnapshots(september, '09.2026');
+  assert.deepEqual(localHistory.map(snapshot => snapshot.period), ['2026-08']);
+
+  const staleCloud = localHistory.map(snapshot => ({
+    period: `${snapshot.period}-01`,
+    rows: snapshot.rows.map(row => ({...row, 'Document ID': 'OLD-CLOUD-ID'})),
+  }));
+  assert.deepEqual(
+    findMismatchedTransactionHistoryPeriods(localHistory, staleCloud, '09.2026'),
+    ['2026-08'],
+  );
+  assert.deepEqual(
+    findMismatchedTransactionHistoryPeriods(
+      localHistory,
+      localHistory.map(snapshot => ({period: `${snapshot.period}-01`, rows: snapshot.rows})),
+      '09.2026',
+    ),
+    [],
+  );
+});
+
+test('verified history sync updates every matching local month cache and the active Transaction', () => {
+  const saved = editedMonth();
+  const september = syncReportingMonthReconciliation({...saved, globalMonth: '09.2026'}, '09.2026');
+  const august = getSavedLocalTransactionSnapshots(september, '09.2026')[0];
+  assert.ok(august);
+
+  const nextAugust = august.rows.map(row => ({...row, 'Document ID': 'SYNCED-AUG-ID'}));
+  const nextSeptember = september.BankExport.data.map(row => ({...row, 'Document ID': 'SYNCED-SEP-ID'}));
+  const synced = replaceTransactionSnapshotsInAppData(september, [
+    {period: '2026-08-01', rows: nextAugust},
+    {period: '2026-09-01', rows: nextSeptember},
+  ], '2026-09-25T03:00:00.000Z');
+
+  assert.equal(synced.TransactionMonthCache?.months['2026-08'].table.data[0]['Document ID'], 'SYNCED-AUG-ID');
+  assert.equal(synced.BankExport.data[0]['Document ID'], 'SYNCED-SEP-ID');
+  assert.equal(synced.TransactionActivity?.lastAction, 'saved');
+  const returned = syncReportingMonthReconciliation({...synced, globalMonth: '08.2026'}, '08.2026');
+  assert.equal(returned.BankExport.data[0]['Document ID'], 'SYNCED-AUG-ID');
 });

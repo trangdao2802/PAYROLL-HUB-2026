@@ -122,7 +122,7 @@ export async function loadTransactionCheckSource(client: SupabaseClient, period:
   await requireHistoryMember(client);
   const currentPeriod = `${normalizePeriod(period)}-01`;
   const latest = await latestVersionIds(client, afterPeriod(period));
-  if (!latest.has(currentPeriod)) throw new Error(`Tháng ${normalizePeriod(period)} chưa được lưu trên Supabase. Bấm Lưu sửa rồi Lưu tháng trước khi Check STK & ID.`);
+  if (!latest.has(currentPeriod)) throw new Error(`Tháng ${normalizePeriod(period)} chưa được lưu trên Supabase. Lưu sửa chỉ lưu dữ liệu trên máy; bấm Lưu tháng để cập nhật Supabase trước khi Check STK & ID.`);
   const snapshots = await loadPinnedVersions(client, latest);
   if (!sameVersionIds(latest, await latestVersionIds(client, afterPeriod(period)))) {
     throw new HistorySaveConflictError('Dữ liệu Supabase vừa được cập nhật trong lúc kiểm tra. Bấm Check STK & ID để lấy phiên bản mới nhất.');

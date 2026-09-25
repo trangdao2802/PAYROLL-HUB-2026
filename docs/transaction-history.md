@@ -47,15 +47,23 @@ Do not relax these restrictions to resolve login or setup errors.
 - After **Lưu sửa**, automatic month reconciliation retains the complete edited
   Transaction instead of rebuilding it from Bank AE. Local monthly snapshots
   preserve the rows and save activity when switching months or reopening the app.
-  Untouched generated months may still refresh from Bank AE; explicit Transaction
-  and Master clears discard these retained snapshots. **Lưu tháng** rereads and
-  compares the saved contents before reporting success. **Check STK & ID** only
-  reads Supabase and cannot replace local Transaction rows.
+  **Lưu sửa** changes local app data only; **Lưu tháng** is the action that updates
+  the corresponding Supabase monthly snapshot. Untouched generated months may still
+  refresh from Bank AE; explicit Transaction and Master clears discard retained snapshots.
+  **Lưu tháng** rereads and compares the cloud contents before reporting success.
 - **Check STK & ID** opens Reconcile and loads the latest saved current month from
-  Supabase after **Lưu sửa → Lưu tháng**. It compares that snapshot to
-  every saved month strictly before the selected reporting month (including prior
-  years). Each month uses its highest version ID; superseded versions and the
-  current/future months are excluded. Missing intervening months do not stop the check.
+  Supabase after **Lưu sửa → Lưu tháng**. Before showing a report it also compares
+  every locally **Lưu sửa** historical month with that month's latest Supabase
+  snapshot. Any missing or different cloud month blocks the check and reports the
+  mismatched month(s), so stale Supabase history cannot silently drive reconciliation.
+  The cloud comparison then uses every saved month strictly before the selected
+  reporting month (including prior years). Each month uses its highest version ID;
+  superseded versions and the current/future months are excluded. Missing intervening
+  months with no locally saved snapshot do not stop the check.
+- When an ID/name/STK resolution writes one or more Supabase months, the verified
+  read-back snapshots are copied into the corresponding local month cache as well.
+  This keeps current and historical app state aligned and prevents navigation from
+  restoring stale pre-sync rows.
 - A current row matches only when all historical occurrences found for its Document
   ID agree. Saved `ID Number` values from older builds are read as the same field and
   normalized to Transaction's canonical `Document ID`. Any older ID/account/name
