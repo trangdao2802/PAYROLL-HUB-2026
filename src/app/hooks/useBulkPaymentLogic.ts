@@ -1036,7 +1036,7 @@ export function useBulkPaymentLogic() {
     }
 
     toast.success(
-      "Đã lưu Transaction. Reconcile và Đồng bộ sẽ dùng dữ liệu vừa sửa.",
+      "Đã lưu sửa Batch Payment trên máy. Bấm Lưu tháng để cập nhật Supabase và lịch sử Check STK & ID.",
     );
   }, [activeTransactionDraft, hasPendingTransactionEdits, updateAppData]);
 

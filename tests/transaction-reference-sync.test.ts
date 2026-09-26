@@ -482,7 +482,7 @@ test("Reconciliation row sync and bulk lightning sync share the same authoritati
   );
 
   const rowStart = bulkPayment.indexOf("const handleAutoFillMissingAccount");
-  const rowEnd = bulkPayment.indexOf("const handleReplaceTransactionHistoryRows", rowStart);
+  const rowEnd = bulkPayment.indexOf("const handleApplyTransactionHistoryVersions", rowStart);
   const rowHandler = bulkPayment.slice(rowStart, rowEnd);
 
   const bulkStart = bulkPayment.indexOf("const handleSyncTransactionFieldsToTables");

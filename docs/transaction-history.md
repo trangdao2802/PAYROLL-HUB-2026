@@ -88,6 +88,17 @@ Do not relax these restrictions to resolve login or setup errors.
   existing financial Reconcile calculations/statuses.
 - Changing month, source data or signed-in identity invalidates old results;
   delayed responses from another context are discarded.
+- Check also compares retained local historical months with their cloud snapshots.
+  If a saved Batch Payment differs (or its month has not been published), it names
+  the month and stops before reporting identity differences. Generated previews
+  and future months are excluded. Open the named month and use **Lưu tháng** to
+  publish the verified local version, or **Cài đặt → Tải tháng** to explicitly use
+  the cloud version. Check remains read-only; **Lưu sửa** saves locally only.
+- After an explicit multi-month identity resolution, every verified changed month
+  updates the local month cache, including historical months. Returning to April
+  after resolving it from August therefore displays the resolved April snapshot.
+  A changed local history, save revision or signed-in identity invalidates the
+  report and event handlers; run Check again against the fresh cloud snapshots.
 
 Latest-cloud reads, bank checks and the official VCB source review are documented
 in [Bank account checks](bank-account-check.md). The report is an internal data

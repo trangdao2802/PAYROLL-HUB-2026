@@ -1,32 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../../../../lib/supabaseClient';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
-import { HistorySaveConflictError, loadLatestVersion, loadTransactionCheckSource, replaceTransactionVersionsAtomically, saveVersion, type TransactionCheckSource } from '../../../lib/transaction-history-store';
+import { HistorySaveConflictError, loadLatestVersion, loadTransactionCheckSource, replaceTransactionVersionsAtomically, saveVersion, type TransactionCheckSource, type TransactionVersion } from '../../../lib/transaction-history-store';
 import { compareAccountsAcrossHistory, formatHistoryDate, selectPeriodRows, visibleHistoricalComparisons, type TransactionRow, type HistoricalAccountComparison } from '../../../lib/utils/transaction-history';
 import { formatResolutionPeriods, type TransactionHistoryResolutionField } from '../../../lib/utils/transaction-history-resolution';
-import { findMismatchedTransactionHistoryPeriods, replaceTransactionPeriod, sameTransactionSnapshot, type TransactionSnapshotLike } from '../../../lib/utils/transaction-snapshot';
+import { sameTransactionSnapshot } from '../../../lib/utils/transaction-snapshot';
+import { conflictingLocalTransactionPeriods, type LocalTransactionMonths } from '../../../lib/utils/transaction-local-history';
 import { createIdentityResolutionBuilder, IDENTITY_FIELDS, identityResolutionTargets, planIdentityResolution } from '../../../lib/utils/transaction-identity-resolution';
 import { syncTransactionEmployeesToSupabase } from '../../../lib/utils/transaction-employee-sync';
 import { TransactionHistoryTable } from './TransactionHistoryTable';
 
 interface Props {
   rows: TransactionRow[];
-  localSavedSnapshots: TransactionSnapshotLike[];
   month: string;
   showReport: boolean;
   onOpenReport: () => void;
-  onReplaceRows: (snapshots: TransactionSnapshotLike[]) => void;
+  onApplyVersions: (versions: TransactionVersion[]) => void;
+  localMonths?: LocalTransactionMonths;
   hasPendingEdits: boolean;
   syncRevision?: number;
-  syncSaveRequest?: number;
   onReportStateChange?: (hasExceptions: boolean, viewingSource: boolean) => void;
 }
 interface Report extends TransactionCheckSource {
-  context: string;
+  context: object;
   comparisons: HistoricalAccountComparison[];
 }
 interface IdentityDecision {
-  context: string;
+  context: object;
   rowIndex: number;
   field: TransactionHistoryResolutionField;
   optionKey: string;
@@ -44,7 +44,7 @@ const markedDocumentId = (value: string, syncNote: string) => (
   value ? `${value}${syncNote ? '!' : ''}` : '—'
 );
 
-export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, showReport, onOpenReport, onReplaceRows, hasPendingEdits, syncRevision = 0, syncSaveRequest = 0, onReportStateChange }: Props) {
+export function TransactionHistoryPanel({ rows, month, showReport, onOpenReport, onApplyVersions, localMonths, hasPendingEdits, syncRevision = 0, onReportStateChange }: Props) {
   const [userId, setUserId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,11 +57,11 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
   const [page, setPage] = useState(1);
   const [defaultBank, setDefaultBank] = useState('VCB');
   const operation = useRef(false);
-  const handledSyncSave = useRef(0);
   const authIdentity = useRef('');
-  const retry = useRef<{context: string; requestId: string} | null>(null);
-  // Fingerprint all source rows, not just visible/filtered Transaction rows.
-  const context = useMemo(() => JSON.stringify([month, rows, userId, hasPendingEdits, defaultBank, syncRevision]), [month, rows, userId, hasPendingEdits, defaultBank, syncRevision]);
+  const retry = useRef<{context: object; requestId: string} | null>(null);
+  // AppData updates are immutable. Include retained months so a history edit
+  // also invalidates reports and in-flight reads without serializing every row.
+  const context = useMemo(() => ({month, rows, userId, hasPendingEdits, defaultBank, syncRevision, localMonths}), [month, rows, userId, hasPendingEdits, defaultBank, syncRevision, localMonths]);
   const currentContext = useRef(context);
   useEffect(() => { currentContext.current = context; }, [context]);
   useEffect(() => {
@@ -115,28 +115,17 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
   const buttonClass = 'rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold whitespace-nowrap hover:bg-primary/10 disabled:opacity-50 active:scale-[0.98]';
   const resolutionButtonClass = 'rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[10px] font-bold whitespace-nowrap text-foreground hover:bg-primary/20 disabled:opacity-50 active:scale-[0.98]';
 
-  function requireUnchangedContext(started: string) {
+  function requireUnchangedContext(started: object) {
     if (currentContext.current !== started) throw new HistorySaveConflictError('Transaction hoặc tháng đang chọn đã đổi. Hãy kiểm tra lại.');
   }
 
-  async function refreshReport(started: string) {
+  async function refreshReport(started: object) {
     const source = await loadTransactionCheckSource(supabase, month);
     if (currentContext.current !== started) return false;
-    // A local sync can update Batch Payment without publishing a new monthly
-    // version. Never silently check an older cloud snapshot in that case.
-    if (!sameTransactionSnapshot(rows, source.currentVersion.rows, month)) {
+    const conflicts = conflictingLocalTransactionPeriods(source, rows, month, localMonths);
+    if (conflicts.length) {
       throw new HistorySaveConflictError(
-        'Batch Payment tháng đang chọn đã Lưu sửa trên máy nhưng khác phiên bản mới nhất trên Supabase. Lưu sửa chỉ lưu trên máy; bấm Lưu tháng để cập nhật Supabase rồi Check STK & ID lại.',
-      );
-    }
-    const mismatchedHistoryPeriods = findMismatchedTransactionHistoryPeriods(
-      localSavedSnapshots,
-      source.versions,
-      month,
-    );
-    if (mismatchedHistoryPeriods.length) {
-      throw new HistorySaveConflictError(
-        `Batch Payment đã Lưu sửa trên máy nhưng chưa khớp Supabase tại tháng ${formatResolutionPeriods(mismatchedHistoryPeriods)}. Mở các tháng này và bấm Lưu tháng để cập nhật Supabase trước khi Check STK & ID.`,
+        `Batch Payment đã lưu trên máy khác dữ liệu Supabase ở tháng ${formatResolutionPeriods(conflicts)}. Mở từng tháng, kiểm tra bản đúng rồi bấm Lưu tháng để đưa bản trên máy lên Supabase, hoặc Cài đặt → Tải tháng để dùng bản Supabase. Sau đó Check STK & ID lại.`,
       );
     }
     setReport({
@@ -148,7 +137,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
     return true;
   }
 
-  async function run(action: 'save' | 'sync-save' | 'check' | 'load') {
+  async function run(action: 'save' | 'check' | 'load') {
     if (operation.current || hasPendingEdits) return;
     operation.current = true;
     setBusy(true);
@@ -158,21 +147,8 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
     const started = context;
     try {
       if (!isSupabaseConfigured()) throw new Error('Chưa cấu hình Supabase URL và publishable/anon key.');
-      if (action === 'save' || action === 'sync-save') {
+      if (action === 'save') {
         const selected = selectPeriodRows(rows, month);
-        if (action === 'sync-save') {
-          const latestBefore = await loadLatestVersion(supabase, month);
-          requireUnchangedContext(started);
-          if (latestBefore && sameTransactionSnapshot(selected, latestBefore.rows, month)) {
-            const confirmedLatest = await loadLatestVersion(supabase, month);
-            requireUnchangedContext(started);
-            if (!confirmedLatest || confirmedLatest.id !== latestBefore.id) {
-              throw new HistorySaveConflictError('Phiên bản tháng trên Supabase vừa thay đổi. Bấm Đồng bộ lại để kiểm tra bản mới nhất.');
-            }
-            setMessage(`Supabase đã có phiên bản mới nhất của tháng ${month} (#${confirmedLatest.id}); không tạo phiên bản trùng. Bấm Check STK & ID để đối chiếu.`);
-            return;
-          }
-        }
         if (retry.current?.context !== started) retry.current = {context: started, requestId: crypto.randomUUID()};
         const id = await saveVersion(supabase, month, selected, retry.current.requestId);
         retry.current = null;
@@ -190,7 +166,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
         const latest = await loadLatestVersion(supabase, month);
         if (!latest) throw new Error('Tháng này chưa có dữ liệu trên Supabase.');
         requireUnchangedContext(started);
-        onReplaceRows([{period: latest.period, rows: latest.rows}]);
+        onApplyVersions([latest]);
         setMessage(`Đã tải tháng ${month} từ Supabase (#${latest.id}). Bấm Check STK & ID để đối chiếu.`);
       } else if (await refreshReport(started)) {
         onOpenReport();
@@ -203,20 +179,6 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
       setBusy(false);
     }
   }
-
-  useEffect(() => {
-    if (!syncSaveRequest || handledSyncSave.current === syncSaveRequest || operation.current || busy) return;
-    handledSyncSave.current = syncSaveRequest;
-    if (hasPendingEdits) {
-      setMessage('Bấm Lưu sửa trong Batch Payment trước khi ghi phiên bản tháng lên Supabase.');
-    } else if (!userId) {
-      setSettingsOpen(true);
-      setLoginOpen(true);
-      setMessage('Đã đồng bộ trên máy. Đăng nhập kho rồi bấm Lưu tháng để cập nhật Supabase.');
-    } else {
-      void run('sync-save');
-    }
-  }, [syncSaveRequest, rows, userId, hasPendingEdits, busy]);
 
   async function login() {
     if (operation.current) return;
@@ -245,8 +207,6 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
     setMessage('');
     const started = context;
     let committed = false;
-    let nextLocalRows = rows;
-    let syncedSnapshots: TransactionSnapshotLike[] = [];
     const periods = selectedTargets.map(target => target.period);
     try {
       const plan = planIdentityResolution([visibleReport.currentVersion, ...visibleReport.versions],
@@ -257,6 +217,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
       requireUnchangedContext(started);
       const fresh = await loadTransactionCheckSource(supabase, month);
       requireUnchangedContext(started);
+      const verifiedVersions: TransactionVersion[] = [];
       for (const change of plan) {
         const period = change.version.period.slice(0, 7);
         const version = [fresh.currentVersion, ...fresh.versions].find(item => item.period.slice(0, 7) === period);
@@ -264,26 +225,20 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
         if (!version || version.id !== receipt?.id || !sameTransactionSnapshot(version.rows, change.rows, period)) {
           throw new HistorySaveConflictError(`Tháng ${formatResolutionPeriods([period])} chưa đọc lại được hoặc vừa có thay đổi mới.`);
         }
-      }
-      const changedPeriods = new Set(plan.map(change => change.version.period.slice(0, 7)));
-      syncedSnapshots = [fresh.currentVersion, ...fresh.versions]
-        .filter(version => changedPeriods.has(version.period.slice(0, 7)))
-        .map(version => ({period: version.period, rows: version.rows}));
-      if (changedPeriods.has(fresh.currentVersion.period.slice(0, 7))) {
-        nextLocalRows = replaceTransactionPeriod(rows, month, fresh.currentVersion.rows);
+        verifiedVersions.push(version);
       }
       let employeeMessage: string;
       try { employeeMessage = employeeSyncMessage(await syncTransactionEmployeesToSupabase(supabase, fresh.currentVersion.rows)); }
       catch (error) { employeeMessage = `Các tháng đã lưu; danh mục nhân viên chưa cập nhật: ${error instanceof Error ? error.message : 'Lỗi kết nối'}`; }
       requireUnchangedContext(started);
-      if (syncedSnapshots.length) onReplaceRows(syncedSnapshots);
-      setReport({...fresh, context: JSON.stringify([month, nextLocalRows, userId, hasPendingEdits, defaultBank, syncRevision]),
-        comparisons: compareAccountsAcrossHistory(fresh.currentVersion.rows, fresh.versions, defaultBank)});
+      // Every changed month must be reflected locally, otherwise switching back
+      // can display/re-save an obsolete snapshot over the resolved cloud data.
+      onApplyVersions(verifiedVersions);
+      setReport(null);
       setDecision(null);
-      setMessage(`Đã đồng bộ ${chosenField?.label}: ${chosenOption.value} theo ${formatResolutionPeriods([chosenOption.period])}. Đã lưu tháng ${formatResolutionPeriods(periods)} lên Supabase. ${employeeMessage}`);
+      setMessage(`Đã đồng bộ ${chosenField?.label}: ${chosenOption.value} theo ${formatResolutionPeriods([chosenOption.period])}. Đã lưu tháng ${formatResolutionPeriods(periods)} lên Supabase và cập nhật Batch Payment các tháng tương ứng. ${employeeMessage} Bấm Check STK & ID để đối chiếu lại.`);
     } catch (error) {
       if (currentContext.current === started) {
-        if (syncedSnapshots.length) onReplaceRows(syncedSnapshots);
         setReport(null);
         setDecision(null);
         setMessage(`${committed ? `Đã lưu tháng ${formatResolutionPeriods(periods)}. ` : ''}${error instanceof Error ? error.message : 'Không thể xác nhận kết quả lưu.'} Bấm Check STK & ID để tải trạng thái mới nhất.`);
@@ -323,22 +278,24 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
     } catch { setMessage('Không thể xuất báo cáo Check STK & ID.'); }
   }
 
+  const actionRef = useRef({run, userId});
+  useEffect(() => { actionRef.current = {run, userId}; });
   useEffect(() => {
     const handleSave = () => {
-      if (!userId) {
+      if (!actionRef.current.userId) {
         setSettingsOpen(true);
         setLoginOpen(true);
         return;
       }
-      void run('save');
+      void actionRef.current.run('save');
     };
     const handleCheck = () => {
-      if (!userId) {
+      if (!actionRef.current.userId) {
         setSettingsOpen(true);
         setLoginOpen(true);
         return;
       }
-      void run('check');
+      void actionRef.current.run('check');
     };
     window.addEventListener('trigger-transaction-save', handleSave);
     window.addEventListener('trigger-transaction-check', handleCheck);
@@ -346,7 +303,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
       window.removeEventListener('trigger-transaction-save', handleSave);
       window.removeEventListener('trigger-transaction-check', handleCheck);
     };
-  }, [userId, hasPendingEdits, rows, month, defaultBank]);
+  }, []);
 
   const hasPanelContent = hasPendingEdits || message || (showReport && visibleReport) || busy;
 
@@ -377,6 +334,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
                       setMessage(error ? error.message : 'Đã đăng xuất kho.');
                     }}>Đăng xuất kho</button>}
                   {userId && <span className="text-[10px] text-emerald-700">Đã kết nối</span>}
+                  {userId && <button type="button" className={buttonClass} disabled={busy || hasPendingEdits} title="Thay Batch Payment tháng đang chọn bằng bản đã lưu trên Supabase" onClick={() => { setSettingsOpen(false); void run('load'); }}>Tải tháng</button>}
                 </div>
                 {loginOpen && !userId && <form className="mt-3 space-y-2" onSubmit={event => {event.preventDefault(); void login();}}>
                   <label className="block">Email<input type="email" required autoComplete="username" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>
@@ -460,6 +418,7 @@ export function TransactionHistoryPanel({ rows, localSavedSnapshots, month, show
                   setMessage(error ? error.message : 'Đã đăng xuất kho.');
                 }}>Đăng xuất kho</button>}
               {userId && <span className="text-[10px] text-emerald-700">Đã kết nối</span>}
+              {userId && <button type="button" className={buttonClass} disabled={busy || hasPendingEdits} title="Thay Batch Payment tháng đang chọn bằng bản đã lưu trên Supabase" onClick={() => { setSettingsOpen(false); void run('load'); }}>Tải tháng</button>}
             </div>
             {loginOpen && !userId && <form className="mt-3 space-y-2" onSubmit={event => {event.preventDefault(); void login();}}>
               <label className="block">Email<input type="email" required autoComplete="username" className="mt-1 block w-full rounded border p-2 text-foreground bg-background" value={email} onChange={event => setEmail(event.target.value)} /></label>

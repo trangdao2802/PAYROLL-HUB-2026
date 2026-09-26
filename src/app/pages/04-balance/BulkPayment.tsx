@@ -8,13 +8,7 @@ import { downloadTransactionBankExport } from "../../lib/utils/excel-export";
 import {
   canonicalTransactionHeaders,
   withCanonicalTransactionDocumentId,
-  type TransactionRow,
 } from "../../lib/utils/transaction-history";
-import {
-  getSavedLocalTransactionSnapshots,
-  replaceTransactionSnapshotsInAppData,
-  type TransactionSnapshotLike,
-} from "../../lib/utils/transaction-snapshot";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useAppData } from "../../lib/contexts/AppDataContext";
@@ -119,6 +113,8 @@ import { DataTable, isAhpBuValue } from "../../components/DataTable";
 import { BulkPaymentAnalytics } from "./components/BulkPaymentAnalytics";
 import { buildBulkPaymentAnalytics } from "../../lib/utils/bulk-payment-analytics";
 import { markTransactionSaved } from "../../lib/utils/transaction-activity";
+import { applyLocalTransactionVersions } from "../../lib/utils/transaction-local-history";
+import type { TransactionVersion } from "../../lib/transaction-history-store";
 import {
   applyBulkReconciliationReferenceSync,
   applyTransactionReferenceSync,
@@ -300,7 +296,6 @@ export function BulkPayment({
     isMonthInStrComp,
   } = useBulkPaymentLogic();
 
-  const [syncSaveRequest, setSyncSaveRequest] = useState(0);
   const [activeBalanceSection, setActiveBalanceSection] = useState<string>("I");
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const searchTerm =
@@ -721,13 +716,9 @@ export function BulkPayment({
     [updateAppData],
   );
 
-  const handleReplaceTransactionHistoryRows = useCallback(
-    (snapshots: TransactionSnapshotLike[]) => {
-      updateAppData(
-        (prev) => replaceTransactionSnapshotsInAppData(prev, snapshots),
-        true,
-        true,
-      );
+  const handleApplyTransactionHistoryVersions = useCallback(
+    (versions: TransactionVersion[]) => {
+      updateAppData((prev) => applyLocalTransactionVersions(prev, versions), true, true);
     },
     [updateAppData],
   );
@@ -3248,13 +3239,12 @@ export function BulkPayment({
           <TransactionHistoryPanel
             hasPendingEdits={hasPendingTransactionEdits}
             syncRevision={appData.TransactionActivity?.saveVersion || 0}
-            syncSaveRequest={syncSaveRequest}
             rows={appData.BankExport?.data?.length ? appData.BankExport.data : appData.Bank_North_AE?.data || []}
-            localSavedSnapshots={getSavedLocalTransactionSnapshots(appData, appData.globalMonth || "")}
             month={appData.globalMonth || ""}
             showReport={rightPanelTab === "reconcile"}
             onOpenReport={() => setRightPanelTab("reconcile")}
-            onReplaceRows={handleReplaceTransactionHistoryRows}
+            onApplyVersions={handleApplyTransactionHistoryVersions}
+            localMonths={appData.TransactionMonthCache?.months}
             onReportStateChange={handleHistoryReportStateChange}
           />
         </div>
@@ -3511,7 +3501,7 @@ export function BulkPayment({
                           <ol className="mt-1 list-inside list-decimal space-y-1">
                             <li>Đồng bộ STK, tên và ID nếu có cảnh báo.</li>
                             <li>Nếu có sửa trực tiếp bảng Batch Payment, bấm Lưu sửa.</li>
-                            <li>Đồng bộ sẽ tự kiểm tra và lưu tháng lên Supabase nếu đã đăng nhập. Nếu chưa đăng nhập, đăng nhập rồi bấm Lưu tháng.</li>
+                            <li>Bấm Lưu tháng để ghi Batch Payment đã sửa lên Supabase. Nút Đồng bộ chỉ cập nhật Gross Pay và Deductions theo Batch Payment.</li>
                             <li>Bấm Check STK & ID để đọc lại phiên bản mới nhất.</li>
                           </ol>
                         </TooltipContent>
